@@ -448,3 +448,24 @@ kbd{font-family:var(--body);font-size:11px;font-weight:600;line-height:1.5;color
 @media (prefers-reduced-motion:reduce){.manual-btn .chev{transition:none}}
 .install-btn{font:600 12px/1 "IBM Plex Mono","Noto Sans TC","Noto Sans SC",monospace;letter-spacing:.06em;background:#181713;color:var(--phos);border:1px solid #3a372f;border-radius:6px;padding:9px 12px;cursor:pointer;white-space:nowrap}
 .install-btn:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
+
+/* ---------- Game Guy 3000 Deluxe ---------- */
+h1 .h-dx{color:#cfc3a3}
+@media (max-width:560px){h1{font-size:17px;letter-spacing:.24em}}
+/* RESET is the dangerous one, so it's dark wine red; SELECT keeps the graphite key */
+.resetbtn{background:linear-gradient(180deg,#7a2b3b,#541a28 55%,#3b111c)}
+.resetbtn.selectbtn{background:linear-gradient(180deg,#4a463d,#2a2722 55%,#1d1b17)}
+.sel-grp{margin-left:2px;padding-left:0;border-left:0;box-shadow:none}
+[data-layout$="portrait"] .power{grid-template-columns:auto auto auto auto}
+[data-layout$="portrait"] .selectbtn{grid-column:4;grid-row:1;margin-left:6px}
+[data-layout$="portrait"] .sel-grp .ctl-label{grid-column:4;grid-row:2;margin-left:6px}
+/* Dino Run has no boost meter: BOOST is DUCK there */
+[data-game="dino"] .bmeter{visibility:hidden}
+/* sideways phone: the strip is narrow, so the two keys shrink and sit closer */
+[data-layout="console"] .power{gap:6px}
+[data-layout="console"] .resetbtn{width:24px;height:18px}
+[data-layout="console"] .powerrock{width:72px}
+/* the nameplate: centred over two lines on the set; just GAME GUY on an upright phone, where SELECT needs the room */
+.nameplate b{text-align:center}
+[data-layout="phone-portrait"] .np-rest{display:none}
+.nameplate b .np-rest{font:inherit;letter-spacing:inherit;white-space:normal}

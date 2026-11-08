@@ -1,4 +1,4 @@
-import { setBest, clearFireQueued, clearBoostQueued, BOOST_MUL, BOOST_RECHARGE, BOOST_TIME, C, DIRS, H, HUD, K, LH, LW, M, S, W, banner, best, boostQueued, circ, col, enterOver, fireHeld, fireQueued, fitGrid, g, idx, inb, mulberry32, palRGB, poly, qualifies, rr, saveBest, sfx, startEntry, track, txt, wantDir } from "../../console/core";
+import { finishGame, setBest, clearFireQueued, clearBoostQueued, BOOST_MUL, BOOST_RECHARGE, BOOST_TIME, C, DIRS, H, HUD, K, LH, LW, M, S, W, banner, best, boostQueued, circ, col, enterOver, fireHeld, fireQueued, fitGrid, g, idx, inb, mulberry32, palRGB, poly, qualifies, rr, saveBest, sfx, startEntry, track, txt, wantDir } from "../../console/core";
 /* dirt is drawn straight into the low-res buffer, one pattern per seam */
 export const dirtCanvas = document.createElement('canvas');
 export function makeDirt(){
@@ -358,10 +358,7 @@ export function killPlayer(cause){
 export function afterDeath(){
   S.lives--;
   if (S.lives <= 0) {
-    saveBest();
-    track('game_over', { level: S.level, score: S.score });
-    if (S.score > 0 && S.score > (S.bestAtStart || 0)) track('new_best', { score: S.score, level: S.level });
-    if (qualifies(S.score)) startEntry(); else enterOver(false);
+    finishGame();
     return;
   }
   S.spawned -= S.monsters.length; S.monsters = []; S.sparks = [];

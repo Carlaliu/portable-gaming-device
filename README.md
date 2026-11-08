@@ -1,135 +1,150 @@
-# Tunnel Raider
+# Game Guy 3000 Deluxe
 
-**Play: https://tunnel-raider.wiiiimm.codes**
+![Game Guy 3000 Deluxe on a green-phosphor CRT monitor](public/og-image.png)
 
-![Tunnel Raider on a green-phosphor CRT monitor](og-image.png)
+A 1983-style home console in the browser, on an old phosphor monitor. Switch it on, watch the BIOS and the floppy drive boot, pick a disk from the menu and play. Each game has its own loading screen, instructions and high-score table, and it all works offline once loaded.
 
-A tunnelling arcade game for the browser, played on a 1983-style CRT monitor. Dig for emeralds, drop sacks of gold on the grubs and outwit monsters that get smarter every level.
+## Games
 
-It is one self-contained `index.html` with a small service worker for offline play: no build step and no dependencies beyond Google Fonts.
+| # | Game | File | Load time | What it is |
+| --- | --- | --- | --- | --- |
+| 1 | **Tunnel Raider** | `TUNNEL.EXE` | 4.4 s | Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level. A tribute to Windmill Software's *Digger* (1983). |
+| 2 | **Dino Run** | `DINORUN.COM` | 1.8 s | Jump the cacti and boulders, duck the pterosaurs, run as far as you can. A tribute to the offline dinosaur game in Google Chrome (2014). |
 
-## Play
+The characters, art, sound and code in both are original.
 
-Open `index.html` in a browser, or serve the folder with any static host (see [Deploy](#deploy)). The set starts switched off: flip **POWER** (or press <kbd>Enter</kbd>) to boot it.
+## The console
 
-| Action | Keyboard | On the set |
-| --- | --- | --- |
-| Move and dig | Arrow keys or <kbd>WASD</kbd> | Joystick (drag) |
-| Throw a spark | <kbd>Space</kbd> or <kbd>Z</kbd> | FIRE |
-| Speed boost | <kbd>Shift</kbd> or <kbd>B</kbd> | BOOST (refills in about 7 s) |
-| Pause | <kbd>P</kbd> or <kbd>Esc</kbd> | HOLD switch |
-| Sound on / off | <kbd>M</kbd> | SOUND switch |
-| Change monitor | <kbd>C</kbd> | PHOSPHOR dial |
-| Full screen | <kbd>F</kbd> | FULL switch |
-| Power / reboot | <kbd>Enter</kbd> to power on | POWER switch, RESET button |
-
-### Scoring
-
-| | Points |
-| --- | --- |
-| Emerald | 25 |
-| Eight emeralds in quick succession | +250 |
-| Gold from a sack that fell two or more cells | 500 |
-| Grub crushed by a sack or hit by a spark | 250 |
-| Rockjaw (from level 4) | 500 |
-| Sunstone | 1,000 |
-| Grubs rammed while the sunstone glows | 200 · 400 · 800 · 1,600 |
-| Spare drill cart | every 20,000 |
-
-### How it gets harder
-
-- Everything starts slow. The cart begins at 72% of full speed and the grubs at about a fifth of that, arriving several seconds apart. Both quicken every level, but grubs always stay below the cart's open-tunnel speed.
-- Grubs wander less, turn into tunnelling borers sooner and stay borers longer.
-- From level 3, borers shove sacks sideways and line them up over your cart.
-- From level 4, rockjaws dig their own tunnels and take two hits (three from level 7).
+- **POWER** switches the set on (or press <kbd>Enter</kbd>). It runs a memory test, beeps, spins up the drive and boots the disk menu.
+- **Disk menu:**
+  - **Choose a game:** stick, arrow keys or <kbd>1</kbd>–<kbd>9</kbd>.
+  - **Load it:** FIRE, <kbd>Space</kbd>, <kbd>Enter</kbd> or a tap on the disk.
+- **Loading:** every disk shows a loading screen themed to its game and plays the drive (motor, head recalibrating, track steps, head parking) for exactly as long as it takes to read. Load times differ per game and never exceed 5 seconds.
+- **SELECT** (graphite key, or <kbd>G</kbd>) warm-boots back to the disk menu from any game.
+- **RESET** (wine-red key) restarts the whole console from the BIOS.
+- **The phosphor dial and switches:**
+  - **Dial:** green P1, long-afterglow green P39, amber P3, paper white P4 and the two CGA palettes.
+  - **Switches:** SOUND, GLOW (all the tube effects), HOLD (pause) and FULL (full screen).
+- **FIRE and BOOST** change with the game: FIRE and BOOST in Tunnel Raider, JUMP and DUCK in Dino Run.
+- **Instructions:** the printed leaflet under the set shows the console's instructions while the menu is up and the loaded game's while you play.
 
 ### High scores
 
-The top ten scores are kept on the device (in the browser's local storage, so they survive offline play and app restarts but never leave the device). When a game ends with a score that makes the table, the tube switches to an arcade-style name entry:
+Each game keeps its own top ten on the device, in the browser's local storage, so scores survive offline play and restarts but never leave the device.
 
-- Up to nine letters and spaces.
-- Move round the letter grid with the joystick or arrow keys and pick with **FIRE** (or <kbd>Space</kbd>), or tap a letter on the screen. On a keyboard you can also just type, with <kbd>Backspace</kbd> to delete and <kbd>Enter</kbd> to finish.
-- The last name used is filled in, so a repeat player only has to press **END**.
-
-After a game, the CAVE-IN card and the high-score table take turns on the screen, with your new entry flashing. Press **FIRE** at either to dig again.
-
-## The monitor
-
-- **Phosphor dial:** green (P1), long-afterglow green (P39), amber (P3), paper white (P4) and the two four-colour CGA palettes. Each phosphor fades at its own rate.
-- **Tube effects:** scanlines, bloom, afterglow trails, a colour stripe mask, magnetised patches that creep back after each degauss, burn-in, dust, picture tears. The GLOW switch turns them all off.
-- **Cold boot:** BIOS memory test, POST beep and a floppy load with drive sounds, all synthesised with the Web Audio API.
+- **Entering a name:** a score that makes the table opens arcade-style name entry: up to nine letters and spaces, picked from an on-screen grid with the stick and FIRE, tapped, or typed.
+- **After a game:** the game-over card and the table take turns on the screen.
+- **Moving over from Tunnel Raider:** scores saved by the standalone Tunnel Raider on the same site are picked up automatically.
 
 ## Screens
 
-A small detector picks a layout from the real viewport and input type, so it fits any phone, tablet or desktop:
+A layout detector picks a layout from the viewport and input type:
 
-| Layout | When | What you get |
-| --- | --- | --- |
-| Console | Phone held sideways | Gamepad style: switches and power top left over the joystick, dial top right over FIRE and BOOST |
-| Tall console | Tablet or opened foldable held sideways (560px+ tall) | Power and reset top left over a full-height joystick; down the right: the Tunnel Raider plate, the phosphor dial, the four switches, then FIRE and BOOST |
-| Phone portrait | Upright phone, or a tall narrow window | The set fills the screen, with a tall playfield and handheld-style controls: joystick left, FIRE and BOOST right |
-| Tablet portrait | Upright tablet | Large tube, controls underneath |
-| Desk | Mouse or trackpad | The full set with the guide below |
+| Layout | When |
+| --- | --- |
+| Desk | A mouse or trackpad |
+| Console | A phone held sideways (gamepad style) |
+| Tall console | A tablet or opened foldable held sideways |
+| Phone portrait | An upright phone |
+| Tablet portrait | An upright tablet |
 
-The playfield grid is chosen per game to match the tube's shape: about 15 × 10 on a wide screen, 10 or 11 columns by 14 to 16 rows on an upright phone.
+The playfield's grid follows the shape of the tube.
 
-## Play offline and install
+## Languages
 
-Served over HTTPS, as it is on the live site, Tunnel Raider is an installable web app:
+English (default), Traditional Chinese and Simplified Chinese, carried in the link: `#en`, `#zh-hant` (also `#zh-hk`, `#zh-tw`), `#zh-hans` (also `#zh-cn`, `#zh-sg`). Text on the tube stays English in the pixel font.
 
-- **Offline:** the first visit caches the whole game, its icons and fonts with a service worker (`sw.js`). After that it opens instantly and plays with no connection.
-- **Updates:** whenever the game opens, comes back online, or every 30 minutes while it's visible, it checks `sw.js` for a new version. A new version downloads in the background, then a "new version ready · RESTART" prompt appears, so a game is never cut off mid-level. Installed apps on Chromium browsers can also check in the background.
-- **Install:** browsers that support it show an **Install app** button beside the language switch. On iPhone and iPad, use Share → Add to Home Screen. The app opens full screen with the CRT icon.
+## Development
 
-High scores and settings stay on the device; there is no server.
+Built with **Vite + TypeScript** and plain Canvas 2D. There's no UI framework or game engine: the picture comes from our own four-colour, phosphor-afterglow CRT pass.
 
-### Building
+```sh
+npm install
+npm run dev        # local dev server
+npm run build      # type-check, then build to dist/
+npm run preview    # serve the build on http://localhost:4173
+npm test           # unit tests (Vitest)
+```
 
-`index.html`, `sw.js` and the icons are generated from the artifact source. The service worker's version is a hash of everything it caches, so any change to the page or icons ships as an update automatically.
+Browser checks use Playwright; they need Chromium and the `playwright` package installed (here the machine-wide copy is found with `NODE_PATH`):
+
+```sh
+npm run preview &
+NODE_PATH=$(npm root -g) node tests/flow.cjs    # boot → menu → both games → SELECT → high scores, at three sizes
+NODE_PATH=$(npm root -g) node tests/smoke.cjs   # Tunnel Raider plays and records a score
+```
+
+Both scripts load the page with `?test`, which exposes a small `window.__gg` hook for driving the game.
+
+### Layout
+
+```
+index.html                    markup for the set and the instructions leaflet
+src/main.ts                   entry: styles, console, web app, analytics
+src/styles/console.css        the set, its layouts and the leaflet
+src/console/core.ts           CRT picture, input, sound, switches, languages, scores, game loop
+src/console/loader.ts         boot screens, disk menu, loading and drive sounds, SELECT
+src/console/strings.ts        the console's own words in three languages
+src/console/pwa.ts            install button, offline-ready and update prompts
+src/games/types.ts            GameDisk: what every game gives the console
+src/games/index.ts            the disks in loader order
+src/games/tunnel-raider/      Tunnel Raider (game.ts) and its disk (loading screen, instructions)
+src/games/dino-run/           Dino Run and its strings
+public/                       icons, favicon, share image
+```
+
+### Adding a game
+
+1. **Write the module:** create `src/games/<id>/` with a module that exports a `GameDisk` (see `src/games/types.ts`). It needs:
+   - `start`, `update`, `draw`
+   - a themed `drawLoad`
+   - a `loadSecs` of 5 or less, and an uneven `steps` curve
+   - `manual` sections and `strings` in `en`, `zh-hant` and `zh-hans`
+2. **List it:** add the disk to `src/games/index.ts`.
+3. **Keep top level clean:** don't use console imports at a game module's top level, only inside its functions. The modules import each other, and the console finishes loading after the games.
+
+The unit tests check every disk's load time, progress curve and translations.
+
+### Offline and updates
+
+`vite-plugin-pwa` (Workbox) generates the service worker and manifest at build time and precaches every built file by content hash, so each deploy is a new offline version. When a new version has downloaded, the set's status badge offers a RESTART instead of interrupting a game. On HTTPS the browser can install it as an app.
 
 ## Analytics
 
-The live site uses [Vercel Web Analytics](https://vercel.com/docs/analytics): page views plus a handful of custom game events. Nothing personal is sent, and no cookies are set. Custom events need a Vercel Pro or Enterprise plan; on Pro each event carries at most two properties, so every event below stays within that limit. Find them under **Analytics → Events** in the Vercel dashboard.
+[Vercel Web Analytics](https://vercel.com/docs/analytics) through `@vercel/analytics`: page views plus these custom events. Custom events need a Pro or Enterprise plan; on Pro each event carries at most two properties, so every event stays within two. Nothing personal is sent. Events appear under **Analytics → Events** in the Vercel dashboard.
 
 | Event | Properties | When |
 | --- | --- | --- |
 | `power_on` | `theme`, `layout` | The set is switched on |
-| `game_start` | `layout`, `grid` | A new game begins (`grid` is the playfield size, e.g. `15x10`) |
-| `level_cleared` | `level`, `how` | A level ends, by collecting every emerald or clearing every grub |
-| `sunstone` | `level` | The sunstone is picked up |
-| `life_lost` | `level`, `cause` | A cart is lost to a `sack`, `grub`, `borer` or `rockjaw` |
-| `game_over` | `level`, `score` | The last cart is lost |
-| `new_best` | `score`, `level` | A game beats the device's previous high score |
-| `high_score` | `rank`, `score` | A name is entered on the high-score table |
-| `reset` | `level`, `mode` | The RESET button is pressed |
-| `theme` | `theme`, `via` | The phosphor is changed by `dial` or `key` |
-| `language` | `lang` | The guide's language is switched |
-| `instructions_open` | `layout` | The operating instructions are opened |
+| `game_load` | `game`, `layout` | A disk is loaded from the menu |
+| `game_start` | `game`, `layout` | A new game begins |
+| `game_over` | `game`, `score` | A game ends |
+| `new_best` | `game`, `score` | A game beats this device's best for that game |
+| `high_score` | `game`, `rank` | A name goes on a game's table |
+| `select` | `game`, `level` | SELECT is pressed (`game` is `menu` from the menu) |
+| `reset` | `game`, `mode` | RESET is pressed |
+| `level_cleared` | `level`, `how` | Tunnel Raider: a level ends by `emeralds` or `grubs` |
+| `sunstone` | `level` | Tunnel Raider: the sunstone is picked up |
+| `life_lost` | `level`, `cause` | Tunnel Raider: a cart is lost to a `sack`, `grub`, `borer` or `rockjaw` |
+| `theme` | `theme`, `via` | The phosphor changes by `dial` or `key` |
+| `language` | `lang` | The leaflet's language changes |
+| `instructions_open` | `layout` | The instructions are opened |
 | `fullscreen` | `on`, `layout` | Full screen is toggled |
-| `launch_installed` | `layout` | The game opens as an installed app |
+| `launch_installed` | `layout` | Opened as an installed app |
 | `install_prompt` | `outcome` | The install prompt is `accepted` or `dismissed` |
-| `app_installed` | | The browser reports the app was installed |
-| `offline_ready` | | The game is cached for offline play for the first time |
-| `update_applied` | | A player restarts into a new version |
-
-Events go through a small `track()` helper that does nothing when the analytics script isn't loaded, so the game runs the same offline, in the Claude artifact, or on any other host.
-
-## Languages
-
-English (default), Traditional Chinese and Simplified Chinese. The language travels in the link, so you can share it:
-
-- `…/#en`
-- `…/#zh-hant` (also `#zh-hk`, `#zh-tw`)
-- `…/#zh-hans` (also `#zh-cn`, `#zh-sg`)
+| `app_installed` | | The app was installed |
+| `offline_ready` | | First cached for offline play |
+| `update_applied` | | A player restarted into a new version |
 
 ## Deploy
 
-Live at **https://tunnel-raider.wiiiimm.codes** (also **https://digger.wiiiimm.codes**), served by Vercel from `main`. Any static host works: the site is just these files.
+Vercel detects Vite: build command `npm run build`, output directory `dist`. Any static host works the same way. Turn on Web Analytics in the project for the events above.
 
-The canonical URL and the share tags (`og:url`, `og:image`, `twitter:image`) use `https://tunnel-raider.wiiiimm.codes/`, so links shared from either domain show the same preview. If the main address changes, update `SITE` in the build script and rebuild, or edit those tags at the top of `index.html`.
-
-After changing share tags, paste the URL into the Facebook Sharing Debugger and press **Scrape Again**: Facebook keeps its first scrape until you do.
+Once the console has its own address:
+- **Share tags:** set the share tags in `index.html` (`og:url`, absolute `og:image` and `twitter:image`).
+- **Canonical link:** add a canonical link.
+- **Refresh Facebook's cache:** paste the address into Facebook's Sharing Debugger and press **Scrape Again**.
 
 ## Credits
 
-A tribute to Windmill Software's *Digger* (1983). The characters, artwork, sound and code here are original.
+Tunnel Raider is a tribute to Windmill Software's *Digger* (1983); Dino Run is a tribute to the offline dinosaur game in Google Chrome (2014). Both are original work: no characters, art, sound or code are copied.

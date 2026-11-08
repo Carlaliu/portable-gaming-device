@@ -1,6 +1,9 @@
 import { track as vaTrack } from '@vercel/analytics';
-import * as game from "../games/tunnel-raider/game";
-import { dirtCanvas, genLevel, makeDirt } from "../games/tunnel-raider/game";
+import { GAMES } from "../games";
+import type { GameDisk, ManualSection } from "../games/types";
+import { dirtCanvas, killPlayer as trKill } from "../games/tunnel-raider/game";
+import { startConsole, drawBoot, updateBoot, enterMenu, updateMenu, drawMenu, menuKey, menuTap, updateLoad, drawLoad, pressSelect, loadGame } from "./loader";
+import { CONSOLE_STRINGS } from "./strings";
 export let W = 15, H = 10;
 export const C = 32, CELL = 24, HUD = 20, K = CELL / C;   // game units per cell, low-res pixels per cell
 export let LW = W * CELL, LH = H * CELL + HUD;              // low-res frame buffer, like a 1980s graphics mode; resized to fit the screen
@@ -41,7 +44,7 @@ export function buildBurn(){
   const b = burn.getContext('2d');
   b.fillStyle = '#fff'; b.fillRect(0, 0, LW, LH);
   b.fillStyle = '#d0d0d0'; b.font = '16px Silkscreen, "Courier New", monospace'; b.textAlign = 'center'; b.textBaseline = 'middle';
-  b.fillText('TUNNEL RAIDER', LW / 2, LH * 0.42);
+  b.fillText('GAME GUY 3000', LW / 2, LH * 0.42);
   b.fillStyle = '#dadada'; b.font = '8px Silkscreen, "Courier New", monospace'; b.textAlign = 'left'; b.textBaseline = 'top';
   b.fillText('000000', 6, 6); b.fillText('HI 000000', 80, 6);
 }
@@ -85,12 +88,12 @@ export function setMode(k){
   R.setProperty('--phos', M.pal[M.phos]); R.setProperty('--phos2', M.pal[M.phos2]);
   R.setProperty('--plastic-hi', hi); R.setProperty('--plastic', mid); R.setProperty('--plastic-lo', low);
   R.setProperty('--bezel-ink', ink); R.setProperty('--glass', glass);
-  $('plate').textContent = 'TR-83 · ' + M.name;
+  $('plate').textContent = 'GG-3000 DX · ' + M.name;
   updateDial(MODE_ORDER.indexOf(k));
   try { localStorage.setItem('eb-mode', k); } catch (e) {}
   accReset = true; warmT = 0; age.dg = 0;
   if (ac && !muted && (typeof tvOn === 'undefined' || tvOn)) { tone(58, 0.9, 0.04, 14); tone(15000, 0.4, 0.006, 0); }   // degauss "boinng" and flyback whine
-  makeDirt();
+  if (game && game.onPalette) game.onPalette();
 }
 /* the phosphor dial: six detents, turned by dragging, clicking (next), scrolling, arrow keys or the labels */
 export const SHORT = { greenP1:'GREEN', greenP39:'P39', amberP3:'AMBER', whiteP4:'WHITE', cga1:'CGA 1', cga0:'CGA 0' };
@@ -169,21 +172,35 @@ export const inb = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
 export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 export const DIRS = { up:{dx:0,dy:-1}, down:{dx:0,dy:1}, left:{dx:-1,dy:0}, right:{dx:1,dy:0} };
 
+/* ---------- scores: each game keeps its own best and top-ten table on this device (localStorage only) ---------- */
+export let game: GameDisk = GAMES[0];
 export let best = 0;
-try { best = parseInt(localStorage.getItem('eb-best') || '0', 10) || 0; } catch (e) {}
-export function saveBest(){ try { localStorage.setItem('eb-best', String(best)); } catch (e) {} }
-
-/* ---------- high-score table: the top ten, kept on this device only (localStorage) ---------- */
-export const BOARD_KEY = 'tr-board', BOARD_MAX = 10, NAME_MAX = 9;
+export const BOARD_MAX = 10, NAME_MAX = 9;
+const bestKey = (id: string) => 'gg-best-' + id, boardKey = (id: string) => 'gg-board-' + id;
+const OLD_KEYS: Record<string, { best: string; board: string }> = { tunnel: { best: 'eb-best', board: 'tr-board' } };   // from the standalone Tunnel Raider
+const lsGet = (k: string) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch (_) {} };
 export const cleanName = v => String(v || '').toUpperCase().replace(/[^A-Z ]/g, '').slice(0, NAME_MAX);
-export let board = [], lastName = '';
-try {
-  const b = JSON.parse(localStorage.getItem(BOARD_KEY) || '[]');
-  if (Array.isArray(b)) board = b.filter(e => e && Number.isFinite(e.s) && e.s > 0).map(e => ({ n: cleanName(e.n).trim() || 'RAIDER', s: Math.floor(e.s), l: Math.max(1, e.l | 0) })).sort((a, b) => b.s - a.s).slice(0, BOARD_MAX);
-  lastName = cleanName(localStorage.getItem('tr-name'));
-} catch (_) {}
-if (board.length && board[0].s > best) best = board[0].s;
-export function saveBoard(){ try { localStorage.setItem(BOARD_KEY, JSON.stringify(board)); localStorage.setItem('tr-name', lastName); } catch (_) {} }
+export function readBoard(id: string){
+  const raw = lsGet(boardKey(id)) ?? (OLD_KEYS[id] ? lsGet(OLD_KEYS[id].board) : null);
+  try {
+    const b = JSON.parse(raw || '[]');
+    if (Array.isArray(b)) return b.filter(e => e && Number.isFinite(e.s) && e.s > 0).map(e => ({ n: cleanName(e.n).trim() || 'RAIDER', s: Math.floor(e.s), l: Math.max(1, e.l | 0) })).sort((a, b) => b.s - a.s).slice(0, BOARD_MAX);
+  } catch (_) {}
+  return [];
+}
+const bestCache: Record<string, number> = {};
+export function readBest(id: string){
+  if (bestCache[id] != null) return bestCache[id];
+  const raw = lsGet(bestKey(id)) ?? (OLD_KEYS[id] ? lsGet(OLD_KEYS[id].best) : null);
+  const b = readBoard(id);
+  return (bestCache[id] = Math.max(parseInt(raw || '0', 10) || 0, b.length ? b[0].s : 0));
+}
+export function saveBest(){ bestCache[game.id] = best; lsSet(bestKey(game.id), String(best)); }
+export let board = [], lastName = cleanName(lsGet('gg-name') ?? lsGet('tr-name'));
+export function loadScores(id: string){ board = readBoard(id); best = readBest(id); }
+loadScores(game.id);
+export function saveBoard(){ lsSet(boardKey(game.id), JSON.stringify(board)); lsSet('gg-name', lastName); }
 export const boardRank = sc => { const i = board.findIndex(e => sc > e.s); return i < 0 ? board.length : i; };   // ties go below the older score
 export const qualifies = sc => sc > 0 && boardRank(sc) < BOARD_MAX;
 export const ordinal = n => n + (n === 1 ? 'ST' : n === 2 ? 'ND' : n === 3 ? 'RD' : 'TH');
@@ -237,7 +254,7 @@ export const S: any = {
 export const held = [];
 export let stickDir = null, fireHeld = false, fireCool = false, boostQueued = false, boostShown = '';
 export const BOOST_MUL = 1.6, BOOST_TIME = 1.6, BOOST_RECHARGE = 7;   // a 60% burst for 1.6 s, refilling over 7 s
-export let fireQueued = false;
+export let fireQueued = false, boostHeld = false, tapQueued = false, tapHeld = false;
 export const KEYMAP = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right', KeyW:'up', KeyS:'down', KeyA:'left', KeyD:'right' };
 export const press = d => { if (!held.includes(d)) held.push(d); };
 export const release = d => { const i = held.indexOf(d); if (i >= 0) held.splice(i, 1); };
@@ -245,18 +262,21 @@ export const wantDir = () => stickDir ? DIRS[stickDir] : held.length ? DIRS[held
 
 addEventListener('keydown', e => {
   if (S.mode === 'entry' && !e.metaKey && !e.ctrlKey && !e.altKey) { if (entryKey(e)) e.preventDefault(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (S.mode === 'menu' && menuKey(e)) { e.preventDefault(); return; }
+  if (e.code === 'KeyG') { pressSelect(); e.preventDefault(); return; }
   const d = KEYMAP[e.code];
   if (d) { press(d); e.preventDefault(); return; }
   if (e.code === 'Space' || e.code === 'KeyZ' || e.code === 'KeyX') { if (menuFire()) e.preventDefault(); else if (S.mode !== 'title' && S.mode !== 'over') { fireQueued = true; e.preventDefault(); } return; }
   if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
   if (e.code === 'KeyM') { toggleMute(); return; }
   if (e.code === 'KeyF') { setFull(!full); return; }
-  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyB') { if (S.mode === 'play') boostQueued = true; e.preventDefault(); return; }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyB') { if (S.mode === 'play') boostQueued = true; boostHeld = true; e.preventDefault(); return; }
   if (e.code === 'KeyC') { setMode(MODE_ORDER[(MODE_ORDER.indexOf(modeKey) + 1) % MODE_ORDER.length]); track('theme', { theme: modeKey, via: 'key' }); return; }
   if (e.code === 'Enter' && !tvOn) { ensureAudio(); powerOn(); e.preventDefault(); return; }
   if (e.code === 'Enter' && (S.mode === 'title' || S.mode === 'over')) { startGame(); e.preventDefault(); }
 });
-addEventListener('keyup', e => { const d = KEYMAP[e.code]; if (d) release(d); });
+addEventListener('keyup', e => { const d = KEYMAP[e.code]; if (d) release(d); if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyB') boostHeld = false; });
 addEventListener('blur', () => { held.length = 0; if (S.mode === 'play' || S.mode === 'ready') togglePause(true); });
 
 /* floating thumb-stick: the stick centres wherever the thumb lands, follows it past the rim,
@@ -310,8 +330,8 @@ addEventListener('blur', () => { held.length = 0; if (S.mode === 'play' || S.mod
   fire.addEventListener('pointerup', off); fire.addEventListener('pointercancel', off); fire.addEventListener('lostpointercapture', off);
   fire.addEventListener('contextmenu', e => e.preventDefault());
   const boost = $('boostBtn');
-  boost.addEventListener('pointerdown', e => { e.preventDefault(); ensureAudio(); boostQueued = true; boost.classList.add('on'); try { boost.setPointerCapture(e.pointerId); } catch (_) {} });
-  const boff = () => boost.classList.remove('on');
+  boost.addEventListener('pointerdown', e => { e.preventDefault(); ensureAudio(); if (S.mode === 'play') boostQueued = true; boostHeld = true; boost.classList.add('on'); try { boost.setPointerCapture(e.pointerId); } catch (_) {} });
+  const boff = () => { boostHeld = false; boost.classList.remove('on'); };
   boost.addEventListener('pointerup', boff); boost.addEventListener('pointercancel', boff); boost.addEventListener('lostpointercapture', boff);
   boost.addEventListener('contextmenu', e => e.preventDefault());
 })();
@@ -385,9 +405,44 @@ export const I18N = {
 export const LANGS = Object.keys(I18N), LANG_ALIAS = { zh: 'zh-hant', 'zh-hk': 'zh-hant', 'zh-tw': 'zh-hant', 'zh-mo': 'zh-hant', 'zh-cn': 'zh-hans', 'zh-sg': 'zh-hans' };
 export const hashLang = () => { const h = location.hash.slice(1).toLowerCase(); return LANG_ALIAS[h] || (LANGS.includes(h) ? h : null); };
 export let lang = 'en', ovKind = 'title', ovVars: any = {};
+for (const l of Object.keys(I18N)) {
+  // the monitor note's last sentence is Tunnel Raider's credit: it moves to that game's instructions
+  const note = I18N[l].ctlNote, m = /(A tribute to .*$|本作向.*$)/.exec(note);
+  if (m) { I18N[l].trCred = m[1]; I18N[l].ctlNote = note.slice(0, m.index).trim(); }
+  Object.assign(I18N[l], CONSOLE_STRINGS[l]);
+  for (const d of GAMES) if (d.strings && d.strings[l]) Object.assign(I18N[l], d.strings[l]);
+}
+/* ---------- instructions: the console's while the menu is up, the loaded game's otherwise ---------- */
+const CONSOLE_MANUAL: ManualSection[] = [
+  { h: 'cmPickH', p: 'cmPick' },
+  { h: 'cmCtlH', keys: true, list: [{ k: 'c1', v: 'c1v' }, { k: 'c2', v: 'c2v' }, { k: 'c3', v: 'c3v' }, { k: 'k4', v: 'k4v' }, { k: 'k5', v: '<kbd>M</kbd>', lit: true }, { k: 'k6', v: 'k6v' }, { k: 'k8', v: 'k8v' }] },
+  { h: 'secMonitor', p: 'ctlNote' },
+];
+export let manCtx = 'console';
+export function setManual(ctx: string){ manCtx = ctx; renderManual(); }
+export function renderManual(){
+  const T = I18N[lang], d = GAMES.find(x => x.id === manCtx), secs = d ? d.manual : CONSOLE_MANUAL;
+  $('manH').textContent = d ? T[d.nameKey] : T.manTitle;
+  $('manModel').textContent = d ? T.diskFor : T.model;
+  $('manBody').innerHTML = secs.map((sec, i) => {
+    const head = `<h3><span class="num">${i + 1}</span><span>${T[sec.h]}</span></h3>`;
+    if ('p' in sec) return `<section class="man-sec">${head}<p>${T[sec.p]}</p></section>`;
+    const items = sec.list.map(it => { const v = it.lit ? it.v : T[it.v]; return `<li><span>${T[it.k]}</span><i aria-hidden="true"></i>${sec.keys ? `<span class="kv">${v}</span>` : `<b>${v}</b>`}</li>`; }).join('');
+    return `<section class="man-sec">${head}<ul class="leaders${sec.keys ? ' keys' : ''}">${items}</ul></section>`;
+  }).join('');
+}
+/* the loaded game: its scores, its FIRE and BOOST labels and its instructions (null for the console's own screens) */
+export function setGame(d: GameDisk | null){
+  if (d) { game = d; loadScores(d.id); }
+  document.documentElement.setAttribute('data-game', d ? d.id : 'menu');
+  $('fireBtn').dataset.i18n = d ? d.fireKey : 'spark';
+  $('boostBtn').querySelector('span').dataset.i18n = d ? d.boostKey : 'boost';
+  const T = I18N[lang]; $('fireBtn').innerHTML = T[$('fireBtn').dataset.i18n]; $('boostBtn').querySelector('span').innerHTML = T[$('boostBtn').querySelector('span').dataset.i18n];
+  if (d) setManual(d.id);
+}
 export function renderOverlay(){
   const T = I18N[lang];
-  const v = { title: ['TUNNEL RAIDER', T.titleText, T.start], paused: [T.paused, T.pausedText, T.resume], over: [T.over, T.overText(ovVars.n, ovVars.s), T.again] }[ovKind];
+  const v = { title: ['TUNNEL RAIDER', T.titleText, T.start], paused: [T.paused, T.pausedText, T.resume], over: [T[game.overKey], T.overText(ovVars.n, ovVars.s), T[game.againKey]] }[ovKind];
   $('ovTitle').textContent = v[0]; $('ovText').innerHTML = v[1]; $('ovBtn').innerHTML = '<span class="blink">▶</span> ' + v[2];
 }
 export function showOverlay(kind, vars: any = {}){ ovKind = kind; ovVars = vars; renderOverlay(); overlay.hidden = false; }
@@ -399,7 +454,7 @@ export function applyLang(l, writeHash){
   $('manualLbl').textContent = $('manualBtn').getAttribute('aria-expanded') === 'true' ? T.manualHide : T.manual;
   document.querySelectorAll('#langSeg [data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
   $('exitFull').setAttribute('aria-label', T.exitFull);
-  renderOverlay();
+  renderOverlay(); renderManual();
   try { localStorage.setItem('tr-lang', lang); } catch (_) {}
   if (writeHash && hashLang() !== lang) location.hash = lang;
 }
@@ -464,28 +519,36 @@ export function toggleMute(){ muted = !muted; $('muteBtn').setAttribute('aria-pr
 export function togglePause(forceOn?){
   if (typeof tvOn !== 'undefined' && !tvOn) return;
   if (S.mode === 'paused') { if (forceOn) return; S.mode = S.prevMode; overlay.hidden = true; $('pauseBtn').setAttribute('aria-pressed', 'false'); return; }
-  if (S.mode === 'title' || S.mode === 'over' || S.mode === 'entry') return;
+  if (!['ready', 'play', 'dying', 'clear'].includes(S.mode)) return;
   S.prevMode = S.mode; S.mode = 'paused'; held.length = 0;
   $('pauseBtn').setAttribute('aria-pressed', 'true');
   showOverlay('paused');
 }
-export let booted = false;
 export function startGame(){
   ensureAudio();
   S.level = 1; S.score = 0; S.lives = 3; S.nextLife = 20000; S.streak = 0; S.bestAtStart = best; S.showBoard = false; S.boardHi = -1;
-  genLevel(1);
-  track('game_start', { layout: layoutName(), grid: W + 'x' + H });
-  overlay.hidden = true;
-  if (!booted) { booted = true; S.mode = 'boot'; S.bootT = 0; playBoot(); }
-  else { S.mode = 'ready'; S.modeT = 1.4; }
+  S.parts.length = 0; S.pops.length = 0;
+  setGame(game);
+  game.start();
+  track('game_start', { game: game.id, layout: layoutName() });
+  overlay.hidden = true; clearInput();
+  S.mode = 'ready'; S.modeT = game.id === 'tunnel' ? 1.4 : 1.2;
 }
+/* the end of a game: save the best, then name entry if it made the table, otherwise the attract loop */
+export function finishGame(){
+  saveBest();
+  track('game_over', { game: game.id, score: S.score });
+  if (S.score > 0 && S.score > (S.bestAtStart || 0)) track('new_best', { game: game.id, score: S.score });
+  if (qualifies(S.score)) startEntry(); else enterOver(false);
+}
+export function clearInput(){ held.length = 0; stickDir = null; fireHeld = false; fireQueued = false; boostQueued = false; boostHeld = false; tapQueued = false; tapHeld = false; }
 /* power: off collapses the picture to a line, then a dot that fades; on warms up, degausses and boots */
 export let tvOn = false, offT = 99;   // the set starts switched off
 S.mode = 'off';
 document.documentElement.setAttribute('data-off', ''); document.documentElement.setAttribute('data-fresh', '');
 export function powerOff(){
   document.documentElement.setAttribute('data-off', '');
-  tvOn = false; offT = 0; booted = false; S.mode = 'off'; held.length = 0; stickDir = null; fireHeld = false;
+  tvOn = false; offT = 0; S.mode = 'off'; held.length = 0; stickDir = null; fireHeld = false;
   overlay.hidden = true; saveBest();
   $('pauseBtn').setAttribute('aria-pressed', 'false');
   $('powerBtn').setAttribute('aria-checked', 'false');
@@ -497,7 +560,7 @@ export function powerOn(){
   $('powerBtn').setAttribute('aria-checked', 'true'); document.documentElement.removeAttribute('data-fresh');
   if (ac && !muted) { tone(58, 0.9, 0.04, 14); tone(15000, 0.4, 0.006, 0); }
   track('power_on', { theme: modeKey, layout: layoutName() });
-  startGame();
+  startConsole('cold');
 }
 export function flipPower(){ ensureAudio(); if (ac) { tone(700, 0.03, 0.06, -200); tone(1400, 0.015, 0.05, 0, 0.06); } if (tvOn) powerOff(); else powerOn(); }
 // tap to toggle, or flick the knob: right for on, left for off
@@ -514,15 +577,14 @@ $('resetBtn').addEventListener('pointerdown', e => {
   e.preventDefault(); ensureAudio(); if (ac) tone(1300, 0.015, 0.06);
   const b = $('resetBtn'); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 140);
   if (!tvOn) return;
-  track('reset', { level: S.level, mode: S.mode });
-  booted = false; held.length = 0; stickDir = null; fireHeld = false; age.dipLeft = 0.2; accReset = true;
-  $('pauseBtn').setAttribute('aria-pressed', 'false');
-  startGame();
+  track('reset', { game: game.id, mode: S.mode });
+  startConsole('cold');
 });
+$('selectBtn').addEventListener('pointerdown', e => { e.preventDefault(); pressSelect(); });
+$('selectBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); pressSelect(); } });
 $('resetBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); $('resetBtn').dispatchEvent(new PointerEvent('pointerdown')); } });
 
 /* ---------- cold boot: POST beep, then the floppy drive spins up, recalibrates and reads ---------- */
-export const BOOT_LEN = 4.0;
 export let noiseBuf = null;
 export function noise(){
   if (!noiseBuf) { noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
@@ -534,65 +596,6 @@ export function headClick(t, vol = 0.22, freq = 2600){
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
   s.connect(f).connect(g).connect(ac.destination); s.start(t, Math.random()); s.stop(t + 0.03);
 }
-export function playBoot(){
-  if (!ac || muted) return;
-  const t0 = ac.currentTime;
-  tone(1000, 0.2, 0.05, 0, 0.85);                             // the single POST beep: all is well
-  // drive motor: a low filtered rumble with a hum underneath
-  const m = noise(), lp = ac.createBiquadFilter(), mg = ac.createGain(), hum = ac.createOscillator(), hg = ac.createGain();
-  lp.type = 'lowpass'; lp.frequency.value = 220;
-  mg.gain.setValueAtTime(0.0001, t0 + 1.0); mg.gain.exponentialRampToValueAtTime(0.16, t0 + 1.25);
-  mg.gain.setValueAtTime(0.16, t0 + 3.1); mg.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.45);
-  hum.type = 'sawtooth'; hum.frequency.setValueAtTime(40, t0 + 1.0); hum.frequency.linearRampToValueAtTime(75, t0 + 1.4);
-  hg.gain.setValueAtTime(0.0001, t0 + 1.0); hg.gain.exponentialRampToValueAtTime(0.012, t0 + 1.3);
-  hg.gain.setValueAtTime(0.012, t0 + 3.1); hg.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.4);
-  m.connect(lp).connect(mg).connect(ac.destination); hum.connect(hg).connect(ac.destination);
-  m.start(t0 + 1.0); m.stop(t0 + 3.5); hum.start(t0 + 1.0); hum.stop(t0 + 3.5);
-  // recalibrate: the head rattles back to track 0
-  for (let t = 1.15; t < 1.45; t += 0.013) headClick(t0 + t, 0.18, 1900);
-  // reading: steps out track by track, with pauses while sectors stream in
-  let t = 1.6;
-  while (t < 3.0) {
-    const run = 1 + ((Math.random() * 4) | 0);
-    for (let k = 0; k < run; k++) { headClick(t0 + t, 0.2, 2400 + Math.random() * 600); t += 0.03; }
-    t += 0.08 + Math.random() * 0.2;
-  }
-  headClick(t0 + 3.15, 0.25, 1500);                          // the head parks
-}
-export function drawBoot(){
-  const t = S.bootT, lines = [];
-  if (t > 0.05) lines.push('TR-83 PERSONAL COMPUTER   BIOS 1.0');
-  if (t > 0.2) { const k = Math.min(640, Math.floor((t - 0.2) / 0.6 * 40) * 16); lines.push(`MEMORY TEST  ${String(k).padStart(3, ' ')}K${t > 0.82 ? '  OK' : ''}`); }
-  if (t > 1.0) lines.push('DRIVE A:  360K FLOPPY');
-  if (t > 1.15) lines.push('');
-  if (t > 1.2) lines.push('BOOTING FROM DRIVE A:');
-  if (t > 1.9) lines.push('A>TUNNEL');
-  lines.forEach((s, i) => txt(s, 12, 14 + i * 14, 'text'));
-  let y = 14 + lines.length * 14;
-  if (t > 2.1) {
-    // the loader: a framed bar of 24 cells that fills in fits and starts, like sectors arriving off the disk
-    const SIZE = 47104, CELLS = LW < 330 ? 16 : 24, t0 = 2.1, t1 = BOOT_LEN - 0.45;
-    const STEPS = [[0, 0], [.1, .06], [.18, .06], [.3, .27], [.4, .31], [.5, .31], [.63, .58], [.71, .63], [.8, .63], [.92, .94], [1, 1]];
-    const f = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
-    let p = 1;
-    for (let i = 1; i < STEPS.length; i++) if (f <= STEPS[i][0]) { const [a, pa] = STEPS[i - 1], [b, pb] = STEPS[i]; p = pa + (pb - pa) * ((f - a) / (b - a)); break; }
-    const bytes = Math.floor(p * SIZE / 512) * 512, done = p >= 1;
-    txt('LOADING TUNNEL.EXE', 12, y, 'text'); y += 14;
-    const bx = 12, bw = CELLS * 9 + 3, bh = 11;
-    g.fillStyle = col('hud'); g.fillRect(bx, y, bw, 1); g.fillRect(bx, y + bh - 1, bw, 1); g.fillRect(bx, y, 1, bh); g.fillRect(bx + bw - 1, y, 1, bh);
-    const filled = Math.floor(p * CELLS);
-    for (let c = 0; c < CELLS; c++) { g.fillStyle = col(c < filled ? 'text' : 'textDim'); g.fillRect(bx + 2 + c * 9, y + 2, c < filled ? 8 : 8, c < filled ? bh - 4 : 1); if (c >= filled) g.fillRect(bx + 2 + c * 9 + 3, y + bh - 4, 2, 1); }
-    txt(String(Math.round(p * 100)).padStart(3, ' ') + '%', bx + bw + 8, y + 2, 'text');
-    y += 18;
-    const spin = '|/-\\'[Math.floor(t * 12) % 4];
-    const trk = String(Math.min(39, Math.floor(p * 40))).padStart(2, '0'), sec = 1 + (Math.floor(t * 9) % 9);
-    if (!done) txt(LW < 330 ? `${spin} TRK ${trk} SEC ${sec}  ${String(bytes).padStart(5, ' ')}/${SIZE}` : `${spin} TRACK ${trk} SECTOR ${sec}   ${String(bytes).padStart(5, ' ')} / ${SIZE} BYTES`, 12, y, 'hud');
-    else txt(`${SIZE} BYTES LOADED  ·  RUNNING...`, 12, y, 'text');
-    y += 14;
-  }
-  if (Math.floor(t * 3) % 2 === 0) { g.fillStyle = col('text'); g.fillRect(12, y + 6, 7, 2); }
-}
-
 /* ---------- main update ---------- */
 export function update(dt){
   S.time += dt;
@@ -604,8 +607,10 @@ export function update(dt){
     if (board.length) { const sb = ((S.overT + (S.boardFirst ? 0 : 7)) % 12) < 7; if (sb !== S.showBoard) { S.showBoard = sb; overlay.hidden = sb; } }
     return;
   }
-  if (S.mode === 'boot') { S.bootT += dt; if (S.bootT >= BOOT_LEN) { S.mode = 'ready'; S.modeT = 1.4; } return; }
-  game.update(dt);
+  if (S.mode === 'boot') { updateBoot(); return; }
+  if (S.mode === 'menu') { updateMenu(dt); return; }
+  if (S.mode === 'load') { updateLoad(dt); return; }
+  if (['ready', 'play', 'dying', 'clear'].includes(S.mode)) game.update(dt);
 }
 
 /* ---------- drawing into the low-res buffer (game units, C = 32) ---------- */
@@ -664,7 +669,7 @@ export function entryFinish(){
   const E = S.entry, name = E.name.trim() || 'RAIDER', rank = boardRank(S.score);
   board.splice(rank, 0, { n: name, s: S.score, l: S.level }); board = board.slice(0, BOARD_MAX);
   lastName = name; saveBoard();
-  track('high_score', { rank: rank + 1, score: S.score });
+  track('high_score', { game: game.id, rank: rank + 1 });
   S.boardHi = rank;
   if (ac && !muted) [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, 0.07, 0.04, 0, i * 0.07));
   enterOver(true);
@@ -686,15 +691,21 @@ export function updateEntry(dt){
 }
 // FIRE (button or Space) picks a letter, or starts a new game from the attract loop
 export function menuFire(){
+  if (S.mode === 'menu') { loadGame(S.menuSel); return true; }
+  if (S.mode === 'boot' || S.mode === 'load') return true;
   if (S.mode === 'entry') { entryType(NKEYS[S.entry.cur].k); return true; }
   if (S.mode === 'over' && S.overT > 0.8) { startGame(); return true; }
   return false;
 }
+addEventListener('pointerup', () => { tapHeld = false; });
+addEventListener('pointercancel', () => { tapHeld = false; });
 cv.addEventListener('pointerdown', e => {
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * LW, y = (e.clientY - r.top) / r.height * LH;
+  if (S.mode === 'menu') { e.preventDefault(); ensureAudio(); menuTap(x, y); return; }
+  if (game.id === 'dino' && (S.mode === 'play' || S.mode === 'ready')) { e.preventDefault(); tapQueued = true; tapHeld = true; return; }   // tap the screen to jump
   if (S.mode !== 'entry' && !(S.mode === 'over' && S.showBoard)) return;
   e.preventDefault(); ensureAudio();
   if (S.mode === 'over') { if (S.overT > 0.8) startGame(); return; }
-  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * LW, y = (e.clientY - r.top) / r.height * LH;
   const hit = keyRects.find(q => x >= q.x - 1 && x < q.x + q.w + 1 && y >= q.y - 1 && y < q.y + q.h + 1);
   if (hit) { S.entry.cur = hit.i; entryType(NKEYS[hit.i].k); }
 });
@@ -748,14 +759,15 @@ export function drawBoard(){
     if (wide) txt(e ? 'L' + e.l : '', x0 + bw - 58, y, role, 'right');
     txt(e ? String(e.s).padStart(6, '0') : '------', x0 + bw, y, e ? role : 'textDim', 'right');
   }
-  if (Math.floor(S.overT * 2) % 2 === 0) txt('PRESS FIRE TO DIG', LW / 2, y0 + rh * BOARD_MAX + 8, 'hud', 'center');
+  if (Math.floor(S.overT * 2) % 2 === 0) txt('PRESS FIRE TO ' + game.verb, LW / 2, y0 + rh * BOARD_MAX + 8, 'hud', 'center');
 }
 
 export function renderFrame(){
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.imageSmoothingEnabled = false;
   g.fillStyle = col('bg'); g.fillRect(0, 0, LW, LH);
-  if (S.mode === 'boot') drawBoot(); else {
+  if (S.mode === 'off') { /* nothing on the tube */ }
+  else if (S.mode === 'boot') drawBoot(); else if (S.mode === 'menu') drawMenu(); else if (S.mode === 'load') drawLoad(); else {
   game.draw();
   if (S.mode === 'entry') drawEntry();
   if (S.mode === 'over' && S.showBoard) drawBoard();
@@ -903,7 +915,7 @@ export function sizeTv(){
 export function resize(){
   sizeTv();
   // while nothing is being played, re-deal the field to suit the new screen shape; mid-game it keeps its shape until the next seam
-  if (S.mode === 'off' || S.mode === 'title') { const [w, h] = targetGrid(); if (w !== W || h !== H) { genLevel(S.level = 1); } }
+  if (['off', 'title', 'boot', 'menu', 'load'].includes(S.mode)) fitGrid();
   fitCanvas();
 }
 new ResizeObserver(() => resize()).observe(cv.parentElement);
@@ -964,7 +976,7 @@ export function frame(now){
 
 setMode(modeKey); setFx(fx);
 sizeTv();
-genLevel(1);
+game.start();
 resize();
 buildBurn();
 if (document.fonts && document.fonts.load) document.fonts.load('16px Silkscreen').then(buildBurn).catch(()=>{});
@@ -974,6 +986,8 @@ requestAnimationFrame(frame);
 export function setBest(v){ best = v; }
 export function clearFireQueued(){ fireQueued = false; }
 export function clearBoostQueued(){ boostQueued = false; }
+export function clearTap(){ tapQueued = false; }
+export function setAccReset(){ accReset = true; }
 
 /* test hook for the Playwright checks; only with ?test in the address */
-if (/[?&]test\b/.test(location.search)) (window as any).__gg = { S, get board(){ return board; }, get keyRects(){ return keyRects; }, NKEYS, cv, get LW(){ return LW; }, get LH(){ return LH; }, overlay, killPlayer: (c) => game.killPlayer(c) };
+if (/[?&]test\b/.test(location.search)) (window as any).__gg = { S, get board(){ return board; }, get keyRects(){ return keyRects; }, NKEYS, cv, get LW(){ return LW; }, get LH(){ return LH; }, overlay, killPlayer: (c) => trKill(c), loadGame, GAMES, get game(){ return game; }, finishGame };

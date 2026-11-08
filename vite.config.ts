@@ -28,9 +28,9 @@ export default defineConfig({
 
 function MANIFEST(): any {
   return {
-    "name": "Tunnel Raider",
-    "short_name": "Tunnel Raider",
-    "description": "Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level, on a glowing 1983-style CRT monitor. Plays offline.",
+    "name": "Game Guy 3000 Deluxe",
+    "short_name": "Game Guy",
+    "description": "A 1983-style home console on a glowing phosphor monitor: pick a floppy and play Tunnel Raider or Dino Run. Plays offline.",
     "id": "./",
     "start_url": "./",
     "scope": "./",
@@ -86,7 +86,7 @@ function MANIFEST(): any {
         "sizes": "1200x630",
         "type": "image/png",
         "form_factor": "wide",
-        "label": "Tunnel Raider on a green-phosphor CRT"
+        "label": "The Game Guy 3000 Deluxe disk menu on a green-phosphor CRT"
       }
     ]
   };
