@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every seam, on a glowing 1983-style CRT monitor. Plays in your browser.">
 <meta name="theme-color" content="#111110">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23140e09'/%3E%3Cpath d='M8 2l5 5-5 7-5-7z' fill='%230f5a1d'/%3E%3Cpath d='M8 3.5l3.4 3.5L8 12 4.6 7z' fill='%232fbf4b'/%3E%3Cpath d='M6 5h4L8 7z' fill='%23b2ffbd'/%3E%3C/svg%3E">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tunnel Raider">
 <link rel="canonical" href="https://wiiiimm.github.io/tunnel-raider/">
 <!-- sharing previews -->
 <meta property="og:type" content="website">
@@ -207,6 +214,24 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 .lang button+button{border-left:1px solid #2b2924}
 .lang button[aria-pressed="true"]{background:#26241f;color:var(--phos)}
 [data-layout="console"] .manual-bar{display:none}
+/* status badge: a moulded plate in the set's own plastic, with a lamp. Used for network changes and app updates */
+.netbadge{position:fixed;z-index:45;left:50%;top:calc(12px + env(safe-area-inset-top, 0px));transform:translate(-50%,0);display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);box-sizing:border-box;padding:9px 12px 9px 12px;border-radius:9px;
+  background:var(--grain),linear-gradient(180deg,var(--plastic-hi),var(--plastic) 40%,var(--plastic-lo));background-size:160px 160px,auto;background-blend-mode:soft-light,normal;
+  border:1px solid #0b0a08;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 10px 26px rgba(0,0,0,.55);animation:badgeIn .28s cubic-bezier(.2,1.3,.4,1)}
+.netbadge.leaving{animation:badgeOut .35s ease-in forwards}
+@keyframes badgeIn{from{transform:translate(-50%,-140%);opacity:0}}
+@keyframes badgeOut{to{transform:translate(-50%,-140%);opacity:0}}
+@media (prefers-reduced-motion:reduce){.netbadge,.netbadge.leaving{animation-name:badgeFade}@keyframes badgeFade{from{opacity:0}}}
+.nled{flex:none;width:10px;height:10px;border-radius:50%;background:#7a6a3a;box-shadow:inset 0 -1px 1px rgba(0,0,0,.3)}
+.netbadge[data-state="off"] .nled{background:#ffb02e;box-shadow:0 0 8px #ffb02e,0 0 2px #ffb02e}
+.netbadge[data-state="on"] .nled,.netbadge[data-state="info"] .nled{background:var(--phos);box-shadow:0 0 8px var(--phos),0 0 2px var(--phos)}
+.netbadge[data-state="off"] .nled{animation:lampBlink 1s steps(1) infinite}
+@keyframes lampBlink{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.netbadge[data-state="off"] .nled{animation:none}}
+.nmsg{font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--bezel-ink);text-shadow:0 1px 0 rgba(255,255,255,.12);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nbtn{flex:none;font-family:var(--display);font-size:11px;letter-spacing:.1em;color:#2b1a00;border:1px solid #4a3300;border-radius:5px;padding:6px 9px;cursor:pointer;background:linear-gradient(180deg,#ffe39a,#f0b23c 40%,#c98410);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 0 #0b0a08}
+.nbtn:active{transform:translateY(1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.nbtn:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 .exitfull{display:none;position:fixed;z-index:20;top:calc(10px + env(safe-area-inset-top, 0px));right:max(16px, env(safe-area-inset-right, 0px));width:40px;height:40px;border-radius:50%;border:1px solid #3a372f;background:rgba(20,19,16,.75);color:var(--label);font-size:16px;cursor:pointer}
 /* full screen: just the picture; touch screens keep the stick and spark at the sides */
 [data-full] body{overflow:hidden;background:#000}
@@ -224,7 +249,7 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-full][data-layout="console"] .tube-surround{width:calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)) - 280px)}
 [data-full][data-layout="phone-portrait"] .tv-face,[data-full][data-layout="tablet-portrait"] .tv-face{grid-template-columns:minmax(0,1fr);grid-template-areas:"screen" "pad"}
 [data-full][data-layout="phone-portrait"] .tube-surround,[data-full][data-layout="tablet-portrait"] .tube-surround{width:100%}
-[data-full][data-layout="phone-portrait"] .pad,[data-full][data-layout="tablet-portrait"] .pad{display:flex;flex-direction:column;width:100%}
+[data-full][data-layout="phone-portrait"] .pad,[data-full][data-layout="tablet-portrait"] .pad{display:flex;flex-direction:row;width:100%}
 .rotate-hint{display:none;margin:0;text-align:center;color:var(--muted);font-size:12px}
 
 /* ---- layouts chosen by the screen detector (data-layout on <html>) ---- */
@@ -293,6 +318,19 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-layout="phone-portrait"] .power{bottom:9px}
 [data-layout="phone-portrait"] .nameplate{bottom:18px}
 [data-layout="phone-portrait"] .nameplate span{display:none}
+/* upright = handheld: joystick on the left, the two keys on the right, staggered like A/B buttons */
+[data-layout$="portrait"] .pad{flex-direction:row;align-items:stretch;gap:14px}
+[data-layout$="portrait"] .stickzone{flex:1.25 1 0;width:auto;height:156px}
+[data-layout$="portrait"] .stickbase{transform:none}
+[data-layout$="portrait"] .keyrow{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;gap:16px;padding-block:6px}
+[data-layout$="portrait"] .keyrow .fire,[data-layout$="portrait"] .keyrow .boost{flex:none;height:56px}
+[data-layout$="portrait"] .keyrow .fire{margin-left:22px}
+[data-layout$="portrait"] .keyrow .boost{margin-right:22px}
+[data-layout="phone-portrait"] .stickzone{height:144px}
+[data-layout="phone-portrait"] .stickbase{transform:scale(.9)}
+[data-layout="phone-portrait"] .keyrow .fire,[data-layout="phone-portrait"] .keyrow .boost{height:50px;font-size:13px;letter-spacing:.14em}
+[data-layout="phone-portrait"] .keyrow .fire{margin-left:16px}
+[data-layout="phone-portrait"] .keyrow .boost{margin-right:16px}
 [data-full][data-layout$="portrait"] .tv-face{height:var(--avail-h);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"screen" "pad";padding:10px}
 [data-full][data-layout$="portrait"] .tube-surround{width:100%;height:auto}
 .pad{display:flex;flex-direction:column;align-items:stretch;gap:14px;grid-area:pad;min-width:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
@@ -318,8 +356,8 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 .fire.cool{filter:saturate(.5) brightness(.8)}
 /* boost key: amber, with its own recharge meter */
 .keyrow{display:flex;flex-direction:column;gap:12px}
-.keyrow .fire{width:auto;flex:2 1 0}
-.boost{flex:1 1 0;min-width:0;height:58px;border-radius:9px;cursor:pointer;touch-action:none;display:grid;place-items:center;align-content:center;gap:5px;padding:0 8px;font-family:var(--display);font-size:13px;letter-spacing:.16em;color:#2b1a00;border:2px solid #4a3300;
+.keyrow .fire{width:auto;flex:none}
+.boost{flex:none;min-width:0;height:58px;border-radius:9px;cursor:pointer;touch-action:none;display:grid;place-items:center;align-content:center;gap:5px;padding:0 8px;font-family:var(--display);font-size:13px;letter-spacing:.16em;color:#2b1a00;border:2px solid #4a3300;
   background:linear-gradient(180deg,#ffe39a 0,#f0b23c 26%,#d18f16 72%,#9a6408);
   box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 0 0 4px #191815,0 0 0 5px #3a372f,0 5px 0 4px #0d0c0a,0 8px 12px 4px rgba(0,0,0,.45);transition:transform .06s,box-shadow .06s,filter .3s}
 .boost.on{transform:translateY(3px);box-shadow:inset 0 2px 4px rgba(0,0,0,.3),0 0 0 4px #191815,0 0 0 5px #3a372f,0 2px 0 4px #0d0c0a,0 4px 8px 4px rgba(0,0,0,.45)}
@@ -463,6 +501,7 @@ kbd{font-family:var(--body);font-size:12px;background:var(--desk);border:1px sol
       <p class="note" data-i18n="ctlNote"></p>
     </div>
   </div>
+  <div class="netbadge" id="netToast" role="status" aria-live="polite" hidden><span class="nled" aria-hidden="true"></span><span class="nmsg" id="netMsg"></span><button type="button" class="nbtn" id="netBtn" hidden></button></div>
   <button class="exitfull" id="exitFull" type="button" aria-label="Exit full screen">✕</button>
 </div>
 
@@ -868,6 +907,7 @@ const I18N = {
     titleText: 'ARROWS TO DIG · SPACE FOR A SPARK<br>CLEAR EVERY EMERALD OR EVERY GRUB', start: 'START',
     paused: 'PAUSED', pausedText: 'PRESS P OR ESC TO CARRY ON', resume: 'RESUME',
     over: 'CAVE-IN', overText: (n, s) => `SEAM ${n} · ${s} POINTS`, again: 'DIG AGAIN',
+    netOff: 'OFFLINE · THE GAME KEEPS RUNNING', netOn: 'BACK ONLINE', ready: 'SAVED FOR OFFLINE PLAY', update: 'NEW VERSION READY', restart: 'RESTART', install: 'Install app',
   },
   'zh-hant': {
     tag: '在礦坑裏挖隧道，收集綠寶石，再把金袋推下去壓扁蟲子。',
@@ -887,6 +927,7 @@ const I18N = {
     titleText: '方向鍵挖掘 · 空白鍵發射火花<br>清除所有綠寶石或所有蟲子即可過關', start: '開始',
     paused: '已暫停', pausedText: '按 P 或 Esc 繼續', resume: '繼續',
     over: '坍塌了！', overText: (n, s) => `第 ${n} 層 · ${s} 分`, again: '再挖一次',
+    netOff: '離線中 · 遊戲照常運作', netOn: '已恢復連線', ready: '已儲存，可離線遊玩', update: '新版本已準備好', restart: '重新啟動', install: '安裝應用程式',
   },
   'zh-hans': {
     tag: '在矿坑里挖隧道，收集绿宝石，再把金袋推下去压扁虫子。',
@@ -906,6 +947,7 @@ const I18N = {
     titleText: '方向键挖掘 · 空格键发射火花<br>清除所有绿宝石或所有虫子即可过关', start: '开始',
     paused: '已暂停', pausedText: '按 P 或 Esc 继续', resume: '继续',
     over: '坍塌了！', overText: (n, s) => `第 ${n} 层 · ${s} 分`, again: '再挖一次',
+    netOff: '离线中 · 游戏照常运行', netOn: '已恢复连接', ready: '已保存，可离线游玩', update: '新版本已准备好', restart: '重新启动', install: '安装应用',
   },
 };
 const LANGS = Object.keys(I18N), LANG_ALIAS = { zh: 'zh-hant', 'zh-hk': 'zh-hant', 'zh-tw': 'zh-hant', 'zh-mo': 'zh-hant', 'zh-cn': 'zh-hans', 'zh-sg': 'zh-hans' };
@@ -937,6 +979,23 @@ $('manualBtn').addEventListener('click', () => {
   $('manualLbl').textContent = open ? I18N[lang].manualHide : I18N[lang].manual;
 });
 { let stored = null; try { stored = localStorage.getItem('tr-lang'); } catch (_) {} applyLang(hashLang() || stored || 'en', false); }
+
+/* ---------- status badge: network changes (5 s) and, in the installed app, offline-ready and update notices ---------- */
+let badgeTimer = 0;
+function trToast(text, opts = {}){
+  const box = $('netToast'), btn = $('netBtn');
+  clearTimeout(badgeTimer); box.classList.remove('leaving');
+  box.dataset.state = opts.state || 'info'; $('netMsg').textContent = text;
+  btn.hidden = !opts.button;
+  if (opts.button) { btn.textContent = opts.button; btn.onclick = () => { hide(); opts.onClick && opts.onClick(); }; }
+  box.hidden = true; void box.offsetWidth; box.hidden = false;   // restart the slide-in
+  function hide(){ box.classList.add('leaving'); badgeTimer = setTimeout(() => { box.hidden = true; box.classList.remove('leaving'); }, 360); }
+  if (opts.ms) badgeTimer = setTimeout(hide, opts.ms);
+}
+window.trToast = trToast;
+window.trT = k => I18N[lang][k];
+addEventListener('offline', () => trToast(I18N[lang].netOff, { state: 'off', ms: 5000 }));
+addEventListener('online', () => trToast(I18N[lang].netOn, { state: 'on', ms: 5000 }));
 
 /* ---------- full screen: the picture alone, browser full screen where the page allows it ---------- */
 let full = false;
@@ -1089,7 +1148,7 @@ function tryMove(d){
   if (bag) {
     if (bag.state === 'fall' || d.dy !== 0) return;
     const mx = nx + d.dx;
-    if (!inb(mx, ny) || bagAt(mx, ny) || monsterOnCell(mx, ny)) return;
+    if (!inb(mx, ny) || bagAt(mx, ny) || monsterOnCell(mx, ny) || S.em[idx(mx, ny)]) return;   // a sack can't be pushed onto an emerald
     bag.x = mx; bag.slide = -d.dx; bag.fy = bag.y;
     if (bag.state === 'wobble') bag.state = 'rest';
   }
@@ -1164,6 +1223,8 @@ function updateBags(dt){
       let landed = false;
       while (b.fy >= b.y + 1) {
         b.y += 1; b.dist += 1;
+        const ci = idx(b.x, b.y);
+        if (S.em[ci]) { S.em[ci] = 0; S.emLeft--; burst(b.x * C + C / 2, b.y * C + C / 2, ['gemDark', 'gem', 'gemHi'], 10); }   // a falling sack smashes any emerald in its way
         const below = b.y + 1;
         if (!inb(b.x, below) || !S.dug[idx(b.x, below)] || S.bags.some(o => o !== b && o.x === b.x && o.y === below)) { landed = true; break; }
       }
@@ -1274,7 +1335,7 @@ function updateMonsters(dt){
         if (!canShove || d.dy !== 0) return false;
         const b = restingBagAt(nx, ny); if (!b) return false;
         const bx = nx + d.dx;
-        if (!inb(bx, ny) || bagAt(bx, ny) || monsterOnCell(bx, ny) || (pc.x === bx && pc.y === ny)) return false;
+        if (!inb(bx, ny) || bagAt(bx, ny) || monsterOnCell(bx, ny) || S.em[idx(bx, ny)] || (pc.x === bx && pc.y === ny)) return false;
         b.x = bx; b.slide = -d.dx; b.fy = b.y; if (b.state === 'wobble') b.state = 'rest';
         sfx.thud();
         return true;
@@ -1750,6 +1811,66 @@ resize();
 buildBurn();
 if (document.fonts && document.fonts.load) document.fonts.load('16px Silkscreen').then(buildBurn).catch(()=>{});
 requestAnimationFrame(frame);
+})();
+</script>
+
+<!-- webapp mode: offline cache, background updates, install button (uses the set's status badge) -->
+<style>
+.install-btn{font:600 12px/1 "IBM Plex Mono","Noto Sans TC","Noto Sans SC",monospace;letter-spacing:.06em;background:#181713;color:var(--phos);border:1px solid #3a372f;border-radius:6px;padding:9px 12px;cursor:pointer;white-space:nowrap}
+.install-btn:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
+.manual-bar .bar-right{display:flex;gap:10px;align-items:center}
+</style>
+<script>
+(function () {
+  var t = function (k) { return window.trT ? window.trT(k) : k; };
+  var toast = function (text, opts) { if (window.trToast) window.trToast(text, opts); };
+
+  // install button beside the language switch, when the browser offers it
+  var deferred = null, installBtn = null;
+  addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); deferred = e;
+    if (installBtn) { installBtn.hidden = false; return; }
+    var bar = document.querySelector('.manual-bar'), lang = document.getElementById('langSeg');
+    if (!bar || !lang) return;
+    var right = document.createElement('div'); right.className = 'bar-right';
+    lang.parentNode.insertBefore(right, lang); right.appendChild(lang);
+    installBtn = document.createElement('button'); installBtn.type = 'button'; installBtn.className = 'install-btn'; installBtn.textContent = t('install');
+    installBtn.onclick = function () { if (!deferred) return; deferred.prompt(); deferred.userChoice.finally(function () { deferred = null; installBtn.hidden = true; }); };
+    right.insertBefore(installBtn, lang);
+  });
+  addEventListener('appinstalled', function () { if (installBtn) installBtn.hidden = true; });
+  document.addEventListener('click', function (e) {   // keep the install label in the chosen language
+    if (installBtn && e.target.closest && e.target.closest('#langSeg')) setTimeout(function () { installBtn.textContent = t('install'); }, 0);
+  });
+
+  if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+  addEventListener('load', function () {
+    var hadController = !!navigator.serviceWorker.controller, reloading = false;
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
+      function offer(worker) { toast(t('update'), { state: 'info', button: t('restart'), onClick: function () { worker.postMessage({ type: 'SKIP_WAITING' }); } }); }
+      if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+      reg.addEventListener('updatefound', function () {
+        var w = reg.installing; if (!w) return;
+        w.addEventListener('statechange', function () {
+          if (w.state !== 'installed') return;
+          if (navigator.serviceWorker.controller) offer(w);
+          else { try { if (!localStorage.getItem('tr-offline')) { localStorage.setItem('tr-offline', '1'); toast(t('ready'), { state: 'on', ms: 5000 }); } } catch (_) {} }
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (reloading || !hadController) return; reloading = true; location.reload();
+      });
+      function check() { if (navigator.onLine) reg.update().catch(function () {}); }
+      addEventListener('online', check);
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') check(); });
+      setInterval(function () { if (document.visibilityState === 'visible') check(); }, 30 * 60 * 1000);
+      if ('periodicSync' in reg && navigator.permissions) {
+        navigator.permissions.query({ name: 'periodic-background-sync' }).then(function (s) {
+          if (s.state === 'granted') reg.periodicSync.register('tr-update', { minInterval: 12 * 60 * 60 * 1000 }).catch(function () {});
+        }).catch(function () {});
+      }
+    }).catch(function () {});
+  });
 })();
 </script>
 

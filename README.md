@@ -4,7 +4,7 @@
 
 A tunnelling arcade game for the browser, played on a 1983-style CRT monitor. Dig for emeralds, drop sacks of gold on the grubs and outwit monsters that get smarter every seam.
 
-It is one self-contained `index.html`: no build step, no dependencies beyond two Google Fonts.
+It is one self-contained `index.html` with a small service worker for offline play: no build step and no dependencies beyond Google Fonts.
 
 ## Play
 
@@ -14,7 +14,7 @@ Open `index.html` in a browser, or serve the folder with any static host (see [D
 | --- | --- | --- |
 | Move and dig | Arrow keys or <kbd>WASD</kbd> | Joystick (drag) |
 | Throw a spark | <kbd>Space</kbd> or <kbd>Z</kbd> | FIRE |
-| Speed boost | <kbd>Shift</kbd> or <kbd>B</kbd> | BOOST |
+| Speed boost | <kbd>Shift</kbd> or <kbd>B</kbd> | BOOST (refills in about 7 s) |
 | Pause | <kbd>P</kbd> or <kbd>Esc</kbd> | HOLD switch |
 | Sound on / off | <kbd>M</kbd> | SOUND switch |
 | Change monitor | <kbd>C</kbd> | PHOSPHOR dial |
@@ -36,7 +36,7 @@ Open `index.html` in a browser, or serve the folder with any static host (see [D
 
 ### How it gets harder
 
-- Grubs start slow and quicken every seam, but stay below the cart's open-tunnel speed. From seam 9 the cart speeds up too, and the cap rises with it.
+- Grubs crawl through the first three seams, then quicken every seam, but stay below the cart's open-tunnel speed. From seam 9 the cart speeds up too, and the cap rises with it.
 - Grubs wander less, turn into tunnelling borers sooner and stay borers longer.
 - From seam 3, borers shove sacks sideways and line them up over your cart.
 - From seam 4, rockjaws dig their own tunnels and take two hits (three from seam 7).
@@ -54,11 +54,25 @@ A small detector picks a layout from the real viewport and input type, so it fit
 | Layout | When | What you get |
 | --- | --- | --- |
 | Console | Touch screen held sideways | Joystick left, tube centre, dial and keys right |
-| Phone portrait | Upright phone, or a tall narrow window | The set fills the screen, with a tall playfield |
+| Phone portrait | Upright phone, or a tall narrow window | The set fills the screen, with a tall playfield and handheld-style controls: joystick left, FIRE and BOOST right |
 | Tablet portrait | Upright tablet | Large tube, controls underneath |
 | Desk | Mouse or trackpad | The full set with the guide below |
 
 The playfield grid is chosen per game to match the tube's shape: about 15 × 10 on a wide screen, 10 or 11 columns by 14 to 16 rows on an upright phone.
+
+## Play offline and install
+
+Served over HTTPS (GitHub Pages included), Tunnel Raider is an installable web app:
+
+- **Offline:** the first visit caches the whole game, its icons and fonts with a service worker (`sw.js`). After that it opens instantly and plays with no connection.
+- **Updates:** whenever the game opens, comes back online, or every 30 minutes while it's visible, it checks `sw.js` for a new version. A new version downloads in the background, then a "new version ready · RESTART" prompt appears, so a game is never cut off mid-seam. Installed apps on Chromium browsers can also check in the background.
+- **Install:** browsers that support it show an **Install app** button beside the language switch. On iPhone and iPad, use Share → Add to Home Screen. The app opens full screen with the CRT icon.
+
+High scores and settings stay on the device; there is no server.
+
+### Building
+
+`index.html`, `sw.js` and the icons are generated from the artifact source. The service worker's version is a hash of everything it caches, so any change to the page or icons ships as an update automatically.
 
 ## Languages
 
