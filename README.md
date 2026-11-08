@@ -1,5 +1,7 @@
 # Tunnel Raider
 
+**Play: https://tunnel-raider.wiiiimm.codes**
+
 ![Tunnel Raider on a green-phosphor CRT monitor](og-image.png)
 
 A tunnelling arcade game for the browser, played on a 1983-style CRT monitor. Dig for emeralds, drop sacks of gold on the grubs and outwit monsters that get smarter every level.
@@ -63,7 +65,7 @@ The playfield grid is chosen per game to match the tube's shape: about 15 × 10 
 
 ## Play offline and install
 
-Served over HTTPS (GitHub Pages included), Tunnel Raider is an installable web app:
+Served over HTTPS, as it is on the live site, Tunnel Raider is an installable web app:
 
 - **Offline:** the first visit caches the whole game, its icons and fonts with a service worker (`sw.js`). After that it opens instantly and plays with no connection.
 - **Updates:** whenever the game opens, comes back online, or every 30 minutes while it's visible, it checks `sw.js` for a new version. A new version downloads in the background, then a "new version ready · RESTART" prompt appears, so a game is never cut off mid-level. Installed apps on Chromium browsers can also check in the background.
@@ -85,7 +87,11 @@ English (default), Traditional Chinese and Simplified Chinese. The language trav
 
 ## Deploy
 
-The page's share tags assume GitHub Pages at `https://wiiiimm.github.io/tunnel-raider/`. To publish there, open **Settings → Pages**, choose **Deploy from a branch**, and select `main` / root. If you host it elsewhere, update the `og:url`, `og:image`, `twitter:image` and `canonical` URLs at the top of `index.html`.
+Live at **https://tunnel-raider.wiiiimm.codes** (also **https://digger.wiiiimm.codes**), served by Vercel from `main`. Any static host works: the site is just these files.
+
+The canonical URL and the share tags (`og:url`, `og:image`, `twitter:image`) use `https://tunnel-raider.wiiiimm.codes/`, so links shared from either domain show the same preview. If the main address changes, update `SITE` in the build script and rebuild, or edit those tags at the top of `index.html`.
+
+After changing share tags, paste the URL into the Facebook Sharing Debugger and press **Scrape Again**: Facebook keeps its first scrape until you do.
 
 ## Credits
 
