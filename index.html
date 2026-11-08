@@ -176,7 +176,9 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
   :root[data-layout="console"] .tv-face{grid-template-columns:minmax(176px,1fr) auto minmax(176px,1fr);grid-template-rows:auto minmax(0,1fr) auto auto minmax(0,1fr) auto;
     grid-template-areas:"pwr screen plate" "stick screen ." "stick screen dial" "stick screen rock" "stick screen ." "stick screen fire"}
   /* the badge returns to the top right; the dial, full size, sits mid-right over the switches */
-  :root[data-layout="console"] .nameplate{display:grid;grid-area:plate;align-self:start}
+  :root[data-layout="console"] .nameplate{display:grid;grid-area:plate;align-self:start;justify-self:center;width:auto;padding:5px 12px}
+  :root[data-layout="console"] .nameplate b{font-size:10px}
+  :root[data-layout="console"] .nameplate span{font-size:8px}
   :root[data-layout="console"] .dial-block{align-self:end}
   :root[data-layout="console"] .dial-wrap{width:148px;height:148px}
   :root[data-layout="console"] .dial{transform:none}
