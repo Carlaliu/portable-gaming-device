@@ -1,7 +1,7 @@
 {
   "name": "Tunnel Raider",
   "short_name": "Tunnel Raider",
-  "description": "Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every seam, on a glowing 1983-style CRT monitor. Plays offline.",
+  "description": "Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level, on a glowing 1983-style CRT monitor. Plays offline.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

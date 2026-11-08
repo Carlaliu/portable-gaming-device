@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every seam, on a glowing 1983-style CRT monitor. Plays in your browser.">
+<meta name="description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level, on a glowing 1983-style CRT monitor. Plays in your browser.">
 <meta name="theme-color" content="#111110">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tunnel Raider">
 <meta property="og:title" content="Tunnel Raider: dig, drop, survive">
-<meta property="og:description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every seam, on a glowing 1983-style CRT monitor. Plays in your browser.">
+<meta property="og:description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level, on a glowing 1983-style CRT monitor. Plays in your browser.">
 <meta property="og:url" content="https://wiiiimm.github.io/tunnel-raider/">
 <meta property="og:image" content="https://wiiiimm.github.io/tunnel-raider/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -29,7 +29,7 @@
 <meta property="og:locale:alternate" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Tunnel Raider: dig, drop, survive">
-<meta name="twitter:description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every seam, on a glowing 1983-style CRT monitor. Plays in your browser.">
+<meta name="twitter:description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level, on a glowing 1983-style CRT monitor. Plays in your browser.">
 <meta name="twitter:image" content="https://wiiiimm.github.io/tunnel-raider/og-image.png">
 <meta name="twitter:image:alt" content="Tunnel Raider running on a green-phosphor CRT monitor.">
 <style>
@@ -801,9 +801,22 @@ function resetPlayer(){
 /* ---------- queries ---------- */
 function bagAt(x, y){ return S.bags.find(b => b.x === x && b.y === y); }
 function restingBagAt(x, y){ const b = bagAt(x, y); return b && b.state !== 'fall' ? b : null; }
-function ppos(o){ return { x: (o.x + (o.tx - o.x) * o.t) * C + C / 2, y: (o.y + (o.ty - o.y) * o.t) * C + C / 2 }; }
+/* the field wraps: leave by one edge and you come back in at the opposite one */
+const wrapX = x => ((x % W) + W) % W, wrapY = y => ((y % H) + H) % H;
+const wrapD = (d, span) => d - span * Math.round(d / span);   // shortest offset across the wrap
+const wdist = (ax, ay, bx, by) => Math.hypot(wrapD(ax - bx, W * C), wrapD(ay - by, H * C));
+function ppos(o){
+  const fw = W * C, fh = H * C, x = (o.x + (o.tx - o.x) * o.t) * C + C / 2, y = (o.y + (o.ty - o.y) * o.t) * C + C / 2;
+  return { x: ((x % fw) + fw) % fw, y: ((y % fh) + fh) % fh };
+}
+function wrapSpots(p){   // where to draw something that is half through an edge
+  const fw = W * C, fh = H * C, xs = [p.x], ys = [p.y];
+  if (p.x < C) xs.push(p.x + fw); if (p.x > fw - C) xs.push(p.x - fw);
+  if (p.y < C) ys.push(p.y + fh); if (p.y > fh - C) ys.push(p.y - fh);
+  const out = []; for (const x of xs) for (const y of ys) out.push({ x, y }); return out;
+}
 function pcell(o){ const p = ppos(o); return { x: Math.floor(p.x / C), y: Math.floor(p.y / C) }; }
-function monsterOnCell(x, y){ return S.monsters.some(m => (m.x === x && m.y === y) || (m.moving && m.tx === x && m.ty === y)); }
+function monsterOnCell(x, y){ return S.monsters.some(m => (m.x === x && m.y === y) || (m.moving && wrapX(m.tx) === x && wrapY(m.ty) === y)); }
 
 function addScore(n, x, y){
   S.score += n;
@@ -913,7 +926,7 @@ const I18N = {
     r1: 'Emerald', r2: 'Eight emeralds in quick succession', r3: 'Gold from a sack that fell two or more cells',
     r4: 'Grub crushed by a sack or hit by a spark', r5: 'Rockjaw (from seam 4): two hits from sparks or sacks, three from seam 7',
     r6: 'Sunstone (appears once every grub has arrived)', r7: 'Grubs rammed while the sunstone glows', r8: 'Spare drill cart', r8v: 'every 20,000',
-    howNote: 'Grubs keep to tunnels. Horned borers chew straight through the earth towards you. Each seam the grubs get cannier: they wander less, turn into borers sooner and stay borers longer. From seam 3, borers shove sacks sideways and will line one up over your cart if they can. From seam 4, banded rockjaws arrive that always dig their own tunnels; the pips over their heads show how many more hits they can take. A falling sack crushes you too, so never linger beneath one. Grubs start slow and quicken every seam, but never outrun your cart in an open tunnel; from seam 9 your cart speeds up too, and so do they. BOOST gives your cart a short burst of speed; its meter refills in about seven seconds.',
+    howNote: 'Grubs keep to tunnels. Horned borers chew straight through the earth towards you. Each level the grubs get cannier: they wander less, turn into borers sooner and stay borers longer. From level 3, borers shove sacks sideways and will line one up over your cart if they can. From level 4, banded rockjaws arrive that always dig their own tunnels; the pips over their heads show how many more hits they can take. A falling sack crushes you too, so never linger beneath one. Grubs start slow and quicken every level, but never outrun your cart in an open tunnel; from level 9 your cart speeds up too, and so do they. BOOST gives your cart a short burst of speed; its meter refills in about seven seconds.',
     k1: 'Move and dig', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} or ${kb('WASD')}`,
     k2: 'Throw a spark', k2v: `${kb('Space')} or ${kb('Z')}`,
     k3: 'Pause', k3v: `${kb('P')} or ${kb('Esc')}`,
@@ -922,7 +935,7 @@ const I18N = {
     ctlNote: "Monochrome monitors glowed in one phosphor colour, and each phosphor faded at its own rate: long-afterglow green leaves smears behind anything that moves. The CGA themes use the two four-colour palettes of IBM's 1981 Color Graphics Adapter, seen through a colour tube's stripe mask. This set is old: every turn of the dial degausses the tube, the magnetised colour patches creep back over a few seconds, and you'll spot faint burn-in, dust and the odd picture tear. Switch GLOW off for a clean picture. A tribute to Windmill Software's <i>Digger</i> (1983); characters, art, sound and code here are original.",
     titleText: 'ARROWS TO DIG · SPACE FOR A SPARK<br>CLEAR EVERY EMERALD OR EVERY GRUB', start: 'START',
     paused: 'PAUSED', pausedText: 'PRESS P OR ESC TO CARRY ON', resume: 'RESUME',
-    over: 'CAVE-IN', overText: (n, s) => `SEAM ${n} · ${s} POINTS`, again: 'DIG AGAIN',
+    over: 'CAVE-IN', overText: (n, s) => `LEVEL ${n} · ${s} POINTS`, again: 'DIG AGAIN',
     netOff: 'OFFLINE · THE GAME KEEPS RUNNING', netOn: 'BACK ONLINE', ready: 'SAVED FOR OFFLINE PLAY', update: 'NEW VERSION READY', restart: 'RESTART', install: 'Install app',
   },
   'zh-hant': {
@@ -931,9 +944,9 @@ const I18N = {
     stick: '拖動操控', spark: '發射', boost: '加速', k9: '加速衝刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '玩法說明', manualHide: '收起玩法說明', exitFull: '離開全螢幕',
     howH: '玩法', ctlH: '操作',
     r1: '綠寶石', r2: '快速連續收集八顆綠寶石', r3: '金袋跌落兩格或以上後散出的金子',
-    r4: '被金袋壓扁或被火花擊中的蟲子', r5: '岩顎蟲（第 4 層起）：要擊中兩次，第 7 層起要三次',
+    r4: '被金袋壓扁或被火花擊中的蟲子', r5: '岩顎蟲（第 4 關起）：要擊中兩次，第 7 關起要三次',
     r6: '太陽石（所有蟲子出場後才出現）', r7: '太陽石發光期間撞倒的蟲子', r8: '後備鑽車', r8v: '每 20,000 分',
-    howNote: '蟲子只會沿隧道走。長角的鑽地蟲會直接鑽穿泥土向你衝來。每過一層，蟲子都會更狡猾：少了亂走，更快變成鑽地蟲，而且維持得更久。第 3 層起，鑽地蟲會把金袋橫推，有機會更會故意把金袋推到你的鑽車正上方。第 4 層起會出現有條紋的岩顎蟲，牠們總是自己挖隧道，頭上的小點表示還要擊中多少次。跌落的金袋同樣會壓扁你，千萬別在金袋下逗留。蟲子起初很慢，每過一層都會加快，但在已挖好的隧道裏永遠不會比你的鑽車快；第 9 層起，你的鑽車也會加速，蟲子亦會跟著加快。BOOST（加速）會令鑽車短暫加速，能量約七秒後補滿。',
+    howNote: '蟲子只會沿隧道走。長角的鑽地蟲會直接鑽穿泥土向你衝來。每過一關，蟲子都會更狡猾：少了亂走，更快變成鑽地蟲，而且維持得更久。第 3 關起，鑽地蟲會把金袋橫推，有機會更會故意把金袋推到你的鑽車正上方。第 4 關起會出現有條紋的岩顎蟲，牠們總是自己挖隧道，頭上的小點表示還要擊中多少次。跌落的金袋同樣會壓扁你，千萬別在金袋下逗留。蟲子起初很慢，每過一關都會加快，但在已挖好的隧道裏永遠不會比你的鑽車快；第 9 關起，你的鑽車也會加速，蟲子亦會跟著加快。BOOST（加速）會令鑽車短暫加速，能量約七秒後補滿。',
     k1: '移動及挖掘', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} 或 ${kb('WASD')}`,
     k2: '發射火花', k2v: `${kb('空白鍵')} 或 ${kb('Z')}`,
     k3: '暫停', k3v: `${kb('P')} 或 ${kb('Esc')}`,
@@ -942,7 +955,7 @@ const I18N = {
     ctlNote: '單色顯示器只會發出一種螢光粉的顏色，而每種螢光粉的餘暉長短不一：長餘暉綠色會在移動物件後面拖出殘影。CGA 主題用的是 IBM 1981 年 Color Graphics Adapter 的兩組四色調色盤，並透過彩色顯像管的條紋遮罩呈現。這部電視機已經很舊：每次轉動旋鈕都會消磁，磁化色斑幾秒後會慢慢回來，你亦會看到淡淡的烙印、灰塵和偶爾的畫面撕裂。關掉 GLOW 便可看到乾淨的畫面。本作向 Windmill Software 的《Digger》（1983）致敬；角色、美術、聲音和程式碼均為原創。',
     titleText: '方向鍵挖掘 · 空白鍵發射火花<br>清除所有綠寶石或所有蟲子即可過關', start: '開始',
     paused: '已暫停', pausedText: '按 P 或 Esc 繼續', resume: '繼續',
-    over: '坍塌了！', overText: (n, s) => `第 ${n} 層 · ${s} 分`, again: '再挖一次',
+    over: '坍塌了！', overText: (n, s) => `第 ${n} 關 · ${s} 分`, again: '再挖一次',
     netOff: '離線中 · 遊戲照常運作', netOn: '已恢復連線', ready: '已儲存，可離線遊玩', update: '新版本已準備好', restart: '重新啟動', install: '安裝應用程式',
   },
   'zh-hans': {
@@ -951,9 +964,9 @@ const I18N = {
     stick: '拖动操控', spark: '发射', boost: '加速', k9: '加速冲刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '玩法说明', manualHide: '收起玩法说明', exitFull: '离开全屏',
     howH: '玩法', ctlH: '操作',
     r1: '绿宝石', r2: '快速连续收集八颗绿宝石', r3: '金袋跌落两格或以上后散出的金子',
-    r4: '被金袋压扁或被火花击中的虫子', r5: '岩颚虫（第 4 层起）：要击中两次，第 7 层起要三次',
+    r4: '被金袋压扁或被火花击中的虫子', r5: '岩颚虫（第 4 关起）：要击中两次，第 7 关起要三次',
     r6: '太阳石（所有虫子出场后才出现）', r7: '太阳石发光期间撞倒的虫子', r8: '后备钻车', r8v: '每 20,000 分',
-    howNote: '虫子只会沿隧道走。长角的钻地虫会直接钻穿泥土向你冲来。每过一层，虫子都会更狡猾：少了乱走，更快变成钻地虫，而且维持得更久。第 3 层起，钻地虫会把金袋横推，有机会更会故意把金袋推到你的钻车正上方。第 4 层起会出现有条纹的岩颚虫，它们总是自己挖隧道，头上的小点表示还要击中多少次。跌落的金袋同样会压扁你，千万别在金袋下逗留。虫子起初很慢，每过一层都会加快，但在已挖好的隧道里永远不会比你的钻车快；第 9 层起，你的钻车也会加速，虫子也会跟着加快。BOOST（加速）会让钻车短暂加速，能量约七秒后补满。',
+    howNote: '虫子只会沿隧道走。长角的钻地虫会直接钻穿泥土向你冲来。每过一关，虫子都会更狡猾：少了乱走，更快变成钻地虫，而且维持得更久。第 3 关起，钻地虫会把金袋横推，有机会更会故意把金袋推到你的钻车正上方。第 4 关起会出现有条纹的岩颚虫，它们总是自己挖隧道，头上的小点表示还要击中多少次。跌落的金袋同样会压扁你，千万别在金袋下逗留。虫子起初很慢，每过一关都会加快，但在已挖好的隧道里永远不会比你的钻车快；第 9 关起，你的钻车也会加速，虫子也会跟着加快。BOOST（加速）会让钻车短暂加速，能量约七秒后补满。',
     k1: '移动及挖掘', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} 或 ${kb('WASD')}`,
     k2: '发射火花', k2v: `${kb('空格键')} 或 ${kb('Z')}`,
     k3: '暂停', k3v: `${kb('P')} 或 ${kb('Esc')}`,
@@ -962,7 +975,7 @@ const I18N = {
     ctlNote: '单色显示器只会发出一种荧光粉的颜色，而每种荧光粉的余晖长短不一：长余晖绿色会在移动对象后面拖出残影。CGA 主题用的是 IBM 1981 年 Color Graphics Adapter 的两组四色调色板，并通过彩色显像管的条纹遮罩呈现。这部电视机已经很旧：每次转动旋钮都会消磁，磁化色斑几秒后会慢慢回来，你也会看到淡淡的烙印、灰尘和偶尔的画面撕裂。关掉 GLOW 便可看到干净的画面。本作向 Windmill Software 的《Digger》（1983）致敬；角色、美术、声音和代码均为原创。',
     titleText: '方向键挖掘 · 空格键发射火花<br>清除所有绿宝石或所有虫子即可过关', start: '开始',
     paused: '已暂停', pausedText: '按 P 或 Esc 继续', resume: '继续',
-    over: '坍塌了！', overText: (n, s) => `第 ${n} 层 · ${s} 分`, again: '再挖一次',
+    over: '坍塌了！', overText: (n, s) => `第 ${n} 关 · ${s} 分`, again: '再挖一次',
     netOff: '离线中 · 游戏照常运行', netOn: '已恢复连接', ready: '已保存，可离线游玩', update: '新版本已准备好', restart: '重新启动', install: '安装应用',
   },
 };
@@ -1176,18 +1189,17 @@ function drawBoot(){
 function setFace(d){ S.player.face = d.dx > 0 ? 'right' : d.dx < 0 ? 'left' : d.dy < 0 ? 'up' : 'down'; }
 function tryMove(d){
   const p = S.player; setFace(d);
-  const nx = p.x + d.dx, ny = p.y + d.dy;
-  if (!inb(nx, ny)) return;
-  const bag = bagAt(nx, ny);
+  const nx = p.x + d.dx, ny = p.y + d.dy, cx = wrapX(nx), cy = wrapY(ny);   // nx/ny may sit just past an edge, for a smooth slide through it
+  const bag = bagAt(cx, cy);
   if (bag) {
     if (bag.state === 'fall' || d.dy !== 0) return;
-    const mx = nx + d.dx;
-    if (!inb(mx, ny) || bagAt(mx, ny) || monsterOnCell(mx, ny) || S.em[idx(mx, ny)]) return;   // a sack can't be pushed onto an emerald
-    bag.x = mx; bag.slide = -d.dx; bag.fy = bag.y;
+    const mx = wrapX(cx + d.dx);
+    if (bagAt(mx, cy) || monsterOnCell(mx, cy) || S.em[idx(mx, cy)]) return;   // a sack can't be pushed onto an emerald
+    bag.x = mx; bag.slide = Math.abs(mx - cx) === 1 ? -d.dx : 0; bag.fy = bag.y;
     if (bag.state === 'wobble') bag.state = 'rest';
   }
-  const digging = !S.dug[idx(nx, ny)];
-  S.dug[idx(nx, ny)] = 1;
+  const digging = !S.dug[idx(cx, cy)];
+  S.dug[idx(cx, cy)] = 1;
   p.speed = (digging ? CART_DIG : CART_RUN) * pace();
   p.tx = nx; p.ty = ny; p.t = 0; p.moving = true; p.mdx = d.dx; p.mdy = d.dy; p.collected = false;
 }
@@ -1208,18 +1220,18 @@ function updatePlayer(dt){
     }
     p.t += dt * p.speed * (S.boostT > 0 ? BOOST_MUL : 1);
     if (S.boostT > 0 && Math.random() < 0.6) { const q = ppos(p); S.parts.push({ x: q.x - p.mdx * 12, y: q.y - p.mdy * 12 + 6, vx: -p.mdx * 40 + (Math.random() - .5) * 30, vy: -p.mdy * 40 - 10, life: 0.3, role: Math.random() < .5 ? 'sparkTrail' : 'track' }); }
-    if (!p.collected && p.t >= 0.5) { collectGem(p.tx, p.ty); p.collected = true; }
-    if (p.t >= 1) { p.x = p.tx; p.y = p.ty; p.t = 0; p.moving = false; }
+    if (!p.collected && p.t >= 0.5) { collectGem(wrapX(p.tx), wrapY(p.ty)); p.collected = true; }
+    if (p.t >= 1) { p.x = p.tx = wrapX(p.tx); p.y = p.ty = wrapY(p.ty); p.t = 0; p.moving = false; }
   }
   if (!p.moving && d) tryMove(d);
   const pp = ppos(p);
   for (let i = S.golds.length - 1; i >= 0; i--) {
     const g = S.golds[i];
-    if (Math.hypot(g.x * C + C / 2 - pp.x, g.y * C + C / 2 - pp.y) < C * 0.55) {
+    if (wdist(g.x * C + C / 2, g.y * C + C / 2, pp.x, pp.y) < C * 0.55) {
       S.golds.splice(i, 1); addScore(500, pp.x, pp.y - 10); sfx.gold(); burst(pp.x, pp.y, ['gold', 'goldHi'], 10);
     }
   }
-  if (S.sun.active && Math.hypot(S.sun.x * C + C / 2 - pp.x, S.sun.y * C + C / 2 - pp.y) < C * 0.6) {
+  if (S.sun.active && wdist(S.sun.x * C + C / 2, S.sun.y * C + C / 2, pp.x, pp.y) < C * 0.6) {
     S.sun.active = false; S.sun.used = true;
     addScore(1000, pp.x, pp.y - 10); sfx.sun();
     S.bonusT = Math.max(5, 15 - S.level); S.bonusChain = 0;
@@ -1233,7 +1245,7 @@ function updatePlayer(dt){
     fireQueued = false;
     if (S.charge >= 1 && S.sparks.length === 0) {
       const f = { right:[1,0], left:[-1,0], up:[0,-1], down:[0,1] }[p.face];
-      S.sparks.push({ x: pp.x, y: pp.y, dx: f[0], dy: f[1], trail: [] });
+      S.sparks.push({ x: pp.x, y: pp.y, dx: f[0], dy: f[1], trail: [], age: 0 });
       S.charge = 0; sfx.zap();
     }
   }
@@ -1265,14 +1277,14 @@ function updateBags(dt){
       const bx = b.x * C + C / 2, by = b.fy * C + C / 2;
       for (let j = S.monsters.length - 1; j >= 0; j--) {
         const mp = ppos(S.monsters[j]);
-        if (Math.abs(mp.x - bx) < C * 0.7 && mp.y - by > -C * 0.2 && mp.y - by < C * 0.85) {
+        if (Math.abs(wrapD(mp.x - bx, W * C)) < C * 0.7 && mp.y - by > -C * 0.2 && mp.y - by < C * 0.85) {
           const m = S.monsters[j];
           if (b.hits && b.hits.has(m)) continue;   // one blow per sack
           if (m.hp > 1) { m.hp--; m.hitT = 0.6; (b.hits ||= new Set()).add(m); sfx.thud(); }
           else killMonster(j, 250);
         }
       }
-      if (S.mode === 'play' && Math.abs(pp.x - bx) < C * 0.6 && pp.y - by > -C * 0.2 && pp.y - by < C * 0.8) killPlayer();
+      if (S.mode === 'play' && Math.abs(wrapD(pp.x - bx, W * C)) < C * 0.6 && pp.y - by > -C * 0.2 && pp.y - by < C * 0.8) killPlayer();
       if (landed) {
         b.fy = b.y;
         if (b.dist >= 2) {
@@ -1293,8 +1305,7 @@ function computeDist(){
   for (let h = 0; h < q.length; h += 2) {
     const x = q[h], y = q[h + 1], dd = dist[idx(x, y)];
     for (const k in DIRS) {
-      const nx = x + DIRS[k].dx, ny = y + DIRS[k].dy;
-      if (!inb(nx, ny)) continue;
+      const nx = wrapX(x + DIRS[k].dx), ny = wrapY(y + DIRS[k].dy);
       const i = idx(nx, ny);
       if (dist[i] >= 0 || !S.dug[i] || restingBagAt(nx, ny)) continue;
       dist[i] = dd + 1; q.push(nx, ny);
@@ -1339,7 +1350,7 @@ function updateMonsters(dt){
     const spd = base * (m.type === 'b' ? 0.72 + 0.12 * smart : m.type === 'r' ? 0.88 : 1);
     if (m.moving) {
       m.t += dt * spd;
-      if (m.t >= 1) { m.x = m.tx; m.y = m.ty; m.t = 0; m.moving = false; }
+      if (m.t >= 1) { m.x = m.tx = wrapX(m.tx); m.y = m.ty = wrapY(m.ty); m.t = 0; m.moving = false; }
       continue;
     }
     if ((m.wait -= dt) > 0) continue;
@@ -1347,10 +1358,10 @@ function updateMonsters(dt){
     if (m.type === 'g') {
       const opts = [];
       for (const k in DIRS) {
-        const d = DIRS[k], nx = m.x + d.dx, ny = m.y + d.dy;
-        if (!inb(nx, ny) || !S.dug[idx(nx, ny)] || restingBagAt(nx, ny)) continue;
+        const d = DIRS[k], ux = m.x + d.dx, uy = m.y + d.dy, nx = wrapX(ux), ny = wrapY(uy);
+        if (!S.dug[idx(nx, ny)] || restingBagAt(nx, ny)) continue;
         const dd = S.dist[idx(nx, ny)];
-        opts.push({ d, nx, ny, dist: dd < 0 ? 999 : dd, back: d.dx === -m.mdx && d.dy === -m.mdy });
+        opts.push({ d, nx, ny, ux, uy, dist: dd < 0 ? 999 : dd, back: d.dx === -m.mdx && d.dy === -m.mdy });
       }
       let pool = opts.filter(o => !o.back); if (!pool.length) pool = opts;
       if (pool.length) {
@@ -1360,41 +1371,41 @@ function updateMonsters(dt){
     } else {
       const mx = m.x * C + C / 2, my = m.y * C + C / 2;
       const sgn = bonus ? -1 : 1;   // a frightened digger burrows away from you
-      const ax = sgn * Math.sign(pp.x - mx), ay = sgn * Math.sign(pp.y - my);
-      const order = Math.abs(pp.x - mx) > Math.abs(pp.y - my) ? [{dx:ax,dy:0},{dx:0,dy:ay}] : [{dx:0,dy:ay},{dx:ax,dy:0}];
+      const ddx = wrapD(pp.x - mx, W * C), ddy = wrapD(pp.y - my, H * C);   // the short way round, through an edge if that's nearer
+      const ax = sgn * Math.sign(ddx), ay = sgn * Math.sign(ddy);
+      const order = Math.abs(ddx) > Math.abs(ddy) ? [{dx:ax,dy:0},{dx:0,dy:ay}] : [{dx:0,dy:ay},{dx:ax,dy:0}];
       order.push(...Object.values(DIRS).sort(() => Math.random() - 0.5));   // blocked by a sack: dig round it
       // from seam 3, diggers shove sacks sideways like the cart does
       const canShove = S.level >= 3 && !bonus, pc = pcell(S.player);
       const shove = (d, nx, ny) => {
         if (!canShove || d.dy !== 0) return false;
         const b = restingBagAt(nx, ny); if (!b) return false;
-        const bx = nx + d.dx;
-        if (!inb(bx, ny) || bagAt(bx, ny) || monsterOnCell(bx, ny) || S.em[idx(bx, ny)] || (pc.x === bx && pc.y === ny)) return false;
-        b.x = bx; b.slide = -d.dx; b.fy = b.y; if (b.state === 'wobble') b.state = 'rest';
+        const bx = wrapX(nx + d.dx);
+        if (bagAt(bx, ny) || monsterOnCell(bx, ny) || S.em[idx(bx, ny)] || (pc.x === bx && pc.y === ny)) return false;
+        b.x = bx; b.slide = Math.abs(bx - nx) === 1 ? -d.dx : 0; b.fy = b.y; if (b.state === 'wobble') b.state = 'rest';
         sfx.thud();
         return true;
       };
       // the cunning part: if a sack beside me would land right above the cart, push it there
       if (canShove && pc.y > m.y) {
         for (const dx of [-1, 1]) {
-          const nx = m.x + dx;
-          if (pc.x === nx + dx && shove({ dx, dy: 0 }, nx, m.y)) { pick = { d: { dx, dy: 0 }, nx, ny: m.y }; break; }
+          const nx = wrapX(m.x + dx);
+          if (pc.x === wrapX(nx + dx) && shove({ dx, dy: 0 }, nx, m.y)) { pick = { d: { dx, dy: 0 }, nx, ny: m.y, ux: m.x + dx, uy: m.y }; break; }
         }
       }
       if (!pick) for (const d of order) {
         if (!d.dx && !d.dy) continue;
-        const nx = m.x + d.dx, ny = m.y + d.dy;
-        if (!inb(nx, ny)) continue;
-        if (!bagAt(nx, ny) || shove(d, nx, ny)) { pick = { d, nx, ny }; break; }
+        const ux = m.x + d.dx, uy = m.y + d.dy, nx = wrapX(ux), ny = wrapY(uy);
+        if (!bagAt(nx, ny) || shove(d, nx, ny)) { pick = { d, nx, ny, ux, uy }; break; }
       }
       if (pick) S.dug[idx(pick.nx, pick.ny)] = 1;
     }
-    if (pick) { m.tx = pick.nx; m.ty = pick.ny; m.t = 0; m.moving = true; m.mdx = pick.d.dx; m.mdy = pick.d.dy; }
+    if (pick) { m.tx = pick.ux ?? pick.nx; m.ty = pick.uy ?? pick.ny; m.t = 0; m.moving = true; m.mdx = pick.d.dx; m.mdy = pick.d.dy; }
     else m.wait = 0.25;
   }
   for (let j = S.monsters.length - 1; j >= 0; j--) {
     const mp = ppos(S.monsters[j]);
-    if (Math.hypot(mp.x - pp.x, mp.y - pp.y) < C * 0.68) {
+    if (wdist(mp.x, mp.y, pp.x, pp.y) < C * 0.68) {
       if (bonus) { const v = [200, 400, 800, 1600][Math.min(3, S.bonusChain)]; sfx.eat(S.bonusChain); S.bonusChain++; killMonster(j, v); }
       else { killPlayer(); return; }
     }
@@ -1406,12 +1417,15 @@ function updateSparks(dt){
   for (let i = S.sparks.length - 1; i >= 0; i--) {
     const s = S.sparks[i];
     s.trail.unshift({ x: s.x, y: s.y }); if (s.trail.length > 5) s.trail.pop();
-    s.x += s.dx * dt * 14 * C; s.y += s.dy * dt * 14 * C;
+    s.x += s.dx * dt * 14 * C; s.y += s.dy * dt * 14 * C; s.age = (s.age || 0) + dt;
+    const fw = W * C, fh = H * C, ox = s.x, oy = s.y;
+    s.x = ((s.x % fw) + fw) % fw; s.y = ((s.y % fh) + fh) % fh;
+    if (s.x !== ox || s.y !== oy) s.trail.length = 0;   // jumped through an edge
     const cx = Math.floor(s.x / C), cy = Math.floor(s.y / C);
-    let dead = !inb(cx, cy) || !S.dug[idx(cx, cy)] || restingBagAt(cx, cy);
+    let dead = s.age > 1.4 || !S.dug[idx(cx, cy)] || restingBagAt(cx, cy);
     for (let j = S.monsters.length - 1; j >= 0 && !dead; j--) {
       const mp = ppos(S.monsters[j]);
-      if (Math.hypot(mp.x - s.x, mp.y - s.y) < C * 0.6) {
+      if (wdist(mp.x, mp.y, s.x, s.y) < C * 0.6) {
         const m = S.monsters[j];
         if (m.hp > 1) { m.hp--; m.hitT = 0.45; sfx.thud(); } else killMonster(j, 250);
         dead = true;
@@ -1480,6 +1494,11 @@ function drawTunnels(){
     g.fillRect(X + ins, Y + ins, C - ins * 2, C - ins * 2);
     if (x + 1 < W && S.dug[idx(x + 1, y)]) g.fillRect(X + C - ins, Y + ins, ins * 2, C - ins * 2);
     if (y + 1 < H && S.dug[idx(x, y + 1)]) g.fillRect(X + ins, Y + C - ins, C - ins * 2, ins * 2);
+    // a tunnel that carries on at the far side is open to the edge
+    if (x === W - 1 && S.dug[idx(0, y)]) g.fillRect(X + C - ins, Y + ins, ins, C - ins * 2);
+    if (x === 0 && S.dug[idx(W - 1, y)]) g.fillRect(X, Y + ins, ins, C - ins * 2);
+    if (y === H - 1 && S.dug[idx(x, 0)]) g.fillRect(X + ins, Y + C - ins, C - ins * 2, ins);
+    if (y === 0 && S.dug[idx(x, H - 1)]) g.fillRect(X + ins, Y, C - ins * 2, ins);
   }
   g.fillStyle = col('spawn');
   g.fillRect((W - 1) * C + 6, 6, 4, 4); g.fillRect(W * C - 10, 6, 4, 4);
@@ -1517,8 +1536,9 @@ function drawSun(){
   g.fillStyle = col(Math.floor(S.time * 6) % 2 ? 'sun' : 'sunRay'); circ(X, Y, 8);
   g.fillStyle = col('bg'); g.fillRect(X - 3, Y - 3, 2, 2); g.fillRect(X + 1, Y - 3, 2, 2);
 }
-function drawMonster(m){
-  const p = ppos(m), bonus = S.bonusT > 0;
+function drawMonster(m){ for (const q of wrapSpots(ppos(m))) drawMonsterAt(m, q); }
+function drawMonsterAt(m, p){
+  const bonus = S.bonusT > 0;
   const flashing = bonus && S.bonusT < 2 && Math.floor(S.bonusT * 8) % 2;
   g.save(); g.translate(p.x, p.y);
   const bob = Math.sin(m.wob) > 0 ? -1 : 1;
@@ -1554,8 +1574,9 @@ function drawMonster(m){
   }
   g.restore();
 }
-function drawPlayer(){
-  const p = S.player, pos = ppos(p);
+function drawPlayer(){ for (const q of wrapSpots(ppos(S.player))) drawPlayerAt(q); }
+function drawPlayerAt(pos){
+  const p = S.player;
   if (S.mode === 'dying' && Math.floor(p.deadT * 10) % 2) return;
   g.save(); g.translate(pos.x, pos.y);
   if (S.mode === 'dying') g.rotate(Math.floor(p.deadT * 8) * Math.PI / 2);
@@ -1593,13 +1614,18 @@ function drawHud(){
   txt(String(S.score).padStart(6, '0'), 6, 6, 'text');
   const wide = LW >= 330;
   if (wide) txt('HI ' + String(best).padStart(6, '0'), 80, 6, 'hud');
-  const spares = Math.max(0, S.lives - 1);
-  for (let i = 0; i < Math.min(spares, wide ? 6 : 3); i++) {
-    const x = (wide ? 176 : 58) + i * 13;
-    g.fillStyle = col('cart'); g.fillRect(x, 7, 8, 5);
-    g.fillStyle = col('drill'); g.fillRect(x + 8, 8, 3, 3);
+  // lives as pixel hearts, the one you're playing included
+  const HEART = ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'];
+  const maxH = wide ? 6 : 3, shown = Math.min(Math.max(0, S.lives), maxH), hx0 = wide ? 176 : 58;
+  for (let i = 0; i < shown; i++) {
+    const x = hx0 + i * 10;
+    for (let r = 0; r < HEART.length; r++) for (let c = 0; c < 7; c++) if (HEART[r][c] === '#') { g.fillStyle = col(r === 1 && c === 1 ? 'textDim' : 'text'); g.fillRect(x + c, 5 + r, 1, 1); }
   }
-  txt('SEAM ' + S.level, LW - 64, 6, 'hud', 'right');
+  if (S.lives > maxH) txt('+' + (S.lives - maxH), hx0 + maxH * 10 + 1, 6, 'hud');
+  // tiny F and B tags for the spark (fire) and boost meters
+  const GLYPH = { F: ['###', '#..', '##.', '#..', '#..'], B: ['##.', '#.#', '##.', '#.#', '##.'] };
+  for (const [ch, gy] of [['F', 5], ['B', 11]]) GLYPH[ch].forEach((row, r) => { for (let c = 0; c < 3; c++) if (row[c] === '#') { g.fillStyle = col('hud'); g.fillRect(LW - 62 + c, gy + r, 1, 1); } });
+  txt('LEVEL ' + S.level, LW - 69, 6, 'hud', 'right');
   g.fillStyle = col('hud'); g.fillRect(LW - 56, 4, 50, 1); g.fillRect(LW - 56, 15, 50, 1); g.fillRect(LW - 56, 4, 1, 12); g.fillRect(LW - 7, 4, 1, 12);
   g.fillStyle = col(S.charge >= 1 ? 'text' : 'textDim'); g.fillRect(LW - 54, 6, Math.round(46 * S.charge), 3);
   const bl = S.boostT > 0 ? 1 : (S.boost || 0);
@@ -1621,6 +1647,7 @@ function renderFrame(){
   if (S.mode === 'boot') drawBoot(); else {
   g.drawImage(dirtCanvas, 0, HUD);
   g.setTransform(K, 0, 0, K, 0, HUD);
+  g.save(); g.beginPath(); g.rect(0, 0, W * C, H * C); g.clip();   // sprites half through an edge show on both sides, never over the score bar
   drawTunnels();
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (S.em[idx(x, y)]) drawGem(x, y);
   S.golds.forEach(drawGold);
@@ -1629,12 +1656,13 @@ function renderFrame(){
   if (S.mode !== 'title') { S.monsters.forEach(drawMonster); drawPlayer(); }
   drawSparks();
   for (const q of S.parts) { g.fillStyle = col(q.role); g.fillRect(q.x - 2, q.y - 2, 4, 4); }
+  g.restore();
   g.setTransform(1, 0, 0, 1, 0, 0);
   for (const q of S.pops) if (Math.floor(q.life * 12) % 3) txt(q.text, q.x * K, q.y * K + HUD - 4, 'text', 'center');
   if (S.bonusT > 0 && Math.floor(S.time * 4) % 2) { g.fillStyle = col('textDim'); g.fillRect(0, LH - 2, LW, 2); g.fillRect(0, HUD, LW, 2); }
   drawHud();
-  if (S.mode === 'ready') banner('SEAM ' + S.level, `${S.emLeft} EMERALDS  ·  ${S.total} GRUBS`);
-  if (S.mode === 'clear') banner('SEAM CLEARED');
+  if (S.mode === 'ready') banner('LEVEL ' + S.level, `${S.emLeft} EMERALDS  ·  ${S.total} GRUBS`);
+  if (S.mode === 'clear') banner('LEVEL CLEARED');
   }
   // snap every pixel to the four colours the hardware could show
   const img = g.getImageData(0, 0, LW, LH), d = img.data, P = palRGB;

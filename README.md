@@ -2,7 +2,7 @@
 
 ![Tunnel Raider on a green-phosphor CRT monitor](og-image.png)
 
-A tunnelling arcade game for the browser, played on a 1983-style CRT monitor. Dig for emeralds, drop sacks of gold on the grubs and outwit monsters that get smarter every seam.
+A tunnelling arcade game for the browser, played on a 1983-style CRT monitor. Dig for emeralds, drop sacks of gold on the grubs and outwit monsters that get smarter every level.
 
 It is one self-contained `index.html` with a small service worker for offline play: no build step and no dependencies beyond Google Fonts.
 
@@ -29,17 +29,17 @@ Open `index.html` in a browser, or serve the folder with any static host (see [D
 | Eight emeralds in quick succession | +250 |
 | Gold from a sack that fell two or more cells | 500 |
 | Grub crushed by a sack or hit by a spark | 250 |
-| Rockjaw (from seam 4) | 500 |
+| Rockjaw (from level 4) | 500 |
 | Sunstone | 1,000 |
 | Grubs rammed while the sunstone glows | 200 · 400 · 800 · 1,600 |
 | Spare drill cart | every 20,000 |
 
 ### How it gets harder
 
-- Grubs crawl through the first three seams, then quicken every seam, but stay below the cart's open-tunnel speed. From seam 9 the cart speeds up too, and the cap rises with it.
+- Grubs crawl through the first three levels, then quicken every level, but stay below the cart's open-tunnel speed. From level 9 the cart speeds up too, and the cap rises with it.
 - Grubs wander less, turn into tunnelling borers sooner and stay borers longer.
-- From seam 3, borers shove sacks sideways and line them up over your cart.
-- From seam 4, rockjaws dig their own tunnels and take two hits (three from seam 7).
+- From level 3, borers shove sacks sideways and line them up over your cart.
+- From level 4, rockjaws dig their own tunnels and take two hits (three from level 7).
 
 ## The monitor
 
@@ -65,7 +65,7 @@ The playfield grid is chosen per game to match the tube's shape: about 15 × 10 
 Served over HTTPS (GitHub Pages included), Tunnel Raider is an installable web app:
 
 - **Offline:** the first visit caches the whole game, its icons and fonts with a service worker (`sw.js`). After that it opens instantly and plays with no connection.
-- **Updates:** whenever the game opens, comes back online, or every 30 minutes while it's visible, it checks `sw.js` for a new version. A new version downloads in the background, then a "new version ready · RESTART" prompt appears, so a game is never cut off mid-seam. Installed apps on Chromium browsers can also check in the background.
+- **Updates:** whenever the game opens, comes back online, or every 30 minutes while it's visible, it checks `sw.js` for a new version. A new version downloads in the background, then a "new version ready · RESTART" prompt appears, so a game is never cut off mid-level. Installed apps on Chromium browsers can also check in the background.
 - **Install:** browsers that support it show an **Install app** button beside the language switch. On iPhone and iPad, use Share → Add to Home Screen. The app opens full screen with the CRT icon.
 
 High scores and settings stay on the device; there is no server.
