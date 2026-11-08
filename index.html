@@ -63,6 +63,10 @@ img{max-width:100%}
   color-scheme:dark;
 }
 html,body{background:var(--desk);color:var(--label)}
+/* iOS: no double-tap zoom (pinch zoom still works), no text selection, callouts or grey tap flashes on the controls */
+html,body,.tv,button,.manual-bar,.netbadge{touch-action:manipulation}
+.tv,.manual-bar,.netbadge{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button,.stickzone,.dial,.tv{-webkit-tap-highlight-color:transparent}
 body{font-family:var(--body);font-size:14px;line-height:1.55}
 .wrap{max-width:1000px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 40px;display:grid;gap:18px}
 header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
@@ -999,6 +1003,15 @@ function trToast(text, opts = {}){
   if (opts.ms) badgeTimer = setTimeout(hide, opts.ms);
 }
 window.trToast = trToast;
+/* backstop for older iOS: a second tap on the set within 350 ms never becomes a zoom */
+{ let lastTap = 0;
+  document.addEventListener('touchend', e => {
+    const now = e.timeStamp || Date.now();
+    if (now - lastTap < 350 && e.target.closest && e.target.closest('.tv, .netbadge')) e.preventDefault();
+    lastTap = now;
+  }, { passive: false });
+  document.addEventListener('dblclick', e => { if (e.target.closest && e.target.closest('.tv')) e.preventDefault(); }, { passive: false });
+}
 window.trT = k => I18N[lang][k];
 addEventListener('offline', () => trToast(I18N[lang].netOff, { state: 'off', ms: 5000 }));
 addEventListener('online', () => trToast(I18N[lang].netOn, { state: 'on', ms: 5000 }));
