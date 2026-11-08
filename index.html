@@ -254,7 +254,7 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-full] .tube-surround{padding:0;border-radius:0;background:none;box-shadow:none;justify-self:center;align-self:stretch;width:calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)));height:var(--avail-h)}
 [data-full] .screen{aspect-ratio:auto;width:100%;height:100%}
 [data-full] .pad{display:none}
-[data-full][data-layout="console"] .tv-face{grid-template-columns:minmax(110px,1fr) auto minmax(110px,1fr);grid-template-rows:1fr auto;grid-template-areas:"stick screen ." "fire screen ."}
+[data-full][data-layout="console"] .tv-face{grid-template-columns:minmax(110px,1fr) auto minmax(110px,1fr);grid-template-rows:1fr auto;grid-template-areas:"stick screen ." "stick screen fire"}
 [data-full][data-layout="console"] .pad{display:contents}
 [data-full][data-layout="console"] .tube-surround{width:calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)) - 280px)}
 [data-full][data-layout="phone-portrait"] .tv-face,[data-full][data-layout="tablet-portrait"] .tv-face{grid-template-columns:minmax(0,1fr);grid-template-areas:"screen" "pad"}
@@ -273,7 +273,7 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-layout="console"] .tv{filter:none}
 [data-layout="console"] .tv-face{box-sizing:border-box;--fp:10px;--sp:8px;--avail-h:calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   height:var(--avail-h);padding:var(--fp);border-radius:18px;gap:10px;align-items:center;
-  grid-template-columns:minmax(140px,1fr) auto minmax(140px,1fr);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"stick screen ctl" "fire screen ctl"}
+  grid-template-columns:minmax(140px,1fr) auto minmax(140px,1fr);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"stick screen ctl" "stick screen fire"}
 @supports (height:100dvh){[data-layout="console"] .tv-face{--avail-h:calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))}}
 [data-layout="console"] .tube-surround{grid-area:screen;padding:var(--sp);border-radius:18px;
   align-self:stretch;width:min(calc((var(--avail-h) - 2 * var(--fp) - 2 * var(--sp)) * 1.75 + 2 * var(--sp)), calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)) - 2 * var(--fp) - 300px))}
