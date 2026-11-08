@@ -48,6 +48,16 @@ Right now the repo is still Tunnel Raider as it was copied, with the same page t
   - **App identity:** `<title>`, `apple-mobile-web-app-title`, share tags and image, `manifest.webmanifest` name and short name, icons, README.
 - Model code: replace `TR-83` with a console model code to match, such as `GG-3000`. Game names (Tunnel Raider and the rest) appear only inside their own game: its loading screen, instructions and title.
 
+### 7. A SELECT button beside RESET
+
+- Add a **SELECT** button next to RESET on the set, labelled `SELECT` in the same style as the RESET label.
+- **Colours:** SELECT takes RESET's current look (the dark graphite key, `.resetbtn`). RESET becomes **dark wine red**, so it reads as the dangerous one.
+- **What it does:** pressing SELECT leaves the current game and goes back to the game loader, replaying the boot-up and disk loading sounds on the way (the same kind as `playBoot()`), much as RESET replays the cold boot today.
+- It does nothing with the set switched off, like RESET.
+- It needs a place in every layout (`desk`, `console`, tall console, `phone-portrait`, `tablet-portrait`), sitting with RESET beside POWER.
+- **RESET vs SELECT:** RESET reboots the whole console (BIOS, then the loader); SELECT just swaps the game, through the loader.
+- Add a keyboard shortcut for it, and an analytics event (for example `select` with the game left and its level).
+
 ## Where things are now
 
 | File | What it is |
