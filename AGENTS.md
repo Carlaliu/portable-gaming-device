@@ -4,7 +4,7 @@ Notes for anyone (human or agent) working in this repo. Read this before changin
 
 ## What this is
 
-**Game Guy** is a browser game console: one old CRT monitor that boots, shows a game loader, and runs several games. It starts as a copy of [Tunnel Raider](https://github.com/wiiiimm/tunnel-raider), which is still its own repo and site (`tunnel-raider.wiiiimm.codes`); changes made here do not flow back to it.
+**Game Guy 3000 Deluxe** (Game Guy for short) is a browser game console: one old CRT monitor that boots, shows a game loader, and runs several games. It starts as a copy of [Tunnel Raider](https://github.com/wiiiimm/tunnel-raider), which is still its own repo and site (`tunnel-raider.wiiiimm.codes`); changes made here do not flow back to it.
 
 Right now the repo is still Tunnel Raider as it was copied, with the same page title, share tags, canonical URL and README. Rebrand those as the console takes shape.
 
@@ -38,7 +38,7 @@ Right now the repo is still Tunnel Raider as it was copied, with the same page t
 
 ### 6. Rebrand the console as Game Guy
 
-- The page header and every bit of branding on the CRT set change from Tunnel Raider to the console's name. **It must include "Game Guy"** and should feel nerdy and retro, along the lines of **Game Guy 3000** (the working name until the owner settles it).
+- The page header and every bit of branding on the CRT set change from Tunnel Raider to the console's name: **Game Guy 3000 Deluxe** (chosen by the owner). Any shortened form must still say "Game Guy", and the look stays nerdy and retro.
 - Today's spots to change:
   - **Page header:** wordmark and `TR-83` badge (`.mk-model`), and the tagline beside it.
   - **Nameplate on the set:** `TUNNEL RAIDER` with the `TR-83 · <phosphor>` line (`.nameplate`, set by `setMode()`).
@@ -46,7 +46,7 @@ Right now the repo is still Tunnel Raider as it was copied, with the same page t
   - **BIOS banner:** `TR-83 PERSONAL COMPUTER   BIOS 1.0` (`drawBoot()`).
   - **Instructions:** the `model` string in `I18N` for all three languages.
   - **App identity:** `<title>`, `apple-mobile-web-app-title`, share tags and image, `manifest.webmanifest` name and short name, icons, README.
-- Model code: replace `TR-83` with a console model code to match, such as `GG-3000`. Game names (Tunnel Raider and the rest) appear only inside their own game: its loading screen, instructions and title.
+- Model code: replace `TR-83` with `GG-3000 DX`. Game names (Tunnel Raider and the rest) appear only inside their own game: its loading screen, instructions and title.
 
 ### 7. A SELECT button beside RESET
 
@@ -97,5 +97,5 @@ Useful places in `index.html`:
 ## Open questions
 
 - Which games join Tunnel Raider, and in what order.
-- The final console name (working name Game Guy 3000) and model code, and the site address.
+- The site address for the console.
 - Whether games stay inside one `index.html` or move to one file or folder per game (for example `games/<id>/`) loaded by the console.
