@@ -2,7 +2,7 @@
    The game shell is cached on install, so it plays fully offline. Every visit, every return to the
    network and every 30 minutes the page asks for this file again; when its version changes the new
    shell downloads in the background and the page offers a RESTART instead of interrupting a game. */
-const VERSION = '7167d0499758';
+const VERSION = '5147f8ded332';
 const SHELL = `tr-shell-${VERSION}`;
 const RUNTIME = 'tr-runtime-v1';   // fonts and anything else fetched later
 const ASSETS = [
