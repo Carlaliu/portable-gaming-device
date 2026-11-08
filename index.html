@@ -173,9 +173,15 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 /* tall landscape (iPad, opened foldables): power and reset top left over a full-height stick;
    on the right, the dial at the top, the four switches in the middle, FIRE and BOOST at the bottom */
 @media (min-height:560px){
-  :root[data-layout="console"] .tv-face{grid-template-columns:minmax(176px,1fr) auto minmax(176px,1fr);grid-template-rows:auto minmax(0,1fr) auto minmax(0,1fr) auto;
-    grid-template-areas:"pwr screen dial" "stick screen ." "stick screen rock" "stick screen ." "stick screen fire"}
-  :root[data-layout="console"] .rockers{align-self:center}
+  :root[data-layout="console"] .tv-face{grid-template-columns:minmax(176px,1fr) auto minmax(176px,1fr);grid-template-rows:auto minmax(0,1fr) auto auto minmax(0,1fr) auto;
+    grid-template-areas:"pwr screen plate" "stick screen ." "stick screen dial" "stick screen rock" "stick screen ." "stick screen fire"}
+  /* the badge returns to the top right; the dial, full size, sits mid-right over the switches */
+  :root[data-layout="console"] .nameplate{display:grid;grid-area:plate;align-self:start}
+  :root[data-layout="console"] .dial-block{align-self:end}
+  :root[data-layout="console"] .dial-wrap{width:148px;height:148px}
+  :root[data-layout="console"] .dial{transform:none}
+  :root[data-layout="console"] .tk,:root[data-layout="console"] .dial-block .ctl-label{display:block}
+  :root[data-layout="console"] .rockers{align-self:start;margin-top:10px}
   :root[data-layout="console"] .power{align-self:center}
   :root[data-layout="console"] .keyrow{gap:16px}
   :root[data-layout="console"] .fire{height:56px}
