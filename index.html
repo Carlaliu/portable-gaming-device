@@ -1,0 +1,1756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every seam, on a glowing 1983-style CRT monitor. Plays in your browser.">
+<meta name="theme-color" content="#111110">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23140e09'/%3E%3Cpath d='M8 2l5 5-5 7-5-7z' fill='%230f5a1d'/%3E%3Cpath d='M8 3.5l3.4 3.5L8 12 4.6 7z' fill='%232fbf4b'/%3E%3Cpath d='M6 5h4L8 7z' fill='%23b2ffbd'/%3E%3C/svg%3E">
+<link rel="canonical" href="https://wiiiimm.github.io/tunnel-raider/">
+<!-- sharing previews -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tunnel Raider">
+<meta property="og:title" content="Tunnel Raider: dig, drop, survive">
+<meta property="og:description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every seam, on a glowing 1983-style CRT monitor. Plays in your browser.">
+<meta property="og:url" content="https://wiiiimm.github.io/tunnel-raider/">
+<meta property="og:image" content="https://wiiiimm.github.io/tunnel-raider/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Tunnel Raider running on a green-phosphor CRT monitor: a drill cart tunnelling for emeralds beside sacks of gold.">
+<meta property="og:locale" content="en_GB">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tunnel Raider: dig, drop, survive">
+<meta name="twitter:description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every seam, on a glowing 1983-style CRT monitor. Plays in your browser.">
+<meta name="twitter:image" content="https://wiiiimm.github.io/tunnel-raider/og-image.png">
+<meta name="twitter:image:alt" content="Tunnel Raider running on a green-phosphor CRT monitor.">
+<style>
+/* base reset: keep content clear of a phone's notch and home bar */
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Tunnel Raider</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a 1983 colour monitor on a dark desk — bezel-framed CRT, a row of front-panel switches, reference cards beneath. Single dark look by design; --phos/--phos2 retint to the chosen display. */
+:root{
+  --desk:#111110;        /* page ground */
+  --plastic:#2c2f2a;     /* monitor bezel (set per monitor theme) */
+  --plastic-hi:#43473f;  /* bezel highlight */
+  --plastic-lo:#1d1f1b;  /* bezel shadow */
+  --bezel-ink:#8f978a;   /* model plate text */
+  --glass:#1a120c;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 .55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");   /* moulded plastic stipple */
+  --mottle:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .02' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 .35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");  /* uneven ageing of the plastic */       /* unlit tube */
+  --label:#c9c2b0;       /* text on plastic */
+  --muted:#8d8676;       /* secondary text */
+  --phos:#55ffff;        /* active phosphor colour (set by display mode) */
+  --phos2:#ff55ff;       /* second phosphor colour */
+  --display:"Silkscreen", "Noto Sans TC", "Noto Sans SC", "Courier New", monospace;
+  --body:"IBM Plex Mono", "Noto Sans TC", "Noto Sans SC", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--desk);color:var(--label)}
+body{font-family:var(--body);font-size:14px;line-height:1.55}
+.wrap{max-width:1000px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 40px;display:grid;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,5vw,40px);line-height:1;margin:0;letter-spacing:.03em;color:var(--label);text-wrap:balance}
+h1 span{color:var(--phos);text-shadow:0 0 12px color-mix(in srgb, var(--phos) 60%, transparent)}
+.tag{margin:0;color:var(--muted);font-size:13px;max-width:46ch}
+
+/* the monitor */
+.monitor{background:linear-gradient(180deg,var(--plastic-hi),var(--plastic) 12%,var(--plastic) 88%,var(--plastic-lo));border-radius:22px;padding:clamp(12px,3vw,30px) clamp(12px,3vw,30px) 14px;box-shadow:0 18px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)}
+.screen{position:relative;aspect-ratio:360/260;display:grid;place-items:center;border-radius:clamp(14px,3vw,30px)/clamp(12px,2.6vw,26px);overflow:hidden;background:var(--glass);box-shadow:0 0 0 3px #0b0a08, 0 0 0 5px #4a463c}
+.screen::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 50px 8px rgba(0,0,0,.85);background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,0) 30%)}
+canvas{display:block;max-width:100%;touch-action:none}
+.screen .overlay{border-radius:inherit}
+.panel{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:12px}
+.brand{font-family:var(--display);font-size:11px;letter-spacing:.2em;color:var(--bezel-ink)}
+.picker{display:grid;gap:10px}
+.picker h3{font-family:var(--display);font-weight:400;font-size:12px;letter-spacing:.14em;color:var(--muted);margin:0;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.picker h3 span{font-family:var(--body);letter-spacing:0;font-size:12px;color:#6a6458}
+.pick-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pick-row button{display:grid;gap:4px;align-content:start;text-align:left;background:#181713;border:1px solid #2b2924;border-radius:6px;padding:10px 12px;color:var(--label);cursor:pointer;font-family:var(--body)}
+.pick-row button:hover{border-color:#4a463c}
+.pick-row button[aria-checked="true"]{border-color:var(--phos);box-shadow:0 0 0 1px var(--phos), 0 0 18px color-mix(in srgb, var(--phos) 25%, transparent)}
+.pick-row b{font-family:var(--display);font-weight:400;font-size:13px;letter-spacing:.04em}
+.pick-row small{font-size:11px;color:var(--muted);line-height:1.35}
+.sw4{display:flex;height:12px;border-radius:2px;overflow:hidden;margin-bottom:4px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.sw4 i{flex:1}
+.led{width:8px;height:8px;border-radius:50%;background:var(--phos);box-shadow:0 0 8px var(--phos)}
+.spacer{flex:1}
+.seg{display:flex;flex-wrap:wrap;border:1px solid #0f0e0c;border-radius:4px;overflow:hidden;background:#171612}
+.seg button,.sw{font-family:var(--display);font-size:11px;letter-spacing:.08em;background:#1d1b17;color:var(--muted);border:0;border-right:1px solid #0f0e0c;padding:7px 10px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:#0b0a08;color:var(--phos);text-shadow:0 0 8px var(--phos)}
+.sw{border:1px solid #0f0e0c;border-radius:4px}
+.sw[aria-pressed="true"]{color:var(--phos)}
+.seg button:hover,.sw:hover{color:var(--label)}
+button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
+
+/* screen overlay, drawn as if on the tube */
+.overlay{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;background:rgba(0,0,0,.72);padding:16px;z-index:1}
+.overlay h2{font-family:var(--display);font-weight:700;font-size:clamp(20px,4.6vw,40px);margin:0;line-height:1.1;color:var(--phos);text-shadow:0 0 10px var(--phos);text-wrap:balance}
+.overlay p{margin:0;color:var(--phos2);max-width:40ch;font-family:var(--display);font-size:clamp(10px,1.6vw,13px);line-height:1.6;text-shadow:0 0 6px var(--phos2)}
+.btn{font-family:var(--display);font-size:clamp(12px,2vw,15px);letter-spacing:.1em;background:transparent;color:var(--phos);border:2px solid var(--phos);padding:10px 20px;cursor:pointer;text-shadow:0 0 8px var(--phos);box-shadow:0 0 12px color-mix(in srgb, var(--phos) 40%, transparent)}
+.btn:hover{background:var(--phos);color:#000;text-shadow:none}
+.blink{animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* the television set */
+.tv{position:relative;filter:drop-shadow(0 24px 30px rgba(0,0,0,.6))}
+.tv-face{display:grid;grid-template-columns:minmax(0,1fr) 180px;grid-template-rows:auto 1fr;grid-template-areas:"screen ctl" "screen pad";gap:clamp(12px,2vw,22px);padding:clamp(14px,2.6vw,28px);border-radius:28px;
+  position:relative;padding-bottom:calc(clamp(14px,2.6vw,28px) + 44px);
+  background:var(--grain),var(--mottle),radial-gradient(120% 70% at 18% 0%,rgba(255,255,255,.16),transparent 55%),linear-gradient(180deg,var(--plastic-hi),var(--plastic) 9%,var(--plastic) 86%,var(--plastic-lo));
+  background-size:160px 160px,100% 100%,auto,auto;background-blend-mode:soft-light,soft-light,normal,normal;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.22),inset 0 -5px 0 rgba(0,0,0,.28),inset 3px 0 0 rgba(255,255,255,.06),inset -3px 0 0 rgba(0,0,0,.2)}
+.tube-surround{grid-area:screen;padding:clamp(10px,2.2vw,24px);border-radius:26px;align-self:center;
+  background:var(--grain),linear-gradient(180deg,color-mix(in srgb, var(--plastic-lo) 55%, #000),color-mix(in srgb, var(--plastic-lo) 75%, #000));background-size:160px 160px,auto;background-blend-mode:soft-light,normal;
+  box-shadow:inset 0 8px 16px rgba(0,0,0,.8),inset 0 -2px 0 rgba(255,255,255,.07),0 1px 0 rgba(255,255,255,.14),0 -1px 0 rgba(0,0,0,.3)}
+.controls{grid-area:ctl;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
+.nameplate{width:100%;display:grid;gap:2px;justify-items:center;padding:7px 6px;border-radius:4px;color:#1f1d19;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.08) 0 1px,transparent 1px 3px),linear-gradient(180deg,#e2dfd5,#a3a094 48%,#bdb9ae 52%,#8a867d);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 1px 2px rgba(0,0,0,.55)}
+.nameplate b{font-family:var(--display);font-size:11px;letter-spacing:.08em;font-weight:700}
+.nameplate span{font-family:var(--body);font-size:9px;letter-spacing:.04em;white-space:nowrap}
+.dial-block{display:grid;justify-items:center;gap:2px}
+.dial-wrap{position:relative;width:148px;height:148px}
+.dial-labels{position:absolute;inset:0}
+.dl{position:absolute;transform:translate(-50%,-50%);font-family:var(--display);font-size:8px;letter-spacing:.06em;color:var(--bezel-ink);background:none;border:0;padding:4px 3px;cursor:pointer;white-space:nowrap;opacity:.7}
+.dl:hover{opacity:1}
+.dl[aria-current="true"]{opacity:1;box-shadow:inset 0 -2px 0 currentColor}
+.tk{position:absolute;left:50%;top:50%;width:2px;height:7px;margin:-3.5px 0 0 -1px;background:var(--bezel-ink);opacity:.55}
+.dial{position:absolute;left:50%;top:50%;width:82px;height:82px;margin:-41px 0 0 -41px;border-radius:50%;cursor:grab;touch-action:none;
+  background:repeating-conic-gradient(#191815 0 5deg,#3b3832 5deg 10deg);box-shadow:0 7px 12px rgba(0,0,0,.6),0 0 0 2px rgba(0,0,0,.35)}
+.dial.grabbing{cursor:grabbing}
+.dial:focus-visible{outline:2px solid var(--phos);outline-offset:5px}
+.dial-cap{position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#5e5a4f,#2c2a25 60%,#1b1a17);box-shadow:inset 0 1px 1px rgba(255,255,255,.28),0 0 0 1px #0e0d0b;transition:transform .4s cubic-bezier(.3,1.55,.5,1)}
+.pointer{position:absolute;left:50%;top:5px;width:4px;height:22px;margin-left:-2px;border-radius:2px;background:#ece5d2;box-shadow:0 0 3px rgba(0,0,0,.7)}
+.ctl-label{font-family:var(--display);font-size:9px;letter-spacing:.16em;color:var(--bezel-ink)}
+.rockers{display:flex;gap:12px;justify-content:center}
+.rk{display:grid;justify-items:center;gap:6px}
+.rocker{width:30px;height:46px;border-radius:5px;background:#12110e;border:1px solid #070605;padding:3px;cursor:pointer;box-shadow:inset 0 2px 5px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.12)}
+.rocker i{display:block;height:100%;border-radius:3px;background:linear-gradient(180deg,#1f1d19,#2e2b25 44%,#5a564c 54%,#3e3a32);transform:perspective(60px) rotateX(24deg);transition:transform .14s cubic-bezier(.3,1.6,.5,1),background .14s;position:relative}
+.rocker i::after{content:"";position:absolute;left:50%;top:6px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#2b2924}
+.rocker i::before{content:"I";position:absolute;left:0;right:0;bottom:4px;text-align:center;font:700 8px/1 var(--body);color:#8d8676}
+.rocker[aria-pressed="false"] i::before{content:"O";bottom:auto;top:4px}
+.rocker[aria-pressed="false"] i{background:linear-gradient(180deg,#3e3a32,#5a564c 46%,#2e2b25 56%,#1f1d19)}
+.rocker[aria-pressed="false"] i::after{top:auto;bottom:6px}
+.rocker[aria-pressed="true"] i::after{background:var(--phos);box-shadow:0 0 6px var(--phos)}
+.rocker[aria-pressed="false"] i{transform:perspective(60px) rotateX(-24deg)}
+.rocker:focus-visible{outline:2px solid var(--phos);outline-offset:3px}
+.grille{width:100%;flex:1;min-height:36px;border-radius:6px;background:repeating-linear-gradient(0deg,color-mix(in srgb, var(--plastic-lo) 45%, #000) 0 3px,transparent 3px 7px)}
+.power{display:flex;align-items:center;gap:10px;position:absolute;left:clamp(18px,3vw,34px);bottom:9px}
+.emboss{position:absolute;right:clamp(22px,3.4vw,40px);bottom:20px;font-family:var(--display);font-size:9px;letter-spacing:.22em;color:var(--plastic-lo);text-shadow:0 1px 0 rgba(255,255,255,.22),0 -1px 0 rgba(0,0,0,.25);pointer-events:none;white-space:nowrap}
+[data-layout="console"] .power{position:static;flex-wrap:wrap;justify-content:center;gap:8px}
+[data-layout="console"] .power > .ctl-label,[data-layout="console"] .reset-grp .ctl-label{display:none}
+[data-layout="console"] .reset-grp{margin:0;padding:0;border:0;box-shadow:none}
+[data-layout="console"] .emboss{display:none}
+@media (max-width:520px){.emboss{display:none}}
+.powerrock{width:78px;height:38px;border-radius:7px;background:#12110e;border:1px solid #070605;padding:3px;cursor:pointer;box-shadow:inset 0 2px 5px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.14)}
+.powerrock i{display:block;height:100%;border-radius:4px;position:relative;background:linear-gradient(90deg,#3e3a32,#5a564c 44%,#2e2b25 56%,#1f1d19);transform:perspective(110px) rotateY(24deg);transition:transform .16s cubic-bezier(.3,1.6,.5,1),background .16s}
+.powerrock[aria-checked="true"] i{background:linear-gradient(90deg,#1f1d19,#2e2b25 44%,#5a564c 56%,#3e3a32);transform:perspective(110px) rotateY(-24deg)}
+.powerrock i::before,.powerrock i::after{position:absolute;top:50%;transform:translateY(-50%);font:700 11px/1 var(--body);color:#8d8676}
+.powerrock i::before{content:"O";left:11px}
+.powerrock i::after{content:"I";right:13px}
+.powerrock:focus-visible{outline:2px solid var(--phos);outline-offset:3px}
+.reset-grp{display:flex;align-items:center;gap:8px;margin-left:12px;padding-left:14px;border-left:1px solid rgba(0,0,0,.25);box-shadow:-1px 0 0 rgba(255,255,255,.08)}
+.resetbtn{width:30px;height:20px;border-radius:4px;cursor:pointer;border:1px solid #070605;background:linear-gradient(180deg,#4a463d,#2a2722 55%,#1d1b17);box-shadow:0 0 0 3px #12110e,0 3px 0 3px #0b0a08,inset 0 1px 0 rgba(255,255,255,.2);transition:transform .05s,box-shadow .05s}
+.resetbtn:active,.resetbtn.on{transform:translateY(2px);box-shadow:0 0 0 3px #12110e,0 1px 0 3px #0b0a08,inset 0 1px 2px rgba(0,0,0,.4)}
+.resetbtn:focus-visible{outline:2px solid var(--phos);outline-offset:5px}
+.pled{width:10px;height:10px;border-radius:50%;background:var(--phos);box-shadow:0 0 8px var(--phos),0 0 2px var(--phos),inset 0 -1px 1px rgba(0,0,0,.3);transition:background .3s,box-shadow .3s}
+[data-off] .pled{background:#2a2622;box-shadow:inset 0 1px 1px rgba(0,0,0,.6)}
+[data-fresh] .powerrock{animation:nudge 1.8s ease-in-out infinite}
+@keyframes nudge{50%{box-shadow:inset 0 2px 5px rgba(0,0,0,.85),0 0 0 3px color-mix(in srgb, var(--bezel-ink) 45%, transparent)}}
+@media (prefers-reduced-motion:reduce){[data-fresh] .powerrock{animation:none}}
+.powerbtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;cursor:pointer;border:1px solid #070605;background:radial-gradient(circle at 40% 35%,#4a463d,#1f1d19 70%);box-shadow:0 3px 0 #0b0a08,0 4px 6px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.2)}
+.powerbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #0b0a08,inset 0 1px 0 rgba(255,255,255,.2)}
+.powerbtn:focus-visible{outline:2px solid var(--phos);outline-offset:3px}
+.powerbtn .led{transition:background .3s,box-shadow .3s}
+.powerbtn.off .led{background:#2a2622;box-shadow:inset 0 1px 1px rgba(0,0,0,.6)}
+/* set switched off: every lamp on the case goes dark, whatever position its switch is in */
+.rocker i::after{transition:background .3s,box-shadow .3s}
+[data-off] .rocker[aria-pressed="true"] i::after{background:#2b2924;box-shadow:none}
+[data-off] .fire,[data-off] .fire.cool{filter:saturate(.25) brightness(.5)}
+[data-off] .stickzone.active .knob{border-color:#57524a;box-shadow:0 4px 10px rgba(0,0,0,.6)}
+[data-off] .tick.on{border-color:transparent}
+[data-layout="desk"] .grille{display:none}
+[data-layout="desk"] .fire{height:50px;font-size:13px}
+[data-layout="desk"] .boost{height:40px}
+[data-layout="tablet-portrait"] .tv-face{grid-template-areas:"screen ctl" "pad pad"}
+[data-layout="tablet-portrait"] .pad,[data-layout="phone-portrait"] .pad{flex-direction:column}
+[data-layout="tablet-portrait"] .stickzone,[data-layout="phone-portrait"] .stickzone{flex:none;width:100%;height:180px}
+.feet{display:flex;justify-content:space-between;padding:0 14%}
+.feet i{width:clamp(50px,10vw,90px);height:10px;border-radius:0 0 8px 8px;background:linear-gradient(180deg,var(--plastic-lo),#0c0b09)}
+@media (max-width:720px){
+  .tv-face{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"screen" "ctl" "pad";border-radius:22px}
+  .stickzone{height:170px}
+  .controls{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px 22px}
+  .nameplate{flex-basis:100%}
+  .grille{display:none}
+  .dial-wrap{width:136px;height:136px}
+}
+.below{order:4}
+.below[hidden],.overlay[hidden]{display:none}
+.manual-bar{order:3;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.manual-btn{font-family:var(--display);font-size:12px;letter-spacing:.12em;background:#181713;color:var(--label);border:1px solid #2b2924;border-radius:6px;padding:9px 14px;cursor:pointer;display:inline-flex;gap:10px;align-items:center}
+.manual-btn:hover{border-color:#4a463c}
+.chev{display:inline-block;transition:transform .2s;color:var(--phos)}
+.manual-btn[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.lang{display:flex;border:1px solid #2b2924;border-radius:6px;overflow:hidden}
+.lang button{font-family:var(--body);font-size:12px;background:#181713;color:var(--muted);border:0;padding:8px 12px;cursor:pointer}
+.lang button+button{border-left:1px solid #2b2924}
+.lang button[aria-pressed="true"]{background:#26241f;color:var(--phos)}
+[data-layout="console"] .manual-bar{display:none}
+.exitfull{display:none;position:fixed;z-index:20;top:calc(10px + env(safe-area-inset-top, 0px));right:max(16px, env(safe-area-inset-right, 0px));width:40px;height:40px;border-radius:50%;border:1px solid #3a372f;background:rgba(20,19,16,.75);color:var(--label);font-size:16px;cursor:pointer}
+/* full screen: just the picture; touch screens keep the stick and spark at the sides */
+[data-full] body{overflow:hidden;background:#000}
+[data-full] .exitfull{display:block}
+[data-full] header,[data-full] .manual-bar,[data-full] .below,[data-full] .feet,[data-full] .rotate-hint,[data-full] .controls{display:none}
+[data-full] .wrap{max-width:none;padding-block:0;gap:0}
+[data-full] .tv{filter:none}
+[data-full] .tv-face{box-sizing:border-box;--avail-h:calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));height:var(--avail-h);padding:0;border-radius:0;background:#000;box-shadow:none;gap:10px;align-items:center;align-content:center;justify-content:center;grid-template-columns:auto;grid-template-rows:auto;grid-template-areas:"screen"}
+@supports (height:100dvh){[data-full] .tv-face{--avail-h:calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))}}
+[data-full] .tube-surround{padding:0;border-radius:0;background:none;box-shadow:none;justify-self:center;align-self:stretch;width:calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)));height:var(--avail-h)}
+[data-full] .screen{aspect-ratio:auto;width:100%;height:100%}
+[data-full] .pad{display:none}
+[data-full][data-layout="console"] .tv-face{grid-template-columns:minmax(110px,1fr) auto minmax(110px,1fr);grid-template-rows:1fr auto;grid-template-areas:"stick screen ." "fire screen ."}
+[data-full][data-layout="console"] .pad{display:contents}
+[data-full][data-layout="console"] .tube-surround{width:calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)) - 280px)}
+[data-full][data-layout="phone-portrait"] .tv-face,[data-full][data-layout="tablet-portrait"] .tv-face{grid-template-columns:minmax(0,1fr);grid-template-areas:"screen" "pad"}
+[data-full][data-layout="phone-portrait"] .tube-surround,[data-full][data-layout="tablet-portrait"] .tube-surround{width:100%}
+[data-full][data-layout="phone-portrait"] .pad,[data-full][data-layout="tablet-portrait"] .pad{display:flex;flex-direction:column;width:100%}
+.rotate-hint{display:none;margin:0;text-align:center;color:var(--muted);font-size:12px}
+
+/* ---- layouts chosen by the screen detector (data-layout on <html>) ---- */
+[data-layout="phone-portrait"] .tag{display:none}
+[data-layout="phone-portrait"] .rotate-hint{display:block}
+[data-layout="phone-portrait"] .pad,[data-layout="tablet-portrait"] .pad{display:flex}
+/* console: any touch screen held sideways. Stick | tube | dial and spark, filling the screen */
+[data-layout="console"] body{overflow:hidden}
+[data-layout="console"] header,[data-layout="console"] .below,[data-layout="console"] .feet,[data-layout="console"] .rotate-hint{display:none}
+[data-layout="console"] .wrap{max-width:none;padding-block:0;gap:0}
+[data-layout="console"] .tv{filter:none}
+[data-layout="console"] .tv-face{box-sizing:border-box;--fp:10px;--sp:8px;--avail-h:calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  height:var(--avail-h);padding:var(--fp);border-radius:18px;gap:10px;align-items:center;
+  grid-template-columns:minmax(140px,1fr) auto minmax(140px,1fr);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"stick screen ctl" "fire screen ctl"}
+@supports (height:100dvh){[data-layout="console"] .tv-face{--avail-h:calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))}}
+[data-layout="console"] .tube-surround{grid-area:screen;padding:var(--sp);border-radius:18px;
+  align-self:stretch;width:min(calc((var(--avail-h) - 2 * var(--fp) - 2 * var(--sp)) * 1.75 + 2 * var(--sp)), calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)) - 2 * var(--fp) - 300px))}
+[data-layout="console"] .screen{aspect-ratio:auto;width:100%;height:100%}
+[data-layout="console"] .controls{grid-area:ctl;flex-direction:column;flex-wrap:nowrap;gap:8px;align-self:start}
+[data-layout="console"] .nameplate,[data-layout="console"] .grille,[data-layout="console"] .tk,[data-layout="console"] .dial-block .ctl-label{display:none}
+[data-layout="console"] .dial-wrap{width:104px;height:104px}
+[data-layout="console"] .dial{transform:scale(.78)}
+[data-layout="console"] .rockers{gap:8px}
+[data-layout="console"] .rocker{height:38px;width:26px}
+[data-layout="console"] .rockers{gap:6px}
+[data-layout="console"] .pad{display:contents}
+[data-layout="console"] .stickzone{grid-area:stick;height:100%;align-self:stretch}
+[data-layout="console"] .keyrow{grid-area:fire;align-self:end;margin-bottom:6px;gap:10px}
+[data-layout="console"] .fire{height:48px}
+[data-layout="console"] .boost{height:40px}
+/* upright phones and tablets: the set fills the screen height and the tube takes every spare pixel */
+[data-layout$="portrait"] .wrap{gap:10px;padding-block:8px 24px}
+[data-layout$="portrait"] h1{font-size:clamp(18px,6vw,30px)}
+[data-layout$="portrait"] .tv{filter:none}
+[data-layout$="portrait"] .tv-face{box-sizing:border-box;height:var(--tv-h, auto);grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto;grid-template-areas:"screen" "ctl" "pad";gap:12px;padding:12px 12px 68px;border-radius:20px}
+[data-layout$="portrait"] .tube-surround{align-self:stretch;padding:8px;border-radius:18px;min-height:0}
+[data-layout$="portrait"] .screen{aspect-ratio:auto;width:100%;height:100%}
+[data-layout$="portrait"] .controls{flex-direction:row;flex-wrap:nowrap;justify-content:center;align-items:center;gap:18px}
+[data-layout$="portrait"] .grille,[data-layout$="portrait"] .tk,[data-layout$="portrait"] .dial-block .ctl-label,[data-layout$="portrait"] .emboss{display:none}
+[data-layout$="portrait"] .dial-wrap{width:100px;height:100px}
+[data-layout$="portrait"] .dial{transform:scale(.72)}
+[data-layout$="portrait"] .rockers{gap:8px}
+[data-layout$="portrait"] .rocker{height:38px}
+[data-layout$="portrait"] .nameplate{position:absolute;right:14px;bottom:13px;width:auto;flex-basis:auto;padding:4px 8px;display:flex;gap:6px;align-items:baseline}
+[data-layout$="portrait"] .nameplate b,[data-layout$="portrait"] .nameplate span{font-size:8px}
+[data-layout$="portrait"] .stickzone{height:136px}
+[data-layout$="portrait"] .fire{height:48px}
+[data-layout$="portrait"] .keyrow{flex-direction:row}
+[data-layout$="portrait"] .boost{height:48px}
+[data-layout$="portrait"] .power{left:14px;bottom:8px}
+/* upright phone: give the tube everything. No page title (the badge carries the name), no feet, tighter bezel and controls */
+[data-layout="phone-portrait"] header,[data-layout="phone-portrait"] .feet{display:none}
+[data-layout="phone-portrait"] .wrap{padding-block:6px 20px}
+[data-layout="phone-portrait"] .tv-face{padding:10px 10px 66px;gap:10px;border-radius:18px}
+[data-layout="phone-portrait"] .power > .ctl-label{display:none}
+[data-layout="phone-portrait"] .reset-grp{flex-direction:column;gap:4px;margin-left:4px;padding-left:12px}
+[data-layout="phone-portrait"] .reset-grp .ctl-label{font-size:8px}
+[data-layout="phone-portrait"] .tube-surround{padding:6px;border-radius:16px}
+[data-layout="phone-portrait"] .controls{gap:14px}
+[data-layout="phone-portrait"] .dial-wrap{width:92px;height:92px}
+[data-layout="phone-portrait"] .dial{transform:scale(.66)}
+[data-layout="phone-portrait"] .stickzone{height:118px}
+[data-layout="phone-portrait"] .stickbase{transform:scale(.85)}
+[data-layout="phone-portrait"] .fire{height:44px;font-size:14px}
+[data-layout="phone-portrait"] .boost{height:44px}
+[data-layout="phone-portrait"] .power{bottom:9px}
+[data-layout="phone-portrait"] .nameplate{bottom:18px}
+[data-layout="phone-portrait"] .nameplate span{display:none}
+[data-full][data-layout$="portrait"] .tv-face{height:var(--avail-h);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"screen" "pad";padding:10px}
+[data-full][data-layout$="portrait"] .tube-surround{width:100%;height:auto}
+.pad{display:flex;flex-direction:column;align-items:stretch;gap:14px;grid-area:pad;min-width:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.stickzone{position:relative;width:100%;height:150px;border-radius:14px;background:repeating-linear-gradient(0deg,#171612 0 3px,#14130f 3px 6px);border:1px solid #2b2924;touch-action:none;overflow:hidden}
+.stickbase{position:absolute;left:50%;top:50%;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;border:2px solid #3a372f;background:radial-gradient(circle,#211f1a 0 55%,#1a1915 56%);pointer-events:none}
+.tick{position:absolute;width:0;height:0;border:7px solid transparent}
+.tick[data-d="up"]{left:50%;top:5px;margin-left:-7px;border-bottom-color:#4a463c}
+.tick[data-d="down"]{left:50%;bottom:5px;margin-left:-7px;border-top-color:#4a463c}
+.tick[data-d="left"]{top:50%;left:5px;margin-top:-7px;border-right-color:#4a463c}
+.tick[data-d="right"]{top:50%;right:5px;margin-top:-7px;border-left-color:#4a463c}
+.tick[data-d="up"].on{border-bottom-color:var(--phos)}
+.tick[data-d="down"].on{border-top-color:var(--phos)}
+.tick[data-d="left"].on{border-right-color:var(--phos)}
+.tick[data-d="right"].on{border-left-color:var(--phos)}
+.knob{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a463c,#26241f 70%);border:2px solid #57524a;box-shadow:0 4px 10px rgba(0,0,0,.6)}
+.stickzone.active .knob{border-color:var(--phos);box-shadow:0 0 14px color-mix(in srgb, var(--phos) 45%, transparent)}
+.hint{position:absolute;left:10px;bottom:8px;font-family:var(--display);font-size:9px;letter-spacing:.12em;color:#5f5a4f;pointer-events:none}
+/* arcade fire key: a wide red button in a black collar, under the stick */
+.fire{flex:0 0 auto;width:100%;height:58px;border-radius:9px;cursor:pointer;touch-action:none;font-family:var(--display);font-size:16px;letter-spacing:.24em;color:#fff1e6;text-shadow:0 1px 0 rgba(0,0,0,.45);border:2px solid #3a0d08;
+  background:linear-gradient(180deg,#ff7a62 0,#e2382b 22%,#c0251a 70%,#8a140b);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.28),0 0 0 4px #191815,0 0 0 5px #3a372f,0 5px 0 4px #0d0c0a,0 8px 12px 4px rgba(0,0,0,.45);transition:transform .06s,box-shadow .06s,filter .3s}
+.fire.on{transform:translateY(3px);background:linear-gradient(180deg,#e85a46 0,#c42a1e 26%,#a11b11 72%,#6d0d07);box-shadow:inset 0 2px 4px rgba(0,0,0,.35),0 0 0 4px #191815,0 0 0 5px #3a372f,0 2px 0 4px #0d0c0a,0 4px 8px 4px rgba(0,0,0,.45)}
+.fire.cool{filter:saturate(.5) brightness(.8)}
+/* boost key: amber, with its own recharge meter */
+.keyrow{display:flex;flex-direction:column;gap:12px}
+.keyrow .fire{width:auto;flex:2 1 0}
+.boost{flex:1 1 0;min-width:0;height:58px;border-radius:9px;cursor:pointer;touch-action:none;display:grid;place-items:center;align-content:center;gap:5px;padding:0 8px;font-family:var(--display);font-size:13px;letter-spacing:.16em;color:#2b1a00;border:2px solid #4a3300;
+  background:linear-gradient(180deg,#ffe39a 0,#f0b23c 26%,#d18f16 72%,#9a6408);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 0 0 4px #191815,0 0 0 5px #3a372f,0 5px 0 4px #0d0c0a,0 8px 12px 4px rgba(0,0,0,.45);transition:transform .06s,box-shadow .06s,filter .3s}
+.boost.on{transform:translateY(3px);box-shadow:inset 0 2px 4px rgba(0,0,0,.3),0 0 0 4px #191815,0 0 0 5px #3a372f,0 2px 0 4px #0d0c0a,0 4px 8px 4px rgba(0,0,0,.45)}
+.boost.cool{filter:saturate(.45) brightness(.75)}
+.boost.active{box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 0 0 4px #191815,0 0 0 5px #3a372f,0 5px 0 4px #0d0c0a,0 0 22px 6px rgba(240,178,60,.45)}
+.boost:focus-visible{outline:2px solid var(--phos);outline-offset:8px}
+.bmeter{display:block;width:72%;height:4px;border-radius:2px;background:rgba(0,0,0,.35);overflow:hidden}
+.bmeter b{display:block;height:100%;width:100%;background:#3b2600}
+[data-off] .boost,[data-off] .boost.cool{filter:saturate(.25) brightness(.5)}
+.fire:focus-visible{outline:2px solid var(--phos);outline-offset:8px}
+@media (pointer:coarse){.pad{display:flex}}
+
+.below{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}
+@media (max-width:720px){.below{grid-template-columns:minmax(0,1fr)}}
+.card{background:#181713;border:1px solid #2b2924;border-radius:6px;padding:14px 16px;min-width:0}
+.card h3{font-family:var(--display);font-weight:400;font-size:12px;letter-spacing:.14em;color:var(--muted);margin:0 0 10px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td{padding:4px 0;border-bottom:1px dashed #2b2924;vertical-align:top}
+td:last-child{text-align:right;color:var(--phos);white-space:nowrap;padding-left:12px}
+tr:last-child td{border-bottom:0}
+kbd{font-family:var(--body);font-size:12px;background:var(--desk);border:1px solid #2b2924;border-bottom-width:2px;border-radius:3px;padding:0 5px;color:var(--label)}
+.keys td:last-child{color:var(--label)}
+.note{color:var(--muted);font-size:12px;margin:10px 0 0}
+@media (prefers-reduced-motion:reduce){.blink{animation:none}}
+</style>
+<script>
+/* Screen detector. Picks a layout from the real viewport and input type, so it fits any phone or tablet
+   (iPhone 17 Pro and Pro Max, iPad mini, iPad Pro and anything else) without a list of model sizes.
+   desk: mouse or trackpad · phone-portrait: touch, upright, narrow · tablet-portrait: touch, upright, 700px+
+   console: touch held sideways, game fills the screen */
+(function(){
+  var root = document.documentElement;
+  function touchy(){
+    return matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 1 && matchMedia('(hover: none)').matches)
+      || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));   // iPadOS reports itself as a Mac
+  }
+  function detect(){
+    var vv = window.visualViewport, w = vv ? vv.width : innerWidth, h = vv ? vv.height : innerHeight, lay = 'desk';
+    if (touchy()) lay = w > h ? 'console' : (Math.min(w, h) >= 700 ? 'tablet-portrait' : 'phone-portrait');
+    else if (w < 720 && h > w * 1.15) lay = 'phone-portrait';   // a tall, narrow window (side panel, resized browser) plays upright too
+    if (root.getAttribute('data-layout') !== lay) root.setAttribute('data-layout', lay);
+  }
+  detect();
+  addEventListener('resize', detect);
+  addEventListener('orientationchange', function(){ setTimeout(detect, 120); });
+  if (window.visualViewport) visualViewport.addEventListener('resize', detect);
+})();
+</script>
+
+<div class="wrap">
+  <header>
+    <h1>Tunnel <span>Raider</span></h1>
+    <p class="tag" data-i18n="tag">Tunnel through the mine, scoop up emeralds and drop sacks of gold on the grubs.</p>
+  </header>
+
+  <div class="tv">
+    <div class="tv-face">
+    <div class="tube-surround">
+    <div class="screen">
+      <canvas id="cv" aria-label="Tunnel Raider game screen"></canvas>
+      <div class="overlay" id="overlay" hidden>
+        <h2 id="ovTitle">TUNNEL RAIDER</h2>
+        <p id="ovText">ARROWS TO DIG · SPACE FOR A SPARK<br>CLEAR EVERY EMERALD OR EVERY GRUB</p>
+        <button class="btn" id="ovBtn" type="button"><span class="blink">▶</span> START</button>
+      </div>
+    </div>
+    </div>
+    <div class="controls">
+      <div class="nameplate"><b>TUNNEL RAIDER</b><span id="plate">TR-83 · GREEN P1</span></div>
+      <div class="dial-block">
+        <div class="dial-wrap">
+          <div class="dial-labels" id="dialLabels"></div>
+          <div class="dial" id="dial" role="slider" tabindex="0" aria-label="Phosphor dial" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-valuetext="GREEN P1">
+            <div class="dial-cap" id="dialCap"><span class="pointer"></span></div>
+          </div>
+        </div>
+        <span class="ctl-label">PHOSPHOR</span>
+      </div>
+      <div class="rockers">
+        <div class="rk"><button class="rocker" type="button" id="muteBtn" aria-pressed="true" aria-label="Sound"><i></i></button><span class="ctl-label">SOUND</span></div>
+        <div class="rk"><button class="rocker" type="button" id="fxBtn" aria-pressed="true" aria-label="Tube glow and scanlines"><i></i></button><span class="ctl-label">GLOW</span></div>
+        <div class="rk"><button class="rocker" type="button" id="pauseBtn" aria-pressed="false" aria-label="Pause"><i></i></button><span class="ctl-label">HOLD</span></div>
+        <div class="rk"><button class="rocker" type="button" id="fullBtn" aria-pressed="false" aria-label="Full screen"><i></i></button><span class="ctl-label">FULL</span></div>
+      </div>
+      <div class="grille" aria-hidden="true"></div>
+      <div class="power"><button class="powerrock" id="powerBtn" type="button" role="switch" aria-checked="false" aria-label="Power"><i></i></button><span class="pled" aria-hidden="true"></span><span class="ctl-label">POWER</span><span class="reset-grp"><button class="resetbtn" id="resetBtn" type="button" aria-label="Reset: reboot now"></button><span class="ctl-label">RESET</span></span></div>
+      <span class="emboss" aria-hidden="true">TR-83 · 12″ PHOSPHOR MONITOR</span>
+    </div>
+    <div class="pad" id="pad">
+      <div class="stickzone" id="stickzone" aria-label="Joystick: touch and drag to steer">
+        <div class="stickbase" id="stickbase">
+          <span class="tick" data-d="up"></span><span class="tick" data-d="down"></span><span class="tick" data-d="left"></span><span class="tick" data-d="right"></span>
+          <div class="knob" id="knob"></div>
+        </div>
+        <span class="hint" data-i18n="stick">DRAG TO STEER</span>
+      </div>
+      <div class="keyrow"><button class="fire" id="fireBtn" type="button" data-i18n="spark">FIRE</button><button class="boost" id="boostBtn" type="button"><span data-i18n="boost">BOOST</span><i class="bmeter" aria-hidden="true"><b id="boostFill"></b></i></button></div>
+    </div>
+    </div>
+    <div class="feet" aria-hidden="true"><i></i><i></i></div>
+  </div>
+  <p class="rotate-hint" data-i18n="rotate">Turn your phone sideways for the full-screen console layout.</p>
+
+
+  <div class="manual-bar">
+    <button type="button" class="manual-btn" id="manualBtn" aria-expanded="false" aria-controls="manual"><span class="chev" aria-hidden="true">▸</span><span id="manualLbl">How to play</span></button>
+    <div class="lang" role="group" aria-label="Language" id="langSeg">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="zh-hant" aria-pressed="false" lang="zh-Hant">繁中</button>
+      <button type="button" data-lang="zh-hans" aria-pressed="false" lang="zh-Hans">简中</button>
+    </div>
+  </div>
+  <div class="below" id="manual" hidden>
+    <div class="card">
+      <h3 data-i18n="howH">HOW IT PLAYS</h3>
+      <table>
+        <tr><td data-i18n="r1"></td><td>25</td></tr>
+        <tr><td data-i18n="r2"></td><td>+250</td></tr>
+        <tr><td data-i18n="r3"></td><td>500</td></tr>
+        <tr><td data-i18n="r4"></td><td>250</td></tr>
+        <tr><td data-i18n="r5"></td><td>500</td></tr>
+        <tr><td data-i18n="r6"></td><td>1,000</td></tr>
+        <tr><td data-i18n="r7"></td><td>200 · 400 · 800 · 1,600</td></tr>
+        <tr><td data-i18n="r8"></td><td data-i18n="r8v"></td></tr>
+      </table>
+      <p class="note" data-i18n="howNote"></p>
+    </div>
+    <div class="card">
+      <h3 data-i18n="ctlH">CONTROLS</h3>
+      <table class="keys">
+        <tr><td data-i18n="k1"></td><td data-i18n="k1v"></td></tr>
+        <tr><td data-i18n="k2"></td><td data-i18n="k2v"></td></tr>
+        <tr><td data-i18n="k3"></td><td data-i18n="k3v"></td></tr>
+        <tr><td data-i18n="k4"></td><td data-i18n="k4v"></td></tr>
+        <tr><td data-i18n="k5"></td><td><kbd>M</kbd></td></tr>
+        <tr><td data-i18n="k6"></td><td data-i18n="k6v"></td></tr>
+        <tr><td data-i18n="k7"></td><td><kbd>Enter</kbd></td></tr>
+        <tr><td data-i18n="k9"></td><td data-i18n="k9v"></td></tr>
+        <tr><td data-i18n="k8"></td><td data-i18n="k8v"></td></tr>
+      </table>
+      <p class="note" data-i18n="ctlNote"></p>
+    </div>
+  </div>
+  <button class="exitfull" id="exitFull" type="button" aria-label="Exit full screen">✕</button>
+</div>
+
+<script>
+(() => {
+'use strict';
+let W = 15, H = 10;
+const C = 32, CELL = 24, HUD = 20, K = CELL / C;   // game units per cell, low-res pixels per cell
+let LW = W * CELL, LH = H * CELL + HUD;              // low-res frame buffer, like a 1980s graphics mode; resized to fit the screen
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const lo = document.createElement('canvas'); lo.width = LW; lo.height = LH;
+const lx = lo.getContext('2d', { willReadFrequently: true });
+const glow = document.createElement('canvas'); glow.width = 120; glow.height = 87;   // resized with the grid
+const gx = glow.getContext('2d');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const acc = document.createElement('canvas'); acc.width = LW; acc.height = LH;   // what the phosphor is still glowing with
+const ax = acc.getContext('2d');
+let accImg = ax.createImageData(LW, LH), A = new Float32Array(LW * LH * 4);
+let accReset = true, warmT = 0, frameDt = 1 / 60, mask = null;
+const WARM = 0.75;
+/* an old tube's quirks: magnetised patches, burn-in, dust, the odd tear or brown-out */
+const age = { dg: 99, next: 6, tearLeft: 0, tearY: 0, tearH: 0, tearDx: 0, dipLeft: 0,
+  stains: [
+    { x: 0.08 + Math.random() * 0.18, y: 0.08 + Math.random() * 0.2, r: 0.36, tint: '#ff92e8', k: 0.85 },
+    { x: 0.74 + Math.random() * 0.2, y: 0.62 + Math.random() * 0.26, r: 0.3, tint: '#9effb6', k: 0.7 },
+  ] };
+let burn = null;
+const dust = document.createElement('canvas'); dust.width = 720; dust.height = 520;
+(() => {
+  const d = dust.getContext('2d');
+  for (let i = 0; i < 16; i++) {
+    d.fillStyle = `rgba(0,0,0,${0.15 + Math.random() * 0.3})`;
+    d.beginPath(); d.arc(Math.random() * 720, Math.random() * 520, 0.6 + Math.random() * 1.6, 0, Math.PI * 2); d.fill();
+  }
+  for (let i = 0; i < 6; i++) { d.fillStyle = 'rgba(255,255,255,.07)'; d.fillRect(Math.random() * 720, Math.random() * 520, 1.5, 1.5); }
+  d.strokeStyle = 'rgba(0,0,0,.16)'; d.lineWidth = 0.8; d.beginPath();
+  const hx = 520 + Math.random() * 150, hy = 60 + Math.random() * 100;
+  d.moveTo(hx, hy); d.bezierCurveTo(hx + 20, hy + 30, hx - 15, hy + 50, hx + 12, hy + 80); d.stroke();   // a stray hair on the glass
+})();
+function buildBurn(){
+  // years of the same title screen wore the phosphor: those spots now glow a little less
+  burn = document.createElement('canvas'); burn.width = LW; burn.height = LH;
+  const b = burn.getContext('2d');
+  b.fillStyle = '#fff'; b.fillRect(0, 0, LW, LH);
+  b.fillStyle = '#d0d0d0'; b.font = '16px Silkscreen, "Courier New", monospace'; b.textAlign = 'center'; b.textBaseline = 'middle';
+  b.fillText('TUNNEL RAIDER', LW / 2, LH * 0.42);
+  b.fillStyle = '#dadada'; b.font = '8px Silkscreen, "Courier New", monospace'; b.textAlign = 'left'; b.textBaseline = 'top';
+  b.fillText('000000', 6, 6); b.fillText('HI 000000', 80, 6);
+}
+
+/* ---------- display modes ---------- */
+const CGA_ROLES = { bg:0, dirt:2, ds1:0, ds2:1, core:0, spawn:1, gemDark:0, gem:1, gemHi:3, bagDark:0, bag:3, bagBand:2, gold:3, goldDark:2, goldHi:1,
+  cart:3, cartShade:1, window:2, lamp:3, drill:1, drillLine:0, track:2, wheel:3, grub:1, grubBelly:3, borer:2, borerBelly:3, horn:3, eye:3, pupil:0,
+  scared:3, scaredBelly:1, scaredFlash:2, sun:3, sunRay:1, spark:3, sparkTrail:1, text:3, textDim:1, hud:1 };
+const MONO_ROLES = { bg:0, dirt:1, ds1:0, ds2:2, core:0, spawn:1, gemDark:0, gem:2, gemHi:3, bagDark:0, bag:2, bagBand:1, gold:3, goldDark:1, goldHi:2,
+  cart:3, cartShade:2, window:1, lamp:3, drill:2, drillLine:0, track:1, wheel:2, grub:2, grubBelly:3, borer:3, borerBelly:2, horn:3, eye:3, pupil:0,
+  scared:1, scaredBelly:2, scaredFlash:3, sun:3, sunRay:2, spark:3, sparkTrail:2, text:3, textDim:2, hud:2 };
+/* half: seconds for the phosphor glow to halve after the beam moves on. bezel: highlight, body, shadow, plate ink, unlit glass */
+const MODES = {
+  greenP1:  { name:'GREEN P1', pal:['#140e09','#0f5a1d','#2fbf4b','#b2ffbd'], roles:MONO_ROLES, phos:3, phos2:2, half:0.045, bloom:0.36, mask:false,
+              bezel:['#43473f','#2c2f2a','#1d1f1b','#8f978a','#1a120c'] },
+  greenP39: { name:'LONG GREEN P39', pal:['#120c08','#0b4416','#33e05a','#c6ffd0'], roles:MONO_ROLES, phos:3, phos2:2, half:0.17, bloom:0.44, mask:false,
+              bezel:['#3a3f3a','#252925','#171a17','#86907f','#180f0a'] },
+  amberP3:  { name:'AMBER P3', pal:['#170d07','#6b3900','#de8c12','#ffd890'], roles:MONO_ROLES, phos:3, phos2:2, half:0.065, bloom:0.4, mask:false,
+              bezel:['#403a33','#2a2622','#1b1815','#9a8f80','#1c120b'] },
+  whiteP4:  { name:'PAPER WHITE P4', pal:['#15100c','#3a404e','#9aa3b6','#eef2ff'], roles:MONO_ROLES, phos:3, phos2:2, half:0.02, bloom:0.28, mask:false,
+              bezel:['#e3dcc8','#cfc6b0','#a9a08a','#5a5446','#1b140f'] },
+  cga1:     { name:'CGA COLOUR 1', pal:['#140e0a','#55ffff','#ff55ff','#ffffff'], roles:CGA_ROLES, phos:1, phos2:2, half:0.012, bloom:0.3, mask:true,
+              bezel:['#ddd4bd','#c9bfa6','#a39a82','#574f40','#1a120d'] },
+  cga0:     { name:'CGA COLOUR 0', pal:['#140e0a','#55ff55','#ff5555','#ffff55'], roles:CGA_ROLES, phos:1, phos2:3, half:0.012, bloom:0.3, mask:true,
+              bezel:['#ddd4bd','#c9bfa6','#a39a82','#574f40','#1a120d'] },
+};
+const MODE_ORDER = Object.keys(MODES);
+const LEGACY = { green:'greenP1', amber:'amberP3', white:'whiteP4' };
+let modeKey = 'greenP1', fx = true;
+try { let m = localStorage.getItem('eb-mode'); m = LEGACY[m] || m; if (MODES[m]) modeKey = m; fx = localStorage.getItem('eb-fx') !== '0'; } catch (e) {}
+let M = MODES[modeKey], palRGB = [];
+const col = role => M.pal[M.roles[role]];
+document.querySelectorAll('#modes [data-mode]').forEach(b => {
+  b.querySelector('.sw4').innerHTML = MODES[b.dataset.mode].pal.map(c => `<i style="background:${c}"></i>`).join('');
+});
+function setMode(k){
+  modeKey = k; M = MODES[k];
+  palRGB = M.pal.map(h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]);
+  document.querySelectorAll('#modes [data-mode]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.mode === k)));
+  const R = document.documentElement.style, [hi, mid, low, ink, glass] = M.bezel;
+  R.setProperty('--phos', M.pal[M.phos]); R.setProperty('--phos2', M.pal[M.phos2]);
+  R.setProperty('--plastic-hi', hi); R.setProperty('--plastic', mid); R.setProperty('--plastic-lo', low);
+  R.setProperty('--bezel-ink', ink); R.setProperty('--glass', glass);
+  $('plate').textContent = 'TR-83 · ' + M.name;
+  updateDial(MODE_ORDER.indexOf(k));
+  try { localStorage.setItem('eb-mode', k); } catch (e) {}
+  accReset = true; warmT = 0; age.dg = 0;
+  if (ac && !muted && (typeof tvOn === 'undefined' || tvOn)) { tone(58, 0.9, 0.04, 14); tone(15000, 0.4, 0.006, 0); }   // degauss "boinng" and flyback whine
+  makeDirt();
+}
+/* the phosphor dial: six detents, turned by dragging, clicking (next), scrolling, arrow keys or the labels */
+const SHORT = { greenP1:'GREEN', greenP39:'P39', amberP3:'AMBER', whiteP4:'WHITE', cga1:'CGA 1', cga0:'CGA 0' };
+const ANG = [-120, -72, -24, 24, 72, 120];
+function updateDial(i){
+  const cap = $('dialCap'), dial = $('dial'); if (!cap) return;
+  cap.style.transform = `rotate(${ANG[i]}deg)`;
+  dial.setAttribute('aria-valuenow', String(i)); dial.setAttribute('aria-valuetext', MODES[MODE_ORDER[i]].name);
+  document.querySelectorAll('#dialLabels .dl').forEach((b, j) => b.setAttribute('aria-current', String(j === i)));
+}
+function turnTo(i){
+  i = Math.max(0, Math.min(MODE_ORDER.length - 1, i));
+  if (MODE_ORDER[i] === modeKey) return;
+  ensureAudio(); tone(2400, 0.012, 0.05);   // detent click
+  setMode(MODE_ORDER[i]);
+}
+(() => {
+  const wrap = $('dialLabels'), dial = $('dial');
+  MODE_ORDER.forEach((k, i) => {
+    const a = ANG[i] * Math.PI / 180;
+    const t = document.createElement('span'); t.className = 'tk'; t.style.transform = `rotate(${ANG[i]}deg) translateY(-48px)`; wrap.appendChild(t);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'dl'; b.textContent = SHORT[k];
+    b.setAttribute('aria-label', MODES[k].name);
+    b.style.left = (50 + 44 * Math.sin(a)) + '%'; b.style.top = (50 - 44 * Math.cos(a)) + '%';
+    b.addEventListener('click', () => turnTo(i));
+    wrap.appendChild(b);
+  });
+  let pid = null, moved = false, sx = 0, sy = 0, wheelT = 0;
+  dial.addEventListener('pointerdown', e => {
+    pid = e.pointerId; moved = false; sx = e.clientX; sy = e.clientY;
+    try { dial.setPointerCapture(pid); } catch (_) {}
+    dial.classList.add('grabbing'); e.preventDefault(); dial.focus({ preventScroll: true });
+  });
+  dial.addEventListener('pointermove', e => {
+    if (e.pointerId !== pid) return;
+    if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) > 6) moved = true;
+    if (!moved) return;
+    const r = dial.getBoundingClientRect();
+    const ang = Math.atan2(e.clientX - (r.left + r.width / 2), -(e.clientY - (r.top + r.height / 2))) * 180 / Math.PI;
+    if (Math.abs(ang) > 150) return;   // past the end stops
+    let near = 0; ANG.forEach((a, i) => { if (Math.abs(a - ang) < Math.abs(ANG[near] - ang)) near = i; });
+    turnTo(near);
+  });
+  dial.addEventListener('pointerup', e => {
+    if (e.pointerId !== pid) return;
+    pid = null; dial.classList.remove('grabbing');
+    if (!moved) turnTo((MODE_ORDER.indexOf(modeKey) + 1) % MODE_ORDER.length === 0 ? 0 : MODE_ORDER.indexOf(modeKey) + 1);
+  });
+  dial.addEventListener('pointercancel', () => { pid = null; dial.classList.remove('grabbing'); });
+  dial.addEventListener('wheel', e => {
+    e.preventDefault();
+    const now = performance.now(); if (now - wheelT < 180) return; wheelT = now;
+    turnTo(MODE_ORDER.indexOf(modeKey) + (e.deltaY > 0 ? 1 : -1));
+  }, { passive: false });
+  dial.addEventListener('keydown', e => {
+    const i = MODE_ORDER.indexOf(modeKey);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') turnTo(i + 1);
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') turnTo(i - 1);
+    else if (e.key === 'Home') turnTo(0);
+    else if (e.key === 'End') turnTo(MODE_ORDER.length - 1);
+    else return;
+    e.preventDefault(); e.stopPropagation();
+  });
+})();
+function setFx(v){ fx = v; accReset = true; $('fxBtn').setAttribute('aria-pressed', String(v)); try { localStorage.setItem('eb-fx', v ? '1' : '0'); } catch (e) {} }
+
+/* ---------- utilities ---------- */
+const idx = (x, y) => y * W + x;
+const inb = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const DIRS = { up:{dx:0,dy:-1}, down:{dx:0,dy:1}, left:{dx:-1,dy:0}, right:{dx:1,dy:0} };
+
+let best = 0;
+try { best = parseInt(localStorage.getItem('eb-best') || '0', 10) || 0; } catch (e) {}
+function saveBest(){ try { localStorage.setItem('eb-best', String(best)); } catch (e) {} }
+
+/* ---------- audio (PC-speaker style square waves) ---------- */
+let ac = null, muted = false;
+function ensureAudio(){
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+  if (ac && ac.state === 'suspended') ac.resume().catch(()=>{});
+}
+function tone(f, dur, vol=0.045, slide=0, delay=0){
+  if (!ac || muted) return;
+  const t0 = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'square'; o.frequency.setValueAtTime(f, t0);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t0 + dur);
+  g.gain.setValueAtTime(vol, t0); g.gain.setValueAtTime(vol, t0 + dur * 0.85); g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+const sfx = {
+  gem: n => tone(620 + n * 55, 0.06),
+  chain: () => [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.08, 0.04, 0, i * 0.07)),
+  thud: () => tone(120, 0.12, 0.06, -50),
+  burst: () => { tone(220, 0.2, 0.045, 500); },
+  gold: () => { tone(880, 0.05); tone(1320, 0.08, 0.045, 0, 0.06); },
+  zap: () => tone(1500, 0.18, 0.03, -1200),
+  kill: () => tone(420, 0.2, 0.045, -320),
+  eat: n => tone(500 + n * 160, 0.14, 0.045, 300),
+  sun: () => [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.07, 0.045, 0, i * 0.06)),
+  die: () => [440, 392, 330, 262, 196].forEach((f, i) => tone(f, 0.16, 0.045, -20, i * 0.15)),
+  clear: () => [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.1, 0.04, 0, i * 0.09)),
+  life: () => [1047, 1319, 1568].forEach((f, i) => tone(f, 0.09, 0.05, 0, i * 0.08)),
+  siren: hi => tone(hi ? 700 : 560, 0.1, 0.03),
+  boost: () => { tone(260, 0.3, 0.05, 900); tone(130, 0.3, 0.03, 300); },
+  boostReady: () => { tone(1568, 0.05, 0.03); tone(2093, 0.07, 0.03, 0, 0.05); },
+};
+
+/* ---------- state ---------- */
+const S = {
+  mode: 'title', prevMode: null, modeT: 0, time: 0,
+  level: 1, score: 0, lives: 3, nextLife: 20000,
+  dug: new Uint8Array(W * H), em: new Uint8Array(W * H), emLeft: 0,
+  bags: [], golds: [], monsters: [], sparks: [], parts: [], pops: [],
+  spawned: 0, total: 0, maxAlive: 3, spawnT: 0,
+  sun: { active: false, used: false, x: W - 1, y: 0 },
+  bonusT: 0, bonusChain: 0, sirenT: 0, sirenHi: false,
+  charge: 1, streak: 0, lastGem: -9,
+  player: null, dist: new Int16Array(W * H), distT: 0,
+};
+
+/* dirt is drawn straight into the low-res buffer, one pattern per seam */
+const dirtCanvas = document.createElement('canvas'); dirtCanvas.width = LW; dirtCanvas.height = LH - HUD;
+function makeDirt(){
+  const d = dirtCanvas.getContext('2d'), w = dirtCanvas.width, h = dirtCanvas.height;
+  const img = d.createImageData(w, h), px = img.data;
+  const base = palRGB[M.roles.dirt], s1 = palRGB[M.roles.ds1], s2 = palRGB[M.roles.ds2];
+  const r = mulberry32(S.level * 31 + 5), pat = (S.level - 1) % 4;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let c = base;
+    if (pat === 0) { const v = r(); if (v < 0.07) c = s1; else if (v < 0.085) c = s2; }
+    else if (pat === 1) { if ((x + y) % 6 === 0) c = s1; else if ((x * 7 + y * 13) % 97 === 0) c = s2; }
+    else if (pat === 2) { const row = (y / 6) | 0; if (y % 6 === 0 || (x + (row % 2) * 6) % 12 === 0) c = s1; }
+    else { if ((y + Math.round(Math.sin(x / 7) * 2)) % 5 === 0) c = s1; else if (r() < 0.012) c = s2; }
+    const o = (y * w + x) * 4; px[o] = c[0]; px[o + 1] = c[1]; px[o + 2] = c[2]; px[o + 3] = 255;
+  }
+  d.putImageData(img, 0, 0);
+}
+
+function carve(x, y){ if (inb(x, y)) S.dug[idx(x, y)] = 1; }
+function genLevel(L){
+  fitGrid();
+  const r = mulberry32(L * 7919 + 13), ri = n => (r() * n) | 0;
+  S.dug.fill(0); S.em.fill(0);
+  S.bags = []; S.golds = []; S.monsters = []; S.sparks = []; S.parts = []; S.pops = [];
+  const runL = 3 + ri(4);
+  for (let x = W - 1; x >= W - 1 - runL; x--) carve(x, 0);
+  const mid = W >> 1;
+  for (let x = mid - 2; x <= mid + 2; x++) carve(x, H - 1);
+  const runs = 2 + (L > 3 ? 1 : 0);
+  for (let k = 0; k < runs; k++) {
+    if (r() < 0.5) { const x = ri(W - 2) + 1, y0 = 1 + ri(H - 5), len = 3 + ri(3); for (let y = y0; y < y0 + len; y++) carve(x, y); }
+    else { const y = 2 + ri(H - 5), x0 = ri(W - 6), len = 4 + ri(4); for (let x = x0; x < x0 + len; x++) carve(x, y); }
+  }
+  const nearSpawn = (x, y) => x >= W - 3 && y <= 1;
+  const area = (W * H) / 150;   // treasure scales with the size of the field
+  const clusters = Math.max(3, Math.round((5 + Math.min(3, (L / 2) | 0)) * area));
+  for (let c = 0; c < clusters; c++) {
+    const w = 2 + ri(2), h = 2 + ri(2), cx = ri(W - w + 1), cy = 1 + ri(H - h - 1);
+    for (let y = cy; y < cy + h; y++) for (let x = cx; x < cx + w; x++)
+      if (inb(x, y) && !S.dug[idx(x, y)] && !nearSpawn(x, y)) S.em[idx(x, y)] = 1;
+  }
+  const want = Math.max(4, Math.round((6 + Math.min(3, (L / 2) | 0)) * area));
+  let tries = 0;
+  while (S.bags.length < want && tries++ < 400) {
+    const x = ri(W), y = ri(H - 3);
+    if (S.dug[idx(x, y)] || S.dug[idx(x, y + 1)] || S.em[idx(x, y)] || nearSpawn(x, y) || bagAt(x, y) || bagAt(x, y + 1) || bagAt(x, y - 1)) continue;
+    S.bags.push({ x, y, fy: y, state: 'rest', t: 0, dist: 0, slide: 0 });
+  }
+  S.emLeft = S.em.reduce((a, b) => a + b, 0);
+  S.total = 6 + L;
+  S.maxAlive = Math.min(5, 3 + ((L - 1) / 3 | 0));
+  S.spawned = 0; S.spawnT = 1.2;
+  S.sun = { active: false, used: false, x: W - 1, y: 0 };
+  S.bonusT = 0; S.bonusChain = 0;
+  resetPlayer();
+  makeDirt();
+}
+function resetPlayer(){
+  const mid = W >> 1;
+  S.player = { x: mid, y: H - 1, tx: mid, ty: H - 1, t: 0, moving: false, mdx: 0, mdy: 0, face: 'right', speed: 6, collected: true, deadT: 0 };
+  S.charge = 1; S.boost = 1; S.boostT = 0;
+}
+
+/* ---------- queries ---------- */
+function bagAt(x, y){ return S.bags.find(b => b.x === x && b.y === y); }
+function restingBagAt(x, y){ const b = bagAt(x, y); return b && b.state !== 'fall' ? b : null; }
+function ppos(o){ return { x: (o.x + (o.tx - o.x) * o.t) * C + C / 2, y: (o.y + (o.ty - o.y) * o.t) * C + C / 2 }; }
+function pcell(o){ const p = ppos(o); return { x: Math.floor(p.x / C), y: Math.floor(p.y / C) }; }
+function monsterOnCell(x, y){ return S.monsters.some(m => (m.x === x && m.y === y) || (m.moving && m.tx === x && m.ty === y)); }
+
+function addScore(n, x, y){
+  S.score += n;
+  if (x !== undefined) S.pops.push({ x, y, text: String(n), life: 0.9 });
+  while (S.score >= S.nextLife) { S.lives++; S.nextLife += 20000; sfx.life(); }
+  if (S.score > best) best = S.score;
+}
+function burst(x, y, roles, n = 14){
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = 40 + Math.random() * 90;
+    S.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, life: 0.5 + Math.random() * 0.4, role: roles[i % roles.length] });
+  }
+}
+
+/* ---------- input ---------- */
+const held = [];
+let stickDir = null, fireHeld = false, fireCool = false, boostQueued = false, boostShown = '';
+const BOOST_MUL = 1.6, BOOST_TIME = 1.6, BOOST_RECHARGE = 7;   // a 60% burst for 1.6 s, refilling over 7 s
+let fireQueued = false;
+const KEYMAP = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right', KeyW:'up', KeyS:'down', KeyA:'left', KeyD:'right' };
+const press = d => { if (!held.includes(d)) held.push(d); };
+const release = d => { const i = held.indexOf(d); if (i >= 0) held.splice(i, 1); };
+const wantDir = () => stickDir ? DIRS[stickDir] : held.length ? DIRS[held[held.length - 1]] : null;
+
+addEventListener('keydown', e => {
+  const d = KEYMAP[e.code];
+  if (d) { press(d); e.preventDefault(); return; }
+  if (e.code === 'Space' || e.code === 'KeyZ' || e.code === 'KeyX') { if (S.mode !== 'title' && S.mode !== 'over') { fireQueued = true; e.preventDefault(); } return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
+  if (e.code === 'KeyM') { toggleMute(); return; }
+  if (e.code === 'KeyF') { setFull(!full); return; }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyB') { if (S.mode === 'play') boostQueued = true; e.preventDefault(); return; }
+  if (e.code === 'KeyC') { setMode(MODE_ORDER[(MODE_ORDER.indexOf(modeKey) + 1) % MODE_ORDER.length]); return; }
+  if (e.code === 'Enter' && !tvOn) { ensureAudio(); powerOn(); e.preventDefault(); return; }
+  if (e.code === 'Enter' && (S.mode === 'title' || S.mode === 'over')) { startGame(); e.preventDefault(); }
+});
+addEventListener('keyup', e => { const d = KEYMAP[e.code]; if (d) release(d); });
+addEventListener('blur', () => { held.length = 0; if (S.mode === 'play' || S.mode === 'ready') togglePause(true); });
+
+/* floating thumb-stick: the stick centres wherever the thumb lands, follows it past the rim,
+   snaps to four directions with a dead zone and hysteresis so diagonal wobble doesn't flicker */
+(() => {
+  const zone = $('stickzone'), base = $('stickbase'), knob = $('knob');
+  const RIM = 46, DEAD = 12, BIAS = 1.35;
+  let id = null, ox = 0, oy = 0, zr = null, axis = null;
+  function setDir(d){
+    if (d === stickDir) return;
+    stickDir = d;
+    zone.querySelectorAll('.tick').forEach(t => t.classList.toggle('on', t.dataset.d === d));
+    if (d) { try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} }
+  }
+  function placeBase(){ base.style.left = (ox - zr.left) + 'px'; base.style.top = (oy - zr.top) + 'px'; }
+  function move(e){
+    if (e.pointerId !== id) return;
+    let dx = e.clientX - ox, dy = e.clientY - oy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > RIM) { const k = (dist - RIM) / dist; ox += dx * k; oy += dy * k; dx -= dx * k; dy -= dy * k; placeBase(); }
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+    if (dist < DEAD) { axis = null; setDir(null); return; }
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (axis === 'h' && ay > ax * BIAS) axis = 'v';
+    else if (axis === 'v' && ax > ay * BIAS) axis = 'h';
+    else if (!axis) axis = ax >= ay ? 'h' : 'v';
+    setDir(axis === 'h' ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  }
+  function end(e){
+    if (e.pointerId !== id) return;
+    id = null; axis = null; setDir(null);
+    zone.classList.remove('active');
+    base.style.left = '50%'; base.style.top = '50%'; knob.style.transform = '';
+  }
+  zone.addEventListener('pointerdown', e => {
+    if (id !== null) return;
+    e.preventDefault(); ensureAudio();
+    id = e.pointerId; try { zone.setPointerCapture(id); } catch (_) {}
+    zr = zone.getBoundingClientRect();
+    ox = e.clientX; oy = e.clientY;
+    placeBase(); zone.classList.add('active'); move(e);
+  });
+  zone.addEventListener('pointermove', move);
+  zone.addEventListener('pointerup', end);
+  zone.addEventListener('pointercancel', end);
+  zone.addEventListener('contextmenu', e => e.preventDefault());
+
+  const fire = $('fireBtn');
+  fire.addEventListener('pointerdown', e => { e.preventDefault(); ensureAudio(); fireQueued = true; fireHeld = true; fire.classList.add('on'); try { fire.setPointerCapture(e.pointerId); } catch (_) {} });
+  const off = () => { fireHeld = false; fire.classList.remove('on'); };
+  fire.addEventListener('pointerup', off); fire.addEventListener('pointercancel', off); fire.addEventListener('lostpointercapture', off);
+  fire.addEventListener('contextmenu', e => e.preventDefault());
+  const boost = $('boostBtn');
+  boost.addEventListener('pointerdown', e => { e.preventDefault(); ensureAudio(); boostQueued = true; boost.classList.add('on'); try { boost.setPointerCapture(e.pointerId); } catch (_) {} });
+  const boff = () => boost.classList.remove('on');
+  boost.addEventListener('pointerup', boff); boost.addEventListener('pointercancel', boff); boost.addEventListener('lostpointercapture', boff);
+  boost.addEventListener('contextmenu', e => e.preventDefault());
+})();
+
+/* ---------- UI ---------- */
+const overlay = $('overlay');
+/* ---------- languages: English (default) and Traditional Chinese, carried in the link as #en / #zh-hant ---------- */
+const kb = k => `<kbd>${k}</kbd>`;
+const I18N = {
+  en: {
+    tag: 'Tunnel through the mine, scoop up emeralds and drop sacks of gold on the grubs.',
+    rotate: 'Turn your phone sideways for the full-screen console layout.',
+    stick: 'DRAG TO STEER', spark: 'FIRE', boost: 'BOOST', k9: 'Speed boost', k9v: `${kb('Shift')} or ${kb('B')}`, manual: 'How to play', manualHide: 'Hide how to play', exitFull: 'Exit full screen',
+    howH: 'HOW IT PLAYS', ctlH: 'CONTROLS',
+    r1: 'Emerald', r2: 'Eight emeralds in quick succession', r3: 'Gold from a sack that fell two or more cells',
+    r4: 'Grub crushed by a sack or hit by a spark', r5: 'Rockjaw (from seam 4): two hits from sparks or sacks, three from seam 7',
+    r6: 'Sunstone (appears once every grub has arrived)', r7: 'Grubs rammed while the sunstone glows', r8: 'Spare drill cart', r8v: 'every 20,000',
+    howNote: 'Grubs keep to tunnels. Horned borers chew straight through the earth towards you. Each seam the grubs get cannier: they wander less, turn into borers sooner and stay borers longer. From seam 3, borers shove sacks sideways and will line one up over your cart if they can. From seam 4, banded rockjaws arrive that always dig their own tunnels; the pips over their heads show how many more hits they can take. A falling sack crushes you too, so never linger beneath one. Grubs start slow and quicken every seam, but never outrun your cart in an open tunnel; from seam 9 your cart speeds up too, and so do they. BOOST gives your cart a short burst of speed; its meter refills in about seven seconds.',
+    k1: 'Move and dig', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} or ${kb('WASD')}`,
+    k2: 'Throw a spark', k2v: `${kb('Space')} or ${kb('Z')}`,
+    k3: 'Pause', k3v: `${kb('P')} or ${kb('Esc')}`,
+    k4: 'Phosphor dial', k4v: `Drag, click, scroll or ${kb('C')}`,
+    k5: 'Sound on / off', k6: 'Full screen', k6v: `${kb('F')} or the FULL switch`, k7: 'Start', k8: 'Power', k8v: 'POWER switch · RESET reboots',
+    ctlNote: "Monochrome monitors glowed in one phosphor colour, and each phosphor faded at its own rate: long-afterglow green leaves smears behind anything that moves. The CGA themes use the two four-colour palettes of IBM's 1981 Color Graphics Adapter, seen through a colour tube's stripe mask. This set is old: every turn of the dial degausses the tube, the magnetised colour patches creep back over a few seconds, and you'll spot faint burn-in, dust and the odd picture tear. Switch GLOW off for a clean picture. A tribute to Windmill Software's <i>Digger</i> (1983); characters, art, sound and code here are original.",
+    titleText: 'ARROWS TO DIG · SPACE FOR A SPARK<br>CLEAR EVERY EMERALD OR EVERY GRUB', start: 'START',
+    paused: 'PAUSED', pausedText: 'PRESS P OR ESC TO CARRY ON', resume: 'RESUME',
+    over: 'CAVE-IN', overText: (n, s) => `SEAM ${n} · ${s} POINTS`, again: 'DIG AGAIN',
+  },
+  'zh-hant': {
+    tag: '在礦坑裏挖隧道，收集綠寶石，再把金袋推下去壓扁蟲子。',
+    rotate: '把手機橫放，即可使用全螢幕遊戲機版面。',
+    stick: '拖動操控', spark: '發射', boost: '加速', k9: '加速衝刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '玩法說明', manualHide: '收起玩法說明', exitFull: '離開全螢幕',
+    howH: '玩法', ctlH: '操作',
+    r1: '綠寶石', r2: '快速連續收集八顆綠寶石', r3: '金袋跌落兩格或以上後散出的金子',
+    r4: '被金袋壓扁或被火花擊中的蟲子', r5: '岩顎蟲（第 4 層起）：要擊中兩次，第 7 層起要三次',
+    r6: '太陽石（所有蟲子出場後才出現）', r7: '太陽石發光期間撞倒的蟲子', r8: '後備鑽車', r8v: '每 20,000 分',
+    howNote: '蟲子只會沿隧道走。長角的鑽地蟲會直接鑽穿泥土向你衝來。每過一層，蟲子都會更狡猾：少了亂走，更快變成鑽地蟲，而且維持得更久。第 3 層起，鑽地蟲會把金袋橫推，有機會更會故意把金袋推到你的鑽車正上方。第 4 層起會出現有條紋的岩顎蟲，牠們總是自己挖隧道，頭上的小點表示還要擊中多少次。跌落的金袋同樣會壓扁你，千萬別在金袋下逗留。蟲子起初很慢，每過一層都會加快，但在已挖好的隧道裏永遠不會比你的鑽車快；第 9 層起，你的鑽車也會加速，蟲子亦會跟著加快。BOOST（加速）會令鑽車短暫加速，能量約七秒後補滿。',
+    k1: '移動及挖掘', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} 或 ${kb('WASD')}`,
+    k2: '發射火花', k2v: `${kb('空白鍵')} 或 ${kb('Z')}`,
+    k3: '暫停', k3v: `${kb('P')} 或 ${kb('Esc')}`,
+    k4: '螢光粉旋鈕', k4v: `拖動、點按、滾動或按 ${kb('C')}`,
+    k5: '開關聲音', k6: '全螢幕', k6v: `${kb('F')} 或 FULL 開關`, k7: '開始', k8: '電源', k8v: 'POWER 開關 · RESET 重新開機',
+    ctlNote: '單色顯示器只會發出一種螢光粉的顏色，而每種螢光粉的餘暉長短不一：長餘暉綠色會在移動物件後面拖出殘影。CGA 主題用的是 IBM 1981 年 Color Graphics Adapter 的兩組四色調色盤，並透過彩色顯像管的條紋遮罩呈現。這部電視機已經很舊：每次轉動旋鈕都會消磁，磁化色斑幾秒後會慢慢回來，你亦會看到淡淡的烙印、灰塵和偶爾的畫面撕裂。關掉 GLOW 便可看到乾淨的畫面。本作向 Windmill Software 的《Digger》（1983）致敬；角色、美術、聲音和程式碼均為原創。',
+    titleText: '方向鍵挖掘 · 空白鍵發射火花<br>清除所有綠寶石或所有蟲子即可過關', start: '開始',
+    paused: '已暫停', pausedText: '按 P 或 Esc 繼續', resume: '繼續',
+    over: '坍塌了！', overText: (n, s) => `第 ${n} 層 · ${s} 分`, again: '再挖一次',
+  },
+  'zh-hans': {
+    tag: '在矿坑里挖隧道，收集绿宝石，再把金袋推下去压扁虫子。',
+    rotate: '把手机横放，即可使用全屏游戏机版面。',
+    stick: '拖动操控', spark: '发射', boost: '加速', k9: '加速冲刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '玩法说明', manualHide: '收起玩法说明', exitFull: '离开全屏',
+    howH: '玩法', ctlH: '操作',
+    r1: '绿宝石', r2: '快速连续收集八颗绿宝石', r3: '金袋跌落两格或以上后散出的金子',
+    r4: '被金袋压扁或被火花击中的虫子', r5: '岩颚虫（第 4 层起）：要击中两次，第 7 层起要三次',
+    r6: '太阳石（所有虫子出场后才出现）', r7: '太阳石发光期间撞倒的虫子', r8: '后备钻车', r8v: '每 20,000 分',
+    howNote: '虫子只会沿隧道走。长角的钻地虫会直接钻穿泥土向你冲来。每过一层，虫子都会更狡猾：少了乱走，更快变成钻地虫，而且维持得更久。第 3 层起，钻地虫会把金袋横推，有机会更会故意把金袋推到你的钻车正上方。第 4 层起会出现有条纹的岩颚虫，它们总是自己挖隧道，头上的小点表示还要击中多少次。跌落的金袋同样会压扁你，千万别在金袋下逗留。虫子起初很慢，每过一层都会加快，但在已挖好的隧道里永远不会比你的钻车快；第 9 层起，你的钻车也会加速，虫子也会跟着加快。BOOST（加速）会让钻车短暂加速，能量约七秒后补满。',
+    k1: '移动及挖掘', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} 或 ${kb('WASD')}`,
+    k2: '发射火花', k2v: `${kb('空格键')} 或 ${kb('Z')}`,
+    k3: '暂停', k3v: `${kb('P')} 或 ${kb('Esc')}`,
+    k4: '荧光粉旋钮', k4v: `拖动、点按、滚动或按 ${kb('C')}`,
+    k5: '开关声音', k6: '全屏', k6v: `${kb('F')} 或 FULL 开关`, k7: '开始', k8: '电源', k8v: 'POWER 开关 · RESET 重新启动',
+    ctlNote: '单色显示器只会发出一种荧光粉的颜色，而每种荧光粉的余晖长短不一：长余晖绿色会在移动对象后面拖出残影。CGA 主题用的是 IBM 1981 年 Color Graphics Adapter 的两组四色调色板，并通过彩色显像管的条纹遮罩呈现。这部电视机已经很旧：每次转动旋钮都会消磁，磁化色斑几秒后会慢慢回来，你也会看到淡淡的烙印、灰尘和偶尔的画面撕裂。关掉 GLOW 便可看到干净的画面。本作向 Windmill Software 的《Digger》（1983）致敬；角色、美术、声音和代码均为原创。',
+    titleText: '方向键挖掘 · 空格键发射火花<br>清除所有绿宝石或所有虫子即可过关', start: '开始',
+    paused: '已暂停', pausedText: '按 P 或 Esc 继续', resume: '继续',
+    over: '坍塌了！', overText: (n, s) => `第 ${n} 层 · ${s} 分`, again: '再挖一次',
+  },
+};
+const LANGS = Object.keys(I18N), LANG_ALIAS = { zh: 'zh-hant', 'zh-hk': 'zh-hant', 'zh-tw': 'zh-hant', 'zh-mo': 'zh-hant', 'zh-cn': 'zh-hans', 'zh-sg': 'zh-hans' };
+const hashLang = () => { const h = location.hash.slice(1).toLowerCase(); return LANG_ALIAS[h] || (LANGS.includes(h) ? h : null); };
+let lang = 'en', ovKind = 'title', ovVars = {};
+function renderOverlay(){
+  const T = I18N[lang];
+  const v = { title: ['TUNNEL RAIDER', T.titleText, T.start], paused: [T.paused, T.pausedText, T.resume], over: [T.over, T.overText(ovVars.n, ovVars.s), T.again] }[ovKind];
+  $('ovTitle').textContent = v[0]; $('ovText').innerHTML = v[1]; $('ovBtn').innerHTML = '<span class="blink">▶</span> ' + v[2];
+}
+function showOverlay(kind, vars = {}){ ovKind = kind; ovVars = vars; renderOverlay(); overlay.hidden = false; }
+function applyLang(l, writeHash){
+  lang = LANGS.includes(l) ? l : 'en';
+  document.documentElement.lang = { en: 'en', 'zh-hant': 'zh-Hant', 'zh-hans': 'zh-Hans' }[lang];
+  const T = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => { const v = T[el.dataset.i18n]; if (typeof v === 'string') el.innerHTML = v; });
+  $('manualLbl').textContent = $('manualBtn').getAttribute('aria-expanded') === 'true' ? T.manualHide : T.manual;
+  document.querySelectorAll('#langSeg [data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+  $('exitFull').setAttribute('aria-label', T.exitFull);
+  renderOverlay();
+  try { localStorage.setItem('tr-lang', lang); } catch (_) {}
+  if (writeHash && hashLang() !== lang) location.hash = lang;
+}
+document.querySelectorAll('#langSeg [data-lang]').forEach(b => b.addEventListener('click', () => applyLang(b.dataset.lang, true)));
+addEventListener('hashchange', () => { const h = hashLang(); if (h && h !== lang) applyLang(h, false); });
+$('manualBtn').addEventListener('click', () => {
+  const m = $('manual'), open = m.hidden;
+  m.hidden = !open; $('manualBtn').setAttribute('aria-expanded', String(open));
+  $('manualLbl').textContent = open ? I18N[lang].manualHide : I18N[lang].manual;
+});
+{ let stored = null; try { stored = localStorage.getItem('tr-lang'); } catch (_) {} applyLang(hashLang() || stored || 'en', false); }
+
+/* ---------- full screen: the picture alone, browser full screen where the page allows it ---------- */
+let full = false;
+function setFull(v){
+  full = v;
+  if (v) document.documentElement.setAttribute('data-full', ''); else document.documentElement.removeAttribute('data-full');
+  $('fullBtn').setAttribute('aria-pressed', String(v));
+  try {
+    if (v && !document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+    else if (!v && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  } catch (_) {}
+}
+$('fullBtn').addEventListener('click', () => setFull(!full));
+document.querySelectorAll('.rocker').forEach(b => b.addEventListener('pointerdown', () => { ensureAudio(); if (ac) tone(1700, 0.012, 0.05); }));   // switch clack
+$('exitFull').addEventListener('click', () => setFull(false));
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && full) setFull(false); });
+$('ovBtn').addEventListener('click', () => { ensureAudio(); if (S.mode === 'paused') togglePause(); else startGame(); });
+$('pauseBtn').addEventListener('click', () => togglePause());
+$('muteBtn').addEventListener('click', () => toggleMute());
+$('fxBtn').addEventListener('click', () => setFx(!fx));
+document.querySelectorAll('#modes button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+function toggleMute(){ muted = !muted; $('muteBtn').setAttribute('aria-pressed', String(!muted)); }
+function togglePause(forceOn){
+  if (typeof tvOn !== 'undefined' && !tvOn) return;
+  if (S.mode === 'paused') { if (forceOn) return; S.mode = S.prevMode; overlay.hidden = true; $('pauseBtn').setAttribute('aria-pressed', 'false'); return; }
+  if (S.mode === 'title' || S.mode === 'over') return;
+  S.prevMode = S.mode; S.mode = 'paused'; held.length = 0;
+  $('pauseBtn').setAttribute('aria-pressed', 'true');
+  showOverlay('paused');
+}
+let booted = false;
+function startGame(){
+  ensureAudio();
+  S.level = 1; S.score = 0; S.lives = 3; S.nextLife = 20000; S.streak = 0;
+  genLevel(1);
+  overlay.hidden = true;
+  if (!booted) { booted = true; S.mode = 'boot'; S.bootT = 0; playBoot(); }
+  else { S.mode = 'ready'; S.modeT = 1.4; }
+}
+/* power: off collapses the picture to a line, then a dot that fades; on warms up, degausses and boots */
+let tvOn = false, offT = 99;   // the set starts switched off
+S.mode = 'off';
+document.documentElement.setAttribute('data-off', ''); document.documentElement.setAttribute('data-fresh', '');
+function powerOff(){
+  document.documentElement.setAttribute('data-off', '');
+  tvOn = false; offT = 0; booted = false; S.mode = 'off'; held.length = 0; stickDir = null; fireHeld = false;
+  overlay.hidden = true; saveBest();
+  $('pauseBtn').setAttribute('aria-pressed', 'false');
+  $('powerBtn').setAttribute('aria-checked', 'false');
+  if (ac && !muted) { tone(90, 0.09, 0.06, -40); tone(12000, 0.5, 0.008, -11000); }
+}
+function powerOn(){
+  document.documentElement.removeAttribute('data-off');
+  tvOn = true; warmT = 0; age.dg = 0; accReset = true;
+  $('powerBtn').setAttribute('aria-checked', 'true'); document.documentElement.removeAttribute('data-fresh');
+  if (ac && !muted) { tone(58, 0.9, 0.04, 14); tone(15000, 0.4, 0.006, 0); }
+  startGame();
+}
+$('powerBtn').addEventListener('click', () => { ensureAudio(); if (ac) tone(900, 0.02, 0.07); if (tvOn) powerOff(); else powerOn(); });
+/* reset: reboots on the press itself, straight back into the BIOS and floppy load (does nothing with the set switched off) */
+$('resetBtn').addEventListener('pointerdown', e => {
+  e.preventDefault(); ensureAudio(); if (ac) tone(1300, 0.015, 0.06);
+  const b = $('resetBtn'); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 140);
+  if (!tvOn) return;
+  booted = false; held.length = 0; stickDir = null; fireHeld = false; age.dipLeft = 0.2; accReset = true;
+  $('pauseBtn').setAttribute('aria-pressed', 'false');
+  startGame();
+});
+$('resetBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); $('resetBtn').dispatchEvent(new PointerEvent('pointerdown')); } });
+
+/* ---------- cold boot: POST beep, then the floppy drive spins up, recalibrates and reads ---------- */
+const BOOT_LEN = 4.0;
+let noiseBuf = null;
+function noise(){
+  if (!noiseBuf) { noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true; return s;
+}
+function headClick(t, vol = 0.22, freq = 2600){
+  const s = noise(), f = ac.createBiquadFilter(), g = ac.createGain();
+  f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 2.5;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
+  s.connect(f).connect(g).connect(ac.destination); s.start(t, Math.random()); s.stop(t + 0.03);
+}
+function playBoot(){
+  if (!ac || muted) return;
+  const t0 = ac.currentTime;
+  tone(1000, 0.2, 0.05, 0, 0.85);                             // the single POST beep: all is well
+  // drive motor: a low filtered rumble with a hum underneath
+  const m = noise(), lp = ac.createBiquadFilter(), mg = ac.createGain(), hum = ac.createOscillator(), hg = ac.createGain();
+  lp.type = 'lowpass'; lp.frequency.value = 220;
+  mg.gain.setValueAtTime(0.0001, t0 + 1.0); mg.gain.exponentialRampToValueAtTime(0.16, t0 + 1.25);
+  mg.gain.setValueAtTime(0.16, t0 + 3.1); mg.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.45);
+  hum.type = 'sawtooth'; hum.frequency.setValueAtTime(40, t0 + 1.0); hum.frequency.linearRampToValueAtTime(75, t0 + 1.4);
+  hg.gain.setValueAtTime(0.0001, t0 + 1.0); hg.gain.exponentialRampToValueAtTime(0.012, t0 + 1.3);
+  hg.gain.setValueAtTime(0.012, t0 + 3.1); hg.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.4);
+  m.connect(lp).connect(mg).connect(ac.destination); hum.connect(hg).connect(ac.destination);
+  m.start(t0 + 1.0); m.stop(t0 + 3.5); hum.start(t0 + 1.0); hum.stop(t0 + 3.5);
+  // recalibrate: the head rattles back to track 0
+  for (let t = 1.15; t < 1.45; t += 0.013) headClick(t0 + t, 0.18, 1900);
+  // reading: steps out track by track, with pauses while sectors stream in
+  let t = 1.6;
+  while (t < 3.0) {
+    const run = 1 + ((Math.random() * 4) | 0);
+    for (let k = 0; k < run; k++) { headClick(t0 + t, 0.2, 2400 + Math.random() * 600); t += 0.03; }
+    t += 0.08 + Math.random() * 0.2;
+  }
+  headClick(t0 + 3.15, 0.25, 1500);                          // the head parks
+}
+function drawBoot(){
+  const t = S.bootT, lines = [];
+  if (t > 0.05) lines.push('TR-83 PERSONAL COMPUTER   BIOS 1.0');
+  if (t > 0.2) { const k = Math.min(640, Math.floor((t - 0.2) / 0.6 * 40) * 16); lines.push(`MEMORY TEST  ${String(k).padStart(3, ' ')}K${t > 0.82 ? '  OK' : ''}`); }
+  if (t > 1.0) lines.push('DRIVE A:  360K FLOPPY');
+  if (t > 1.15) lines.push('');
+  if (t > 1.2) lines.push('BOOTING FROM DRIVE A:');
+  if (t > 1.9) lines.push('A>TUNNEL');
+  lines.forEach((s, i) => txt(s, 12, 14 + i * 14, 'text'));
+  let y = 14 + lines.length * 14;
+  if (t > 2.1) {
+    // the loader: a framed bar of 24 cells that fills in fits and starts, like sectors arriving off the disk
+    const SIZE = 47104, CELLS = LW < 330 ? 16 : 24, t0 = 2.1, t1 = BOOT_LEN - 0.45;
+    const STEPS = [[0, 0], [.1, .06], [.18, .06], [.3, .27], [.4, .31], [.5, .31], [.63, .58], [.71, .63], [.8, .63], [.92, .94], [1, 1]];
+    const f = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+    let p = 1;
+    for (let i = 1; i < STEPS.length; i++) if (f <= STEPS[i][0]) { const [a, pa] = STEPS[i - 1], [b, pb] = STEPS[i]; p = pa + (pb - pa) * ((f - a) / (b - a)); break; }
+    const bytes = Math.floor(p * SIZE / 512) * 512, done = p >= 1;
+    txt('LOADING TUNNEL.EXE', 12, y, 'text'); y += 14;
+    const bx = 12, bw = CELLS * 9 + 3, bh = 11;
+    g.fillStyle = col('hud'); g.fillRect(bx, y, bw, 1); g.fillRect(bx, y + bh - 1, bw, 1); g.fillRect(bx, y, 1, bh); g.fillRect(bx + bw - 1, y, 1, bh);
+    const filled = Math.floor(p * CELLS);
+    for (let c = 0; c < CELLS; c++) { g.fillStyle = col(c < filled ? 'text' : 'textDim'); g.fillRect(bx + 2 + c * 9, y + 2, c < filled ? 8 : 8, c < filled ? bh - 4 : 1); if (c >= filled) g.fillRect(bx + 2 + c * 9 + 3, y + bh - 4, 2, 1); }
+    txt(String(Math.round(p * 100)).padStart(3, ' ') + '%', bx + bw + 8, y + 2, 'text');
+    y += 18;
+    const spin = '|/-\\'[Math.floor(t * 12) % 4];
+    const trk = String(Math.min(39, Math.floor(p * 40))).padStart(2, '0'), sec = 1 + (Math.floor(t * 9) % 9);
+    if (!done) txt(LW < 330 ? `${spin} TRK ${trk} SEC ${sec}  ${String(bytes).padStart(5, ' ')}/${SIZE}` : `${spin} TRACK ${trk} SECTOR ${sec}   ${String(bytes).padStart(5, ' ')} / ${SIZE} BYTES`, 12, y, 'hud');
+    else txt(`${SIZE} BYTES LOADED  ·  RUNNING...`, 12, y, 'text');
+    y += 14;
+  }
+  if (Math.floor(t * 3) % 2 === 0) { g.fillStyle = col('text'); g.fillRect(12, y + 6, 7, 2); }
+}
+
+/* ---------- player ---------- */
+function setFace(d){ S.player.face = d.dx > 0 ? 'right' : d.dx < 0 ? 'left' : d.dy < 0 ? 'up' : 'down'; }
+function tryMove(d){
+  const p = S.player; setFace(d);
+  const nx = p.x + d.dx, ny = p.y + d.dy;
+  if (!inb(nx, ny)) return;
+  const bag = bagAt(nx, ny);
+  if (bag) {
+    if (bag.state === 'fall' || d.dy !== 0) return;
+    const mx = nx + d.dx;
+    if (!inb(mx, ny) || bagAt(mx, ny) || monsterOnCell(mx, ny)) return;
+    bag.x = mx; bag.slide = -d.dx; bag.fy = bag.y;
+    if (bag.state === 'wobble') bag.state = 'rest';
+  }
+  const digging = !S.dug[idx(nx, ny)];
+  S.dug[idx(nx, ny)] = 1;
+  p.speed = (digging ? CART_DIG : CART_RUN) * pace();
+  p.tx = nx; p.ty = ny; p.t = 0; p.moving = true; p.mdx = d.dx; p.mdy = d.dy; p.collected = false;
+}
+function collectGem(x, y){
+  const i = idx(x, y); if (!S.em[i]) return;
+  S.em[i] = 0; S.emLeft--;
+  S.streak = (S.time - S.lastGem < 1.6) ? S.streak + 1 : 1; S.lastGem = S.time;
+  addScore(25);
+  if (S.streak >= 8) { S.streak = 0; addScore(250, x * C + C / 2, y * C); sfx.chain(); } else sfx.gem(S.streak);
+  burst(x * C + C / 2, y * C + C / 2, ['gem', 'gemHi'], 6);
+}
+function updatePlayer(dt){
+  const p = S.player, d = wantDir();
+  if (p.moving) {
+    if (d && d.dx === -p.mdx && d.dy === -p.mdy) {
+      [p.x, p.tx] = [p.tx, p.x]; [p.y, p.ty] = [p.ty, p.y];
+      p.t = 1 - p.t; p.mdx = d.dx; p.mdy = d.dy; p.collected = true; setFace(d);
+    }
+    p.t += dt * p.speed * (S.boostT > 0 ? BOOST_MUL : 1);
+    if (S.boostT > 0 && Math.random() < 0.6) { const q = ppos(p); S.parts.push({ x: q.x - p.mdx * 12, y: q.y - p.mdy * 12 + 6, vx: -p.mdx * 40 + (Math.random() - .5) * 30, vy: -p.mdy * 40 - 10, life: 0.3, role: Math.random() < .5 ? 'sparkTrail' : 'track' }); }
+    if (!p.collected && p.t >= 0.5) { collectGem(p.tx, p.ty); p.collected = true; }
+    if (p.t >= 1) { p.x = p.tx; p.y = p.ty; p.t = 0; p.moving = false; }
+  }
+  if (!p.moving && d) tryMove(d);
+  const pp = ppos(p);
+  for (let i = S.golds.length - 1; i >= 0; i--) {
+    const g = S.golds[i];
+    if (Math.hypot(g.x * C + C / 2 - pp.x, g.y * C + C / 2 - pp.y) < C * 0.55) {
+      S.golds.splice(i, 1); addScore(500, pp.x, pp.y - 10); sfx.gold(); burst(pp.x, pp.y, ['gold', 'goldHi'], 10);
+    }
+  }
+  if (S.sun.active && Math.hypot(S.sun.x * C + C / 2 - pp.x, S.sun.y * C + C / 2 - pp.y) < C * 0.6) {
+    S.sun.active = false; S.sun.used = true;
+    addScore(1000, pp.x, pp.y - 10); sfx.sun();
+    S.bonusT = Math.max(5, 15 - S.level); S.bonusChain = 0;
+    S.monsters.forEach(m => { if (m.type === 'b') { m.type = 'g'; m.morphT = 8; } });
+  }
+  if (S.sparks.length === 0) S.charge = Math.min(1, S.charge + dt / 2.6);
+  if (boostQueued) { boostQueued = false; if (S.boost >= 1 && S.boostT <= 0) { S.boostT = BOOST_TIME; S.boost = 0; sfx.boost(); } }
+  if (S.boostT > 0) S.boostT -= dt;
+  else if (S.boost < 1) { S.boost = Math.min(1, S.boost + dt / BOOST_RECHARGE); if (S.boost >= 1) sfx.boostReady(); }
+  if (fireQueued || fireHeld) {
+    fireQueued = false;
+    if (S.charge >= 1 && S.sparks.length === 0) {
+      const f = { right:[1,0], left:[-1,0], up:[0,-1], down:[0,1] }[p.face];
+      S.sparks.push({ x: pp.x, y: pp.y, dx: f[0], dy: f[1], trail: [] });
+      S.charge = 0; sfx.zap();
+    }
+  }
+}
+
+/* ---------- sacks ---------- */
+function updateBags(dt){
+  const pp = ppos(S.player);
+  for (let i = S.bags.length - 1; i >= 0; i--) {
+    const b = S.bags[i];
+    b.slide *= Math.pow(0.0005, dt); if (Math.abs(b.slide) < 0.01) b.slide = 0;
+    if (b.state === 'rest' || b.state === 'wobble') {
+      const can = inb(b.x, b.y + 1) && S.dug[idx(b.x, b.y + 1)] && !bagAt(b.x, b.y + 1);
+      if (b.state === 'rest' && can) { b.state = 'wobble'; b.t = 0.6; }
+      else if (b.state === 'wobble') {
+        if (!can) b.state = 'rest';
+        else if ((b.t -= dt) <= 0) { b.state = 'fall'; b.fy = b.y; b.dist = 0; }
+      }
+    } else if (b.state === 'fall') {
+      b.fy += dt * 9;
+      let landed = false;
+      while (b.fy >= b.y + 1) {
+        b.y += 1; b.dist += 1;
+        const below = b.y + 1;
+        if (!inb(b.x, below) || !S.dug[idx(b.x, below)] || S.bags.some(o => o !== b && o.x === b.x && o.y === below)) { landed = true; break; }
+      }
+      const bx = b.x * C + C / 2, by = b.fy * C + C / 2;
+      for (let j = S.monsters.length - 1; j >= 0; j--) {
+        const mp = ppos(S.monsters[j]);
+        if (Math.abs(mp.x - bx) < C * 0.7 && mp.y - by > -C * 0.2 && mp.y - by < C * 0.85) {
+          const m = S.monsters[j];
+          if (b.hits && b.hits.has(m)) continue;   // one blow per sack
+          if (m.hp > 1) { m.hp--; m.hitT = 0.6; (b.hits ||= new Set()).add(m); sfx.thud(); }
+          else killMonster(j, 250);
+        }
+      }
+      if (S.mode === 'play' && Math.abs(pp.x - bx) < C * 0.6 && pp.y - by > -C * 0.2 && pp.y - by < C * 0.8) killPlayer();
+      if (landed) {
+        b.fy = b.y;
+        if (b.dist >= 2) {
+          S.bags.splice(i, 1); S.golds.push({ x: b.x, y: b.y, t: 12 });
+          sfx.burst(); burst(bx, b.y * C + C / 2, ['gold', 'goldHi', 'bag'], 16);
+        } else { b.state = 'rest'; sfx.thud(); }
+      }
+    }
+  }
+  for (let i = S.golds.length - 1; i >= 0; i--) if ((S.golds[i].t -= dt) <= 0) S.golds.splice(i, 1);
+}
+
+/* ---------- grubs ---------- */
+function computeDist(){
+  const dist = S.dist; dist.fill(-1);
+  const pc = pcell(S.player); if (!inb(pc.x, pc.y)) return;
+  const q = [pc.x, pc.y]; dist[idx(pc.x, pc.y)] = 0;
+  for (let h = 0; h < q.length; h += 2) {
+    const x = q[h], y = q[h + 1], dd = dist[idx(x, y)];
+    for (const k in DIRS) {
+      const nx = x + DIRS[k].dx, ny = y + DIRS[k].dy;
+      if (!inb(nx, ny)) continue;
+      const i = idx(nx, ny);
+      if (dist[i] >= 0 || !S.dug[i] || restingBagAt(nx, ny)) continue;
+      dist[i] = dd + 1; q.push(nx, ny);
+    }
+  }
+}
+const smartness = () => Math.min(1, (S.level - 1) / 6);   // 0 on seam 1, full cunning by seam 7
+/* speed: grubs start slow and gain each seam, but are capped just under the cart's open-tunnel speed.
+   From seam 9 the whole game quickens: the cart and that cap rise together, up to 35% faster. */
+const CART_RUN = 6.2, CART_DIG = 4.3;
+const pace = () => S.level <= 8 ? 1 : Math.min(1.35, 1 + 0.04 * (S.level - 8));
+const EARLY = [1.5, 1.8, 2.15];   // seams 1 to 3 crawl, so new players can learn the sacks
+const grubSpeed = () => Math.min(S.level <= 3 ? EARLY[S.level - 1] : 2.15 + 0.42 * (S.level - 3), 0.92 * CART_RUN * pace());
+function spawnMonster(){
+  const rock = S.level >= 4 && Math.random() < Math.min(0.45, 0.12 * (S.level - 3));
+  S.monsters.push({ x: W - 1, y: 0, tx: W - 1, ty: 0, t: 0, moving: false, mdx: -1, mdy: 0,
+    type: rock ? 'r' : 'g', hp: rock ? (S.level >= 7 ? 3 : 2) : 1, hitT: 0,
+    morphT: (7 + Math.random() * 10) * (1 - 0.55 * smartness()), wait: 0, wob: Math.random() * 6 });
+  S.spawned++;
+}
+function killMonster(j, pts){
+  const m = S.monsters[j], mp = ppos(m);
+  if (m.type === 'r') pts *= 2;
+  S.monsters.splice(j, 1);
+  addScore(pts, mp.x, mp.y - 10); sfx.kill();
+  burst(mp.x, mp.y, m.type === 'b' ? ['borer', 'borerBelly'] : ['grub', 'grubBelly'], 14);
+}
+function updateMonsters(dt){
+  const bonus = S.bonusT > 0;
+  const base = grubSpeed() * (bonus ? 0.7 : 1);
+  const pp = ppos(S.player), smart = smartness();
+  for (const m of S.monsters) {
+    m.wob += dt * 10;
+    if (m.hitT > 0) m.hitT -= dt;
+    if (!bonus && m.type !== 'r') {
+      m.morphT -= dt;
+      if (m.morphT <= 0 && !m.moving) {
+        if (m.type === 'g') { m.type = 'b'; m.morphT = 4 + Math.random() * 3 + 5 * smart; }
+        else { m.type = 'g'; m.morphT = (7 + Math.random() * 10) * (1 - 0.55 * smart); }
+      }
+    }
+    const spd = base * (m.type === 'b' ? 0.72 + 0.12 * smart : m.type === 'r' ? 0.88 : 1);
+    if (m.moving) {
+      m.t += dt * spd;
+      if (m.t >= 1) { m.x = m.tx; m.y = m.ty; m.t = 0; m.moving = false; }
+      continue;
+    }
+    if ((m.wait -= dt) > 0) continue;
+    let pick = null;
+    if (m.type === 'g') {
+      const opts = [];
+      for (const k in DIRS) {
+        const d = DIRS[k], nx = m.x + d.dx, ny = m.y + d.dy;
+        if (!inb(nx, ny) || !S.dug[idx(nx, ny)] || restingBagAt(nx, ny)) continue;
+        const dd = S.dist[idx(nx, ny)];
+        opts.push({ d, nx, ny, dist: dd < 0 ? 999 : dd, back: d.dx === -m.mdx && d.dy === -m.mdy });
+      }
+      let pool = opts.filter(o => !o.back); if (!pool.length) pool = opts;
+      if (pool.length) {
+        if (Math.random() < 0.14 - 0.12 * smart) pick = pool[(Math.random() * pool.length) | 0];
+        else { pool.sort((a, b) => bonus ? b.dist - a.dist : a.dist - b.dist); pick = pool[0]; }
+      }
+    } else {
+      const mx = m.x * C + C / 2, my = m.y * C + C / 2;
+      const sgn = bonus ? -1 : 1;   // a frightened digger burrows away from you
+      const ax = sgn * Math.sign(pp.x - mx), ay = sgn * Math.sign(pp.y - my);
+      const order = Math.abs(pp.x - mx) > Math.abs(pp.y - my) ? [{dx:ax,dy:0},{dx:0,dy:ay}] : [{dx:0,dy:ay},{dx:ax,dy:0}];
+      order.push(...Object.values(DIRS).sort(() => Math.random() - 0.5));   // blocked by a sack: dig round it
+      // from seam 3, diggers shove sacks sideways like the cart does
+      const canShove = S.level >= 3 && !bonus, pc = pcell(S.player);
+      const shove = (d, nx, ny) => {
+        if (!canShove || d.dy !== 0) return false;
+        const b = restingBagAt(nx, ny); if (!b) return false;
+        const bx = nx + d.dx;
+        if (!inb(bx, ny) || bagAt(bx, ny) || monsterOnCell(bx, ny) || (pc.x === bx && pc.y === ny)) return false;
+        b.x = bx; b.slide = -d.dx; b.fy = b.y; if (b.state === 'wobble') b.state = 'rest';
+        sfx.thud();
+        return true;
+      };
+      // the cunning part: if a sack beside me would land right above the cart, push it there
+      if (canShove && pc.y > m.y) {
+        for (const dx of [-1, 1]) {
+          const nx = m.x + dx;
+          if (pc.x === nx + dx && shove({ dx, dy: 0 }, nx, m.y)) { pick = { d: { dx, dy: 0 }, nx, ny: m.y }; break; }
+        }
+      }
+      if (!pick) for (const d of order) {
+        if (!d.dx && !d.dy) continue;
+        const nx = m.x + d.dx, ny = m.y + d.dy;
+        if (!inb(nx, ny)) continue;
+        if (!bagAt(nx, ny) || shove(d, nx, ny)) { pick = { d, nx, ny }; break; }
+      }
+      if (pick) S.dug[idx(pick.nx, pick.ny)] = 1;
+    }
+    if (pick) { m.tx = pick.nx; m.ty = pick.ny; m.t = 0; m.moving = true; m.mdx = pick.d.dx; m.mdy = pick.d.dy; }
+    else m.wait = 0.25;
+  }
+  for (let j = S.monsters.length - 1; j >= 0; j--) {
+    const mp = ppos(S.monsters[j]);
+    if (Math.hypot(mp.x - pp.x, mp.y - pp.y) < C * 0.68) {
+      if (bonus) { const v = [200, 400, 800, 1600][Math.min(3, S.bonusChain)]; sfx.eat(S.bonusChain); S.bonusChain++; killMonster(j, v); }
+      else { killPlayer(); return; }
+    }
+  }
+}
+
+/* ---------- sparks ---------- */
+function updateSparks(dt){
+  for (let i = S.sparks.length - 1; i >= 0; i--) {
+    const s = S.sparks[i];
+    s.trail.unshift({ x: s.x, y: s.y }); if (s.trail.length > 5) s.trail.pop();
+    s.x += s.dx * dt * 14 * C; s.y += s.dy * dt * 14 * C;
+    const cx = Math.floor(s.x / C), cy = Math.floor(s.y / C);
+    let dead = !inb(cx, cy) || !S.dug[idx(cx, cy)] || restingBagAt(cx, cy);
+    for (let j = S.monsters.length - 1; j >= 0 && !dead; j--) {
+      const mp = ppos(S.monsters[j]);
+      if (Math.hypot(mp.x - s.x, mp.y - s.y) < C * 0.6) {
+        const m = S.monsters[j];
+        if (m.hp > 1) { m.hp--; m.hitT = 0.45; sfx.thud(); } else killMonster(j, 250);
+        dead = true;
+      }
+    }
+    if (dead) { S.sparks.splice(i, 1); burst(s.x - s.dx * 6, s.y - s.dy * 6, ['spark', 'sparkTrail'], 6); }
+  }
+}
+
+/* ---------- life and death ---------- */
+function killPlayer(){
+  if (S.mode !== 'play') return;
+  S.mode = 'dying'; S.modeT = 1.7; sfx.die();
+  const pp = ppos(S.player); burst(pp.x, pp.y, ['cart', 'drill', 'window'], 20);
+}
+function afterDeath(){
+  S.lives--;
+  if (S.lives <= 0) {
+    S.mode = 'over'; saveBest();
+    showOverlay('over', { n: S.level, s: String(S.score).padStart(6, '0') });
+    return;
+  }
+  S.spawned -= S.monsters.length; S.monsters = []; S.sparks = [];
+  S.bonusT = 0; S.spawnT = 1.5;
+  resetPlayer();
+  S.mode = 'ready'; S.modeT = 1.2;
+}
+
+/* ---------- main update ---------- */
+function update(dt){
+  S.time += dt;
+  for (let i = S.parts.length - 1; i >= 0; i--) { const q = S.parts[i]; q.life -= dt; q.vy += 220 * dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.life <= 0) S.parts.splice(i, 1); }
+  for (let i = S.pops.length - 1; i >= 0; i--) { const q = S.pops[i]; q.life -= dt; q.y -= 24 * dt; if (q.life <= 0) S.pops.splice(i, 1); }
+  if (S.mode === 'boot') { S.bootT += dt; if (S.bootT >= BOOT_LEN) { S.mode = 'ready'; S.modeT = 1.4; } return; }
+  if (S.mode === 'ready') { if ((S.modeT -= dt) <= 0) S.mode = 'play'; return; }
+  if (S.mode === 'dying') { S.player.deadT += dt; updateBags(dt); if ((S.modeT -= dt) <= 0) afterDeath(); return; }
+  if (S.mode === 'clear') { if ((S.modeT -= dt) <= 0) { S.level++; genLevel(S.level); S.mode = 'ready'; S.modeT = 1.4; saveBest(); } return; }
+  if (S.mode !== 'play') return;
+  if ((S.distT -= dt) <= 0) { computeDist(); S.distT = 0.12; }
+  updatePlayer(dt);
+  updateBags(dt); if (S.mode !== 'play') return;
+  updateSparks(dt);
+  updateMonsters(dt); if (S.mode !== 'play') return;
+  if (S.bonusT > 0) {
+    S.bonusT -= dt;
+    if ((S.sirenT -= dt) <= 0) { S.sirenHi = !S.sirenHi; sfx.siren(S.sirenHi); S.sirenT = 0.28; }
+  } else if (S.spawned < S.total && S.monsters.length < S.maxAlive) {
+    if ((S.spawnT -= dt) <= 0) { spawnMonster(); S.spawnT = Math.max(1.4, 4 - 0.3 * S.level); }
+  }
+  if (S.spawned >= S.total && !S.sun.used && !S.sun.active && S.monsters.length) S.sun.active = true;
+  if (S.emLeft <= 0 || (S.spawned >= S.total && S.monsters.length === 0)) { S.mode = 'clear'; S.modeT = 2.2; S.bonusT = 0; sfx.clear(); }
+}
+
+/* ---------- drawing into the low-res buffer (game units, C = 32) ---------- */
+const g = lx;
+function rr(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function poly(pts){ g.beginPath(); g.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]); g.closePath(); g.fill(); }
+function circ(x, y, r){ g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+
+function drawTunnels(){
+  g.fillStyle = col('core');
+  const ins = 3;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!S.dug[idx(x, y)]) continue;
+    const X = x * C, Y = y * C;
+    g.fillRect(X + ins, Y + ins, C - ins * 2, C - ins * 2);
+    if (x + 1 < W && S.dug[idx(x + 1, y)]) g.fillRect(X + C - ins, Y + ins, ins * 2, C - ins * 2);
+    if (y + 1 < H && S.dug[idx(x, y + 1)]) g.fillRect(X + ins, Y + C - ins, C - ins * 2, ins * 2);
+  }
+  g.fillStyle = col('spawn');
+  g.fillRect((W - 1) * C + 6, 6, 4, 4); g.fillRect(W * C - 10, 6, 4, 4);
+}
+function drawGem(x, y){
+  const X = x * C + C / 2, Y = y * C + C / 2;
+  g.fillStyle = col('gemDark'); poly([X, Y - 11, X + 10, Y - 2, X, Y + 12, X - 10, Y - 2]);
+  g.fillStyle = col('gem');     poly([X, Y - 8, X + 7, Y - 2, X, Y + 9, X - 7, Y - 2]);
+  g.fillStyle = col('gemHi');   poly([X - 3, Y - 5, X + 3, Y - 5, X, Y - 1]);
+}
+function drawBag(b){
+  const X = (b.x + b.slide) * C + C / 2, Y = (b.state === 'fall' ? b.fy : b.y) * C + C / 2;
+  g.save(); g.translate(X, Y);
+  if (b.state === 'wobble') g.translate(Math.round(Math.sin(S.time * 40) * 2), 0);
+  g.fillStyle = col('bagDark'); rr(-12, -6, 24, 19, 6); g.fill();
+  g.fillStyle = col('bag'); rr(-10, -4, 20, 15, 5); g.fill();
+  poly([-6, -4, -9, -12, 0, -8, 9, -12, 6, -4]);
+  g.fillStyle = col('bagBand'); g.fillRect(-7, -6, 14, 3); g.fillRect(-2, 1, 4, 6); g.fillRect(-5, 3, 10, 2);
+  g.restore();
+}
+function drawGold(o){
+  if (o.t < 3 && Math.floor(o.t * 8) % 2) return;
+  const X = o.x * C + C / 2, Y = o.y * C + C / 2 + 4;
+  for (const [dx, dy] of [[-7, 3], [0, 4], [7, 3], [-3, -3], [4, -3], [0, -8]]) {
+    g.fillStyle = col('goldDark'); circ(X + dx, Y + dy + 1, 4.5);
+    g.fillStyle = col('gold'); circ(X + dx, Y + dy, 3.6);
+  }
+}
+function drawSun(){
+  if (!S.sun.active) return;
+  const X = S.sun.x * C + C / 2, Y = S.sun.y * C + C / 2;
+  g.save(); g.translate(X, Y); g.rotate(Math.floor(S.time * 6) * Math.PI / 8);
+  g.fillStyle = col('sunRay'); for (let i = 0; i < 8; i++) { g.rotate(Math.PI / 4); g.fillRect(-2, -14, 4, 5); }
+  g.restore();
+  g.fillStyle = col(Math.floor(S.time * 6) % 2 ? 'sun' : 'sunRay'); circ(X, Y, 8);
+  g.fillStyle = col('bg'); g.fillRect(X - 3, Y - 3, 2, 2); g.fillRect(X + 1, Y - 3, 2, 2);
+}
+function drawMonster(m){
+  const p = ppos(m), bonus = S.bonusT > 0;
+  const flashing = bonus && S.bonusT < 2 && Math.floor(S.bonusT * 8) % 2;
+  g.save(); g.translate(p.x, p.y);
+  const bob = Math.sin(m.wob) > 0 ? -1 : 1;
+  let body, belly;
+  if (bonus) { body = flashing ? 'scaredFlash' : 'scared'; belly = 'scaredBelly'; }
+  else if (m.type === 'b' || m.type === 'r') { body = 'borer'; belly = 'borerBelly'; }
+  if (m.hitT > 0 && Math.floor(m.hitT * 20) % 2) body = 'eye';
+  else { body = 'grub'; belly = 'grubBelly'; }
+  // segmented grub: three humps
+  g.fillStyle = col(body);
+  circ(-7, 4 - bob, 6); circ(7, 4 + bob, 6); circ(0, -1, 10);
+  g.fillStyle = col(belly); g.fillRect(-9, 6, 18, 3);
+  if (m.type === 'r' && !bonus) {
+    // rockjaw: banded shell and a row of grinding teeth
+    g.fillStyle = col('bg'); g.fillRect(-10, -2, 20, 2); g.fillRect(-12, 3, 24, 2);
+    g.fillStyle = col('eye'); for (let i = 0; i < 4; i++) g.fillRect(-7 + i * 4, 9, 2, 4);
+    g.fillStyle = col('horn'); g.fillRect(-15, 1, 4, 4); g.fillRect(11, 1, 4, 4);
+    // remaining toughness, as pips over its head
+    g.fillStyle = col('eye'); for (let i = 0; i < m.hp; i++) g.fillRect(-(m.hp * 5 - 1) / 2 + i * 5, -16, 3, 3);
+  }
+  if (m.type === 'b' && !bonus) {
+    g.fillStyle = col('horn');
+    poly([-8, -6, -12, -16, -3, -9]); poly([8, -6, 12, -16, 3, -9]);
+  }
+  const lx2 = m.mdx * 2, ly2 = m.mdy * 2;
+  if (bonus) {
+    g.fillStyle = col('pupil'); g.fillRect(-6, -4, 3, 3); g.fillRect(3, -4, 3, 3);
+    for (let i = 0; i < 5; i++) g.fillRect(-7 + i * 3, 3 + (i % 2) * 2, 2, 2);
+  } else {
+    g.fillStyle = col('eye'); g.fillRect(-8, -7, 7, 6); g.fillRect(1, -7, 7, 6);
+    g.fillStyle = col('pupil'); g.fillRect(-6 + lx2, -5 + ly2, 3, 3); g.fillRect(3 + lx2, -5 + ly2, 3, 3);
+    if (m.type === 'b') g.fillRect(-4, 4, 8, 2);
+  }
+  g.restore();
+}
+function drawPlayer(){
+  const p = S.player, pos = ppos(p);
+  if (S.mode === 'dying' && Math.floor(p.deadT * 10) % 2) return;
+  g.save(); g.translate(pos.x, pos.y);
+  if (S.mode === 'dying') g.rotate(Math.floor(p.deadT * 8) * Math.PI / 2);
+  else if (p.face === 'left') g.scale(-1, 1);
+  else if (p.face === 'up') g.rotate(-Math.PI / 2);
+  else if (p.face === 'down') g.rotate(Math.PI / 2);
+  g.fillStyle = col('track'); rr(-13, 5, 20, 8, 3); g.fill();
+  g.fillStyle = col('wheel');
+  const roll = p.moving ? Math.floor(S.time * 20) % 2 : 0;
+  for (let i = 0; i < 3; i++) g.fillRect(-11 + i * 6 + roll, 8, 3, 3);
+  g.fillStyle = col('cartShade'); rr(-13, -9, 19, 15, 3); g.fill();
+  g.fillStyle = col('cart'); rr(-13, -9, 19, 11, 3); g.fill();
+  g.fillStyle = col('window'); g.fillRect(-9, -6, 8, 5);
+  g.fillStyle = col('lamp'); g.fillRect(-12, -13, 4, 4);
+  g.fillStyle = col('drill'); poly([5, -9, 17, 0, 5, 9]);
+  g.fillStyle = col('drillLine');
+  const sp = p.moving ? Math.floor(S.time * 24) % 3 : 0;
+  for (let x = 7 + sp; x < 15; x += 3) { const h = Math.max(1, 8 * (1 - (x - 5) / 12)); g.fillRect(x, -h, 1.5, h * 2); }
+  g.restore();
+}
+function drawSparks(){
+  for (const s of S.sparks) {
+    g.fillStyle = col('sparkTrail'); s.trail.forEach((t, i) => { if (i % 2 === 0) g.fillRect(t.x - 2, t.y - 2, 4, 4); });
+    g.fillStyle = col('spark'); g.fillRect(s.x - 4, s.y - 4, 8, 8);
+  }
+}
+
+/* HUD row and banners are drawn in screen pixels at the top of the buffer */
+function txt(s, x, y, role, align = 'left', size = 8){
+  g.font = `${size}px Silkscreen, "Courier New", monospace`; g.textAlign = align; g.textBaseline = 'top';
+  g.fillStyle = col(role); g.fillText(s, x, y);
+}
+function drawHud(){
+  g.fillStyle = col('bg'); g.fillRect(0, 0, LW, HUD);
+  txt(String(S.score).padStart(6, '0'), 6, 6, 'text');
+  const wide = LW >= 330;
+  if (wide) txt('HI ' + String(best).padStart(6, '0'), 80, 6, 'hud');
+  const spares = Math.max(0, S.lives - 1);
+  for (let i = 0; i < Math.min(spares, wide ? 6 : 3); i++) {
+    const x = (wide ? 176 : 58) + i * 13;
+    g.fillStyle = col('cart'); g.fillRect(x, 7, 8, 5);
+    g.fillStyle = col('drill'); g.fillRect(x + 8, 8, 3, 3);
+  }
+  txt('SEAM ' + S.level, LW - 64, 6, 'hud', 'right');
+  g.fillStyle = col('hud'); g.fillRect(LW - 56, 4, 50, 1); g.fillRect(LW - 56, 15, 50, 1); g.fillRect(LW - 56, 4, 1, 12); g.fillRect(LW - 7, 4, 1, 12);
+  g.fillStyle = col(S.charge >= 1 ? 'text' : 'textDim'); g.fillRect(LW - 54, 6, Math.round(46 * S.charge), 3);
+  const bl = S.boostT > 0 ? 1 : (S.boost || 0);
+  if (!(S.boostT > 0 && Math.floor(S.time * 12) % 2)) { g.fillStyle = col(S.boostT > 0 || bl >= 1 ? 'gold' : 'textDim'); g.fillRect(LW - 54, 11, Math.round(46 * bl), 2); }
+  g.fillStyle = col('hud'); for (let x = 0; x < LW; x += 4) g.fillRect(x, HUD - 2, 2, 1);
+}
+function banner(t1, t2){
+  const y = HUD + Math.round((LH - HUD) / 2) - 23;
+  g.fillStyle = col('bg'); g.fillRect(0, y, LW, t2 ? 46 : 32);
+  g.fillStyle = col('hud'); g.fillRect(0, y, LW, 1); g.fillRect(0, y + (t2 ? 45 : 31), LW, 1);
+  txt(t1, LW / 2, y + 8, 'text', 'center', 16);
+  if (t2) txt(t2, LW / 2, y + 30, 'hud', 'center', 8);
+}
+
+function renderFrame(){
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = col('bg'); g.fillRect(0, 0, LW, LH);
+  if (S.mode === 'boot') drawBoot(); else {
+  g.drawImage(dirtCanvas, 0, HUD);
+  g.setTransform(K, 0, 0, K, 0, HUD);
+  drawTunnels();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (S.em[idx(x, y)]) drawGem(x, y);
+  S.golds.forEach(drawGold);
+  S.bags.forEach(drawBag);
+  drawSun();
+  if (S.mode !== 'title') { S.monsters.forEach(drawMonster); drawPlayer(); }
+  drawSparks();
+  for (const q of S.parts) { g.fillStyle = col(q.role); g.fillRect(q.x - 2, q.y - 2, 4, 4); }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  for (const q of S.pops) if (Math.floor(q.life * 12) % 3) txt(q.text, q.x * K, q.y * K + HUD - 4, 'text', 'center');
+  if (S.bonusT > 0 && Math.floor(S.time * 4) % 2) { g.fillStyle = col('textDim'); g.fillRect(0, LH - 2, LW, 2); g.fillRect(0, HUD, LW, 2); }
+  drawHud();
+  if (S.mode === 'ready') banner('SEAM ' + S.level, `${S.emLeft} EMERALDS  ·  ${S.total} GRUBS`);
+  if (S.mode === 'clear') banner('SEAM CLEARED');
+  }
+  // snap every pixel to the four colours the hardware could show
+  const img = g.getImageData(0, 0, LW, LH), d = img.data, P = palRGB;
+  const useAcc = fx, decay = Math.pow(0.5, frameDt / M.half), ad = accImg.data, bg = P[0], reset = accReset;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], gg = d[i + 1], b = d[i + 2];
+    let bi = 0, bd = 1e9;
+    for (let k = 0; k < 4; k++) { const p = P[k], dr = r - p[0], dg = gg - p[1], db = b - p[2], dd = dr * dr + dg * dg + db * db; if (dd < bd) { bd = dd; bi = k; } }
+    const p = P[bi]; d[i] = p[0]; d[i + 1] = p[1]; d[i + 2] = p[2];
+    if (useAcc) {
+      // phosphor afterglow: each channel keeps the brighter of the new beam and the fading old glow
+      for (let c = 0; c < 3; c++) {
+        let v = reset ? p[c] : bg[c] + (A[i + c] - bg[c]) * decay;
+        if (v < p[c]) v = p[c];
+        A[i + c] = v; ad[i + c] = v;
+      }
+      ad[i + 3] = 255;
+    }
+  }
+  accReset = false;
+  g.putImageData(img, 0, 0);
+  if (useAcc) ax.putImageData(accImg, 0, 0);
+}
+
+/* ---------- CRT presentation ---------- */
+function tickAge(dt){
+  age.dg += dt;
+  if (age.tearLeft > 0) age.tearLeft -= dt;
+  if (age.dipLeft > 0) age.dipLeft -= dt;
+  if ((age.next -= dt) <= 0) {
+    if (Math.random() < 0.65) {
+      age.tearLeft = 0.06 + Math.random() * 0.14; age.tearY = (Math.random() * LH) | 0;
+      age.tearH = 4 + ((Math.random() * 26) | 0); age.tearDx = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 7);
+    } else age.dipLeft = 0.08 + Math.random() * 0.12;
+    age.next = 4 + Math.random() * 11;
+  }
+}
+function drawOff(w, h){
+  const t = reduceMotion ? 9 : offT, hi = M.pal[3], cx = w / 2, cy = h / 2;
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  ctx.fillStyle = M.bezel[4]; ctx.fillRect(0, 0, w, h);
+  if (t < 0.16) {
+    // the vertical scan collapses: the picture squeezes into a bright band
+    const k = t / 0.16, sy = Math.max(0.006, 1 - k * k), y = h * (1 - sy) / 2;
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(lo, 0, y, w, h * sy);
+    ctx.globalAlpha = 0.25 + k * 0.75; ctx.fillStyle = hi; ctx.fillRect(0, y, w, h * sy); ctx.globalAlpha = 1;
+  } else if (t < 0.42) {
+    // then the line pulls in from both sides
+    const k = (t - 0.16) / 0.26, sx = Math.max(0.012, 1 - Math.pow(k, 0.7)), lh = Math.max(2, h * 0.008);
+    ctx.shadowColor = hi; ctx.shadowBlur = h * 0.04; ctx.fillStyle = '#ffffff';
+    ctx.fillRect(cx - w * sx / 2, cy - lh / 2, w * sx, lh);
+    ctx.fillStyle = hi; ctx.globalAlpha = 0.7; ctx.fillRect(cx - w * sx / 2, cy - lh * 1.5, w * sx, lh * 3); ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  } else if (t < 2.2) {
+    // and the last of the charge lingers as a dot that slowly dies
+    const k = (t - 0.42) / 1.78, r = w * (0.016 - 0.008 * k), a = Math.pow(1 - k, 2);
+    const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 4);
+    gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(0.25, hexA(hi, a * 0.9)); gr.addColorStop(1, hexA(hi, 0));
+    ctx.fillStyle = gr; ctx.fillRect(cx - r * 4, cy - r * 4, r * 8, r * 8);
+  }
+  if (vig) ctx.drawImage(vig, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(dust, 0, 0, w, h);
+}
+function hexA(hex, a){ return `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`; }
+function drawPicture(src, oy, dh){
+  const w = cv.width, live = fx && !reduceMotion;
+  const wob = live ? Math.max(0, 1 - age.dg / 0.9) : 0;      // degauss wobble, dying away
+  const tearing = live && age.tearLeft > 0;
+  if (!wob && !tearing) { ctx.drawImage(src, 0, oy, w, dh); return; }
+  const strip = 4, sh = dh / LH, ux = w / LW;
+  for (let y = 0; y < LH; y += strip) {
+    let dx = 0;
+    if (wob) dx += Math.sin(y * 0.09 + age.dg * 40) * 10 * wob * ux;
+    if (tearing && y >= age.tearY && y < age.tearY + age.tearH) dx += age.tearDx * ux;
+    ctx.drawImage(src, 0, y, LW, strip, dx, oy + y * sh, w, strip * sh);
+  }
+}
+function drawAged(w, h){
+  if (burn) { ctx.globalCompositeOperation = 'multiply'; ctx.imageSmoothingEnabled = true; ctx.drawImage(burn, 0, 0, w, h); }
+  const k = Math.min(1, age.dg / 6);   // magnetisation creeps back after each degauss
+  if (k > 0) {
+    for (const st of age.stains) {
+      const x = st.x * w, y = st.y * h, gr = ctx.createRadialGradient(x, y, 0, x, y, st.r * w);
+      gr.addColorStop(0, M.mask ? st.tint : '#a6a6a6'); gr.addColorStop(1, '#ffffff');
+      ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = k * st.k;
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+}
+let scan = null, vig = null;
+/* ---------- the field adapts to the screen: pick a grid whose shape matches the box the layout gives the tube ---------- */
+function targetGrid(){
+  const r = cv.parentElement.getBoundingClientRect();
+  if (r.width < 60 || r.height < 60) return [15, 10];
+  const ar = r.width / r.height, fit = w => Math.round((w * CELL / ar - HUD) / CELL);
+  if (ar >= 1) { const w = ar > 1.75 ? 17 : 15; return [w, Math.min(14, Math.max(7, fit(w)))]; }
+  const w = r.width >= 520 ? 13 : r.width < 350 ? 10 : 11;   // upright: fewer, larger cells, more rows
+  return [w, Math.min(22, Math.max(9, fit(w)))];
+}
+function setGrid(w, h){
+  if (w === W && h === H) return false;
+  W = w; H = h; LW = W * CELL; LH = H * CELL + HUD;
+  lo.width = LW; lo.height = LH; acc.width = LW; acc.height = LH;
+  accImg = ax.createImageData(LW, LH); A = new Float32Array(LW * LH * 4); accReset = true;
+  glow.width = Math.round(LW / 3); glow.height = Math.round(LH / 3);
+  dirtCanvas.width = LW; dirtCanvas.height = LH - HUD;
+  S.dug = new Uint8Array(W * H); S.em = new Uint8Array(W * H); S.dist = new Int16Array(W * H);
+  buildBurn(); fitCanvas();
+  return true;
+}
+function fitGrid(){ const [w, h] = targetGrid(); setGrid(w, h); }
+function fitCanvas(){
+  // the picture fills the tube, letterboxed in glass if the current field doesn't quite match
+  const box = cv.parentElement.getBoundingClientRect(), dpr = Math.min(3, window.devicePixelRatio || 1);
+  if (box.width < 10 || box.height < 10) return;
+  const sc = Math.min(box.width / LW, box.height / LH), cw = Math.floor(LW * sc), ch = Math.floor(LH * sc);
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  cv.width = Math.max(LW, Math.round(cw * dpr)); cv.height = Math.round(cv.width * LH / LW);
+  scan = document.createElement('canvas'); scan.width = cv.width; scan.height = cv.height;
+  const s = scan.getContext('2d'), rowH = cv.height / LH;
+  s.fillStyle = `rgba(0,0,0,${rowH >= 2.5 ? 0.5 : 0.32})`;
+  for (let y = 0; y < LH; y++) s.fillRect(0, Math.round(y * rowH + rowH * 0.55), cv.width, Math.max(1, Math.round(rowH * 0.45)));
+  vig = document.createElement('canvas'); vig.width = cv.width; vig.height = cv.height;
+  const v = vig.getContext('2d'), gr = v.createRadialGradient(cv.width / 2, cv.height / 2, Math.min(cv.width, cv.height) * 0.35, cv.width / 2, cv.height / 2, Math.max(cv.width, cv.height) * 0.72);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.6)');
+  v.fillStyle = gr; v.fillRect(0, 0, cv.width, cv.height);
+  // colour-tube stripe mask: repeating red, green, blue columns
+  mask = document.createElement('canvas'); mask.width = cv.width; mask.height = 1;
+  const mk = mask.getContext('2d'), mw = Math.max(1, Math.round(cv.width / (LW * 3))), stripes = ['#ff7a7a', '#7aff7a', '#7a7aff'];
+  for (let x = 0, i = 0; x < cv.width; x += mw, i++) { mk.fillStyle = stripes[i % 3]; mk.fillRect(x, 0, mw, 1); }
+}
+/* upright layouts: the set fills the phone from just under the title to the bottom edge */
+function sizeTv(){
+  const root = document.documentElement;
+  if (!/portrait/.test(root.getAttribute('data-layout') || '')) { root.style.removeProperty('--tv-h'); return; }
+  const vh = window.visualViewport ? visualViewport.height : innerHeight;
+  const top = document.querySelector('.tv').getBoundingClientRect().top + window.scrollY;
+  const below = getComputedStyle(document.querySelector('.feet')).display === 'none' ? 8 : 22;
+  root.style.setProperty('--tv-h', Math.max(440, Math.floor(vh - top - below)) + 'px');
+}
+function resize(){
+  sizeTv();
+  // while nothing is being played, re-deal the field to suit the new screen shape; mid-game it keeps its shape until the next seam
+  if (S.mode === 'off' || S.mode === 'title') { const [w, h] = targetGrid(); if (w !== W || h !== H) { genLevel(S.level = 1); } }
+  fitCanvas();
+}
+new ResizeObserver(() => resize()).observe(cv.parentElement);
+addEventListener('resize', resize);
+
+function present(){
+  const w = cv.width, h = cv.height, src = fx ? acc : lo;
+  if (!tvOn) { drawOff(w, h); return; }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = M.bezel[4]; ctx.fillRect(0, 0, w, h);
+  // power-on: the picture opens from a bright line and brightens as the tube warms
+  let sy = 1, dim = 0;
+  if (warmT < WARM && !reduceMotion) {
+    const t = warmT / WARM;
+    sy = t < 0.35 ? 0.008 + 0.992 * (1 - Math.pow(1 - t / 0.35, 3)) : 1;
+    dim = Math.max(0, 1 - t * 1.15);
+  }
+  const oy = h * (1 - sy) / 2, dh = h * sy;
+  ctx.imageSmoothingEnabled = false;
+  drawPicture(src, oy, dh);
+  if (sy < 1) { ctx.fillStyle = M.pal[3]; ctx.globalAlpha = 0.8 * (1 - sy); ctx.fillRect(0, h / 2 - Math.max(1, dh / 2), w, Math.max(2, dh)); ctx.globalAlpha = 1; }
+  if (fx) {
+  // phosphor bloom: a blurred copy added on top
+  gx.imageSmoothingEnabled = true; gx.clearRect(0, 0, glow.width, glow.height); gx.drawImage(src, 0, 0, glow.width, glow.height);
+  ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true; ctx.globalAlpha = M.bloom;
+  ctx.drawImage(glow, 0, oy, w, dh);
+  ctx.globalAlpha = 0.16; ctx.drawImage(src, 1.5, oy, w, dh);    // slight horizontal smear, like an analogue signal
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  if (M.mask && mask) { ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.28; ctx.drawImage(mask, 0, 0, w, h); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
+  if (scan) ctx.drawImage(scan, 0, 0);
+  if (!reduceMotion) {
+    const by = ((S.time * 0.09) % 1.3 - 0.15) * h, gr = ctx.createLinearGradient(0, by - h * 0.08, 0, by + h * 0.08);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.035)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0, by - h * 0.08, w, h * 0.16);
+    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.03})`; ctx.fillRect(0, 0, w, h);
+  }
+  drawAged(w, h);
+  if (vig) ctx.drawImage(vig, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(dust, 0, 0, w, h);
+  }
+  if (fx && !reduceMotion && age.dipLeft > 0) dim = Math.max(dim, 0.28);   // brown-out
+  if (dim > 0) { ctx.fillStyle = `rgba(0,0,0,${dim * 0.85})`; ctx.fillRect(0, 0, w, h); }
+}
+
+/* ---------- loop ---------- */
+let last = performance.now();
+function frame(now){
+  let dt = Math.min(0.05, (now - last) / 1000); last = now;
+  frameDt = Math.max(0.001, dt); warmT += dt; tickAge(dt);
+  if (!tvOn) offT += dt;
+  if (S.mode !== 'paused') { while (dt > 0) { const step = Math.min(dt, 1 / 60); update(step); dt -= step; } }
+  renderFrame(); present();
+  const cool = S.charge < 1; if (cool !== fireCool) { fireCool = cool; $('fireBtn').classList.toggle('cool', cool); }
+  const bk = (S.boostT > 0 ? 'a' : '') + Math.round((S.boost || 0) * 40);
+  if (bk !== boostShown) { boostShown = bk; const bb = $('boostBtn'); $('boostFill').style.width = ((S.boost || 0) * 100) + '%'; bb.classList.toggle('active', S.boostT > 0); bb.classList.toggle('cool', S.boostT <= 0 && (S.boost || 0) < 1); }
+  requestAnimationFrame(frame);
+}
+
+setMode(modeKey); setFx(fx);
+sizeTv();
+genLevel(1);
+resize();
+buildBurn();
+if (document.fonts && document.fonts.load) document.fonts.load('16px Silkscreen').then(buildBurn).catch(()=>{});
+requestAnimationFrame(frame);
+})();
+</script>
+
+</html>
