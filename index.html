@@ -246,6 +246,11 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 .below{order:4}
 .below[hidden],.overlay[hidden]{display:none}
 .manual-bar{order:3;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.manual-bar .bar-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.gh-link{display:inline-flex;align-items:center;gap:8px;font-family:var(--body);font-size:12px;font-weight:600;color:var(--label);text-decoration:none;background:#181713;border:1px solid #2b2924;border-radius:6px;padding:7px 11px;transition:color .15s,border-color .15s}
+.gh-link:hover{color:var(--phos);border-color:#4a463c}
+.gh-link:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
+.gh-link svg{flex:none;display:block}
 .manual-btn{font-family:var(--display);font-size:12px;letter-spacing:.12em;background:#181713;color:var(--label);border:1px solid #2b2924;border-radius:6px;padding:9px 14px;cursor:pointer;display:inline-flex;gap:10px;align-items:center}
 .manual-btn:hover{border-color:#4a463c}
 .chev{display:inline-block;transition:transform .2s;color:var(--phos)}
@@ -511,10 +516,13 @@ kbd{font-family:var(--body);font-size:12px;background:var(--desk);border:1px sol
 
   <div class="manual-bar">
     <button type="button" class="manual-btn" id="manualBtn" aria-expanded="false" aria-controls="manual"><span class="chev" aria-hidden="true">▸</span><span id="manualLbl">How to play</span></button>
-    <div class="lang" role="group" aria-label="Language" id="langSeg">
-      <button type="button" data-lang="en" aria-pressed="true">EN</button>
-      <button type="button" data-lang="zh-hant" aria-pressed="false" lang="zh-Hant">繁中</button>
-      <button type="button" data-lang="zh-hans" aria-pressed="false" lang="zh-Hans">简中</button>
+    <div class="bar-right">
+      <a class="gh-link" href="https://github.com/wiiiimm/tunnel-raider" target="_blank" rel="noopener" aria-label="Tunnel Raider on GitHub (opens in a new tab)"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+      <div class="lang" role="group" aria-label="Language" id="langSeg">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="zh-hant" aria-pressed="false" lang="zh-Hant">繁中</button>
+        <button type="button" data-lang="zh-hans" aria-pressed="false" lang="zh-Hans">简中</button>
+      </div>
     </div>
   </div>
   <div class="below" id="manual" hidden>
@@ -1913,7 +1921,6 @@ requestAnimationFrame(frame);
 <style>
 .install-btn{font:600 12px/1 "IBM Plex Mono","Noto Sans TC","Noto Sans SC",monospace;letter-spacing:.06em;background:#181713;color:var(--phos);border:1px solid #3a372f;border-radius:6px;padding:9px 12px;cursor:pointer;white-space:nowrap}
 .install-btn:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
-.manual-bar .bar-right{display:flex;gap:10px;align-items:center}
 </style>
 <script>
 (function () {
@@ -1927,8 +1934,8 @@ requestAnimationFrame(frame);
     if (installBtn) { installBtn.hidden = false; return; }
     var bar = document.querySelector('.manual-bar'), lang = document.getElementById('langSeg');
     if (!bar || !lang) return;
-    var right = document.createElement('div'); right.className = 'bar-right';
-    lang.parentNode.insertBefore(right, lang); right.appendChild(lang);
+    var right = lang.parentNode.classList.contains('bar-right') ? lang.parentNode : null;
+    if (!right) { right = document.createElement('div'); right.className = 'bar-right'; lang.parentNode.insertBefore(right, lang); right.appendChild(lang); }
     installBtn = document.createElement('button'); installBtn.type = 'button'; installBtn.className = 'install-btn'; installBtn.textContent = t('install');
     installBtn.onclick = function () { if (!deferred) return; deferred.prompt(); deferred.userChoice.finally(function () { deferred = null; installBtn.hidden = true; }); };
     right.insertBefore(installBtn, lang);
