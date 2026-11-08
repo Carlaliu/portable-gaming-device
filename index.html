@@ -44,7 +44,7 @@ img{max-width:100%}
 <title>Tunnel Raider</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
 <style>
 /* Layout: a 1983 colour monitor on a dark desk — bezel-framed CRT, a row of front-panel switches, reference cards beneath. Single dark look by design; --phos/--phos2 retint to the chosen display. */
 :root{
@@ -60,21 +60,28 @@ img{max-width:100%}
   --muted:#8d8676;       /* secondary text */
   --phos:#55ffff;        /* active phosphor colour (set by display mode) */
   --phos2:#ff55ff;       /* second phosphor colour */
+  --paper:#ede4cd;       /* manual paper */
+  --paper-ink:#29231a;   /* manual print */
+  --paper-mute:#6f6553;  /* secondary print */
+  --paper-rule:#b4a684;  /* rules and dot leaders */
+  --print:"Barlow Condensed", "Noto Sans TC", "Noto Sans SC", "Arial Narrow", sans-serif;
+  --book:"Spectral", "Noto Sans TC", "Noto Sans SC", Georgia, serif;
   --display:"Silkscreen", "Noto Sans TC", "Noto Sans SC", "Courier New", monospace;
   --body:"IBM Plex Mono", "Noto Sans TC", "Noto Sans SC", ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme:dark;
 }
 html,body{background:var(--desk);color:var(--label)}
+body{background:radial-gradient(110% 60% at 50% -8%, #2b2720 0, #191712 42%, var(--desk) 78%) var(--desk) no-repeat}
 /* iOS: no double-tap zoom (pinch zoom still works), no text selection, callouts or grey tap flashes on the controls */
 html,body,.tv,button,.manual-bar,.netbadge{touch-action:manipulation}
 .tv,.manual-bar,.netbadge{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 button,.stickzone,.dial,.tv{-webkit-tap-highlight-color:transparent}
 body{font-family:var(--body);font-size:14px;line-height:1.55}
 .wrap{max-width:1000px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 40px;display:grid;gap:18px}
-header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
-h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,5vw,40px);line-height:1;margin:0;letter-spacing:.03em;color:var(--label);text-wrap:balance}
-h1 span{color:var(--phos);text-shadow:0 0 12px color-mix(in srgb, var(--phos) 60%, transparent)}
-.tag{margin:0;color:var(--muted);font-size:13px;max-width:46ch}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding-inline:2px}
+h1{font-family:var(--print);font-weight:700;font-size:21px;line-height:1;margin:0;letter-spacing:.34em;text-transform:uppercase;color:#ddd3ba}
+.mk-model{font-family:var(--print);font-weight:700;font-size:12px;letter-spacing:.18em;color:#16140f;background:#cfc3a3;padding:2px 6px 1px;border-radius:2px;align-self:center}
+.tag{margin:0 0 0 auto;font-family:var(--book);font-style:italic;font-size:15px;color:#978c76;max-width:50ch}
 
 /* the monitor */
 .monitor{background:linear-gradient(180deg,var(--plastic-hi),var(--plastic) 12%,var(--plastic) 88%,var(--plastic-lo));border-radius:22px;padding:clamp(12px,3vw,30px) clamp(12px,3vw,30px) 14px;box-shadow:0 18px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)}
@@ -296,7 +303,7 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-full][data-layout="phone-portrait"] .tv-face,[data-full][data-layout="tablet-portrait"] .tv-face{grid-template-columns:minmax(0,1fr);grid-template-areas:"screen" "pad"}
 [data-full][data-layout="phone-portrait"] .tube-surround,[data-full][data-layout="tablet-portrait"] .tube-surround{width:100%}
 [data-full][data-layout="phone-portrait"] .pad,[data-full][data-layout="tablet-portrait"] .pad{display:flex;flex-direction:row;width:100%}
-.rotate-hint{display:none;margin:0;text-align:center;color:var(--muted);font-size:12px}
+.rotate-hint{display:none;order:5;margin:0;text-align:center;font-family:var(--book);font-style:italic;font-size:14px;color:#8d8676}
 
 /* ---- layouts chosen by the screen detector (data-layout on <html>) ---- */
 [data-layout="phone-portrait"] .tag{display:none}
@@ -430,10 +437,58 @@ table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 td{padding:4px 0;border-bottom:1px dashed #2b2924;vertical-align:top}
 td:last-child{text-align:right;color:var(--phos);white-space:nowrap;padding-left:12px}
 tr:last-child td{border-bottom:0}
-kbd{font-family:var(--body);font-size:12px;background:var(--desk);border:1px solid #2b2924;border-bottom-width:2px;border-radius:3px;padding:0 5px;color:var(--label)}
+kbd{font-family:var(--body);font-size:11px;font-weight:600;line-height:1.5;color:#2a241b;background:linear-gradient(180deg,#fbf7ec,#ddd2b7);border:1px solid #978a71;border-bottom-width:3px;border-radius:4px;padding:0 6px;box-shadow:0 1px 1px rgba(0,0,0,.18);white-space:nowrap}
 .keys td:last-child{color:var(--label)}
 .note{color:var(--muted);font-size:12px;margin:10px 0 0}
 @media (prefers-reduced-motion:reduce){.blink{animation:none}}
+
+/* ---------- outside the set: a 1983 software manual ---------- */
+.manual-bar{order:3;display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 18px;margin-top:-18px;padding-inline:clamp(10px,3vw,28px)}
+.manual-btn{position:relative;z-index:1;display:inline-flex;align-items:center;gap:9px;cursor:pointer;border:0;border-radius:0 0 7px 7px;padding:14px 18px 10px;
+  font-family:var(--print);font-weight:700;font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--paper-ink);
+  background:var(--grain),linear-gradient(180deg,#d9cfb5,var(--paper) 30%);background-size:160px 160px,auto;background-blend-mode:multiply,normal;
+  box-shadow:0 8px 16px rgba(0,0,0,.45),inset 0 6px 6px -4px rgba(0,0,0,.35)}
+.manual-btn:hover{background-color:#f4ecd7}
+.manual-btn .chev{color:var(--paper-mute);font-size:12px;transition:transform .2s}
+.manual-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.manual-btn:focus-visible,.lang button:focus-visible,.gh-link:focus-visible,.man-foot a:focus-visible{outline:2px solid var(--phos);outline-offset:3px}
+.manual-bar .bar-right{display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;padding-top:12px}
+.lang{display:flex;align-items:center;border:0;border-radius:0;overflow:visible;background:none}
+.lang button,.lang button+button{font-family:var(--print);font-weight:600;font-size:15px;letter-spacing:.14em;color:#857c69;background:none;border:0;padding:4px 2px;cursor:pointer}
+.lang button+button::before{content:"·";color:#4f4a40;margin:0 10px 0 8px}
+.lang button[aria-pressed="true"]{background:none;color:#e6dcc3;text-decoration:underline;text-decoration-color:var(--phos);text-decoration-thickness:2px;text-underline-offset:6px}
+.lang button:hover{color:#cfc5ad}
+.gh-link{display:inline-flex;align-items:center;gap:7px;font-family:var(--print);font-weight:600;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:#857c69;text-decoration:none;background:none;border:0;padding:4px 0}
+.gh-link:hover{color:#e6dcc3}
+.gh-link svg{width:15px;height:15px}
+.install-btn{font-family:var(--print)!important;font-weight:600!important;font-size:15px!important;letter-spacing:.14em!important;text-transform:uppercase;color:var(--phos)!important;background:none!important;border:0!important;padding:4px 0!important}
+
+.manual{order:4;display:block;position:relative;margin:-4px clamp(4px,1.5vw,14px) 0;padding:30px clamp(18px,4.5vw,48px) 22px;color:var(--paper-ink);
+  background:var(--grain),linear-gradient(180deg,#f2eada,#e6dbc0);background-size:160px 160px,auto;background-blend-mode:multiply,normal;
+  border-radius:1px;box-shadow:0 22px 44px rgba(0,0,0,.55),0 2px 0 #c9bc9b;transform:rotate(-.35deg)}
+.man-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 18px;padding-bottom:10px;margin-bottom:20px;border-bottom:3px double var(--paper-ink)}
+.manual h2{margin:0;font-family:var(--print);font-weight:700;font-size:clamp(22px,3.6vw,32px);letter-spacing:.14em;text-transform:uppercase;line-height:1.05}
+.man-model{font-family:var(--print);font-weight:600;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper-mute)}
+.man-cols{columns:2 320px;column-gap:44px;column-rule:1px solid color-mix(in srgb, var(--paper-rule) 60%, transparent)}
+.man-sec{break-inside:avoid;margin:0 0 22px}
+.man-sec h3{display:flex;align-items:center;gap:10px;margin:0 0 9px;font-family:var(--print);font-weight:700;font-size:16px;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-ink)}
+.man-sec .num{flex:none;display:grid;place-items:center;width:21px;height:21px;border-radius:50%;background:var(--paper-ink);color:var(--paper);font-size:12px;letter-spacing:0}
+.man-sec p{margin:0;font-family:var(--book);font-size:15.5px;line-height:1.58;color:#352e23;hyphens:auto;text-wrap:pretty}
+.man-sec p i{font-style:italic}
+.leaders{list-style:none;margin:0;padding:0;font-family:var(--book);font-size:15.5px;color:#352e23}
+.leaders li{display:flex;align-items:baseline;gap:6px;padding:3px 0}
+.leaders li > span:first-child{min-width:0;flex:0 1 auto}
+.leaders i{flex:1 1 18px;min-width:18px;align-self:flex-end;margin-bottom:6px;border-bottom:2px dotted var(--paper-rule)}
+.leaders b{flex:none;font-family:var(--body);font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--paper-ink)}
+.leaders .kv{flex:0 1 auto;max-width:62%;text-align:right;font-size:13.5px;line-height:1.9}
+.man-foot{margin-top:4px;padding-top:12px;border-top:1px solid var(--paper-rule)}
+.man-foot a{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 9px;font-family:var(--print);font-weight:700;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-ink);text-decoration:none}
+.man-foot a svg{width:16px;height:16px}
+.man-foot .url{font-family:var(--body);font-weight:500;font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--paper-mute)}
+.man-foot a:hover .url{text-decoration:underline}
+[data-layout="phone-portrait"] .manual-bar{margin-top:0}
+[data-layout="phone-portrait"] .manual{transform:none}
+@media (prefers-reduced-motion:reduce){.manual-btn .chev{transition:none}}
 </style>
 <script>
 /* Screen detector. Picks a layout from the real viewport and input type, so it fits any phone or tablet
@@ -461,7 +516,8 @@ kbd{font-family:var(--body);font-size:12px;background:var(--desk);border:1px sol
 
 <div class="wrap">
   <header>
-    <h1>Tunnel <span>Raider</span></h1>
+    <h1>Tunnel Raider</h1>
+    <span class="mk-model">TR-83</span>
     <p class="tag" data-i18n="tag">Tunnel through the mine, scoop up emeralds and drop sacks of gold on the grubs.</p>
   </header>
 
@@ -515,47 +571,56 @@ kbd{font-family:var(--body);font-size:12px;background:var(--desk);border:1px sol
 
 
   <div class="manual-bar">
-    <button type="button" class="manual-btn" id="manualBtn" aria-expanded="false" aria-controls="manual"><span class="chev" aria-hidden="true">▸</span><span id="manualLbl">How to play</span></button>
-    <div class="bar-right">
-      <a class="gh-link" href="https://github.com/wiiiimm/tunnel-raider" target="_blank" rel="noopener" aria-label="Tunnel Raider on GitHub (opens in a new tab)"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+    <button type="button" class="manual-btn" id="manualBtn" aria-expanded="false" aria-controls="manual"><span class="chev" aria-hidden="true">▾</span><span id="manualLbl">Instructions</span></button>
+    <nav class="bar-right" aria-label="Language and source code">
       <div class="lang" role="group" aria-label="Language" id="langSeg">
         <button type="button" data-lang="en" aria-pressed="true">EN</button>
         <button type="button" data-lang="zh-hant" aria-pressed="false" lang="zh-Hant">繁中</button>
         <button type="button" data-lang="zh-hans" aria-pressed="false" lang="zh-Hans">简中</button>
       </div>
-    </div>
+      <a class="gh-link" href="https://github.com/wiiiimm/tunnel-raider" target="_blank" rel="noopener" aria-label="Tunnel Raider on GitHub (opens in a new tab)"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+    </nav>
   </div>
-  <div class="below" id="manual" hidden>
-    <div class="card">
-      <h3 data-i18n="howH">HOW IT PLAYS</h3>
-      <table>
-        <tr><td data-i18n="r1"></td><td>25</td></tr>
-        <tr><td data-i18n="r2"></td><td>+250</td></tr>
-        <tr><td data-i18n="r3"></td><td>500</td></tr>
-        <tr><td data-i18n="r4"></td><td>250</td></tr>
-        <tr><td data-i18n="r5"></td><td>500</td></tr>
-        <tr><td data-i18n="r6"></td><td>1,000</td></tr>
-        <tr><td data-i18n="r7"></td><td>200 · 400 · 800 · 1,600</td></tr>
-        <tr><td data-i18n="r8"></td><td data-i18n="r8v"></td></tr>
-      </table>
-      <p class="note" data-i18n="howNote"></p>
+  <section class="below manual" id="manual" hidden aria-labelledby="manH">
+    <div class="man-head">
+      <h2 id="manH" data-i18n="manTitle">Operating Instructions</h2>
+      <span class="man-model" data-i18n="model">Model TR-83 · 12″ phosphor monitor</span>
     </div>
-    <div class="card">
-      <h3 data-i18n="ctlH">CONTROLS</h3>
-      <table class="keys">
-        <tr><td data-i18n="k1"></td><td data-i18n="k1v"></td></tr>
-        <tr><td data-i18n="k2"></td><td data-i18n="k2v"></td></tr>
-        <tr><td data-i18n="k3"></td><td data-i18n="k3v"></td></tr>
-        <tr><td data-i18n="k4"></td><td data-i18n="k4v"></td></tr>
-        <tr><td data-i18n="k5"></td><td><kbd>M</kbd></td></tr>
-        <tr><td data-i18n="k6"></td><td data-i18n="k6v"></td></tr>
-        <tr><td data-i18n="k7"></td><td><kbd>Enter</kbd></td></tr>
-        <tr><td data-i18n="k9"></td><td data-i18n="k9v"></td></tr>
-        <tr><td data-i18n="k8"></td><td data-i18n="k8v"></td></tr>
-      </table>
-      <p class="note" data-i18n="ctlNote"></p>
+    <div class="man-cols">
+      <section class="man-sec"><h3><span class="num">1</span><span data-i18n="howH">How it plays</span></h3>
+        <p data-i18n="howNote"></p>
+      </section>
+      <section class="man-sec"><h3><span class="num">2</span><span data-i18n="secScore">Scoring</span></h3>
+        <ul class="leaders">
+          <li><span data-i18n="r1"></span><i aria-hidden="true"></i><b>25</b></li>
+          <li><span data-i18n="r2"></span><i aria-hidden="true"></i><b>+250</b></li>
+          <li><span data-i18n="r3"></span><i aria-hidden="true"></i><b>500</b></li>
+          <li><span data-i18n="r4"></span><i aria-hidden="true"></i><b>250</b></li>
+          <li><span data-i18n="r5"></span><i aria-hidden="true"></i><b>500</b></li>
+          <li><span data-i18n="r6"></span><i aria-hidden="true"></i><b>1,000</b></li>
+          <li><span data-i18n="r7"></span><i aria-hidden="true"></i><b>200 · 400 · 800 · 1,600</b></li>
+          <li><span data-i18n="r8"></span><i aria-hidden="true"></i><b data-i18n="r8v"></b></li>
+        </ul>
+      </section>
+      <section class="man-sec"><h3><span class="num">3</span><span data-i18n="ctlH">Controls</span></h3>
+        <ul class="leaders keys">
+          <li><span data-i18n="k1"></span><i aria-hidden="true"></i><span class="kv" data-i18n="k1v"></span></li>
+          <li><span data-i18n="k2"></span><i aria-hidden="true"></i><span class="kv" data-i18n="k2v"></span></li>
+          <li><span data-i18n="k9"></span><i aria-hidden="true"></i><span class="kv" data-i18n="k9v"></span></li>
+          <li><span data-i18n="k3"></span><i aria-hidden="true"></i><span class="kv" data-i18n="k3v"></span></li>
+          <li><span data-i18n="k4"></span><i aria-hidden="true"></i><span class="kv" data-i18n="k4v"></span></li>
+          <li><span data-i18n="k5"></span><i aria-hidden="true"></i><span class="kv"><kbd>M</kbd></span></li>
+          <li><span data-i18n="k6"></span><i aria-hidden="true"></i><span class="kv" data-i18n="k6v"></span></li>
+          <li><span data-i18n="k7"></span><i aria-hidden="true"></i><span class="kv"><kbd>Enter</kbd></span></li>
+          <li><span data-i18n="k8"></span><i aria-hidden="true"></i><span class="kv" data-i18n="k8v"></span></li>
+        </ul>
+      </section>
+      <section class="man-sec"><h3><span class="num">4</span><span data-i18n="secMonitor">The monitor</span></h3>
+        <p data-i18n="ctlNote"></p>
+      </section>
     </div>
-  </div>
+    <footer class="man-foot"><a href="https://github.com/wiiiimm/tunnel-raider" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span data-i18n="src">Source code</span><span class="url">github.com/wiiiimm/tunnel-raider</span></a></footer>
+  </section>
   <div class="netbadge" id="netToast" role="status" aria-live="polite" hidden><span class="nled" aria-hidden="true"></span><span class="nmsg" id="netMsg"></span><button type="button" class="nbtn" id="netBtn" hidden></button></div>
   <button class="exitfull" id="exitFull" type="button" aria-label="Exit full screen">✕</button>
 </div>
@@ -961,10 +1026,10 @@ const I18N = {
   en: {
     tag: 'Tunnel through the mine, scoop up emeralds and drop sacks of gold on the grubs.',
     rotate: 'Turn your phone sideways for the full-screen console layout.',
-    stick: 'DRAG TO STEER', spark: 'FIRE', boost: 'BOOST', k9: 'Speed boost', k9v: `${kb('Shift')} or ${kb('B')}`, manual: 'How to play', manualHide: 'Hide how to play', exitFull: 'Exit full screen',
-    howH: 'HOW IT PLAYS', ctlH: 'CONTROLS',
+    stick: 'DRAG TO STEER', spark: 'FIRE', manTitle: 'Operating Instructions', model: 'Model TR-83 · 12″ phosphor monitor', secScore: 'Scoring', secMonitor: 'The monitor', src: 'Source code', boost: 'BOOST', k9: 'Speed boost', k9v: `${kb('Shift')} or ${kb('B')}`, manual: 'Instructions', manualHide: 'Fold away', exitFull: 'Exit full screen',
+    howH: 'How it plays', ctlH: 'Controls',
     r1: 'Emerald', r2: 'Eight emeralds in quick succession', r3: 'Gold from a sack that fell two or more cells',
-    r4: 'Grub crushed by a sack or hit by a spark', r5: 'Rockjaw (from seam 4): two hits from sparks or sacks, three from seam 7',
+    r4: 'Grub crushed by a sack or hit by a spark', r5: 'Rockjaw (from level 4): two hits from sparks or sacks, three from level 7',
     r6: 'Sunstone (appears once every grub has arrived)', r7: 'Grubs rammed while the sunstone glows', r8: 'Spare drill cart', r8v: 'every 20,000',
     howNote: 'Grubs keep to tunnels. Horned borers chew straight through the earth towards you. Each level the grubs get cannier: they wander less, turn into borers sooner and stay borers longer. From level 3, borers shove sacks sideways and will line one up over your cart if they can. From level 4, banded rockjaws arrive that always dig their own tunnels; the pips over their heads show how many more hits they can take. A falling sack crushes you too, so never linger beneath one. Everything starts slow: the grubs quicken every level and so does your cart, but in an open tunnel they never outrun you. BOOST gives your cart a short burst of speed; its meter refills in about seven seconds.',
     k1: 'Move and dig', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} or ${kb('WASD')}`,
@@ -981,7 +1046,7 @@ const I18N = {
   'zh-hant': {
     tag: '在礦坑裏挖隧道，收集綠寶石，再把金袋推下去壓扁蟲子。',
     rotate: '把手機橫放，即可使用全螢幕遊戲機版面。',
-    stick: '拖動操控', spark: '發射', boost: '加速', k9: '加速衝刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '玩法說明', manualHide: '收起玩法說明', exitFull: '離開全螢幕',
+    stick: '拖動操控', spark: '發射', manTitle: '操作說明書', model: '型號 TR-83 · 12 吋螢光顯示器', secScore: '計分', secMonitor: '關於顯示器', src: '原始碼', boost: '加速', k9: '加速衝刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '操作說明', manualHide: '收起說明', exitFull: '離開全螢幕',
     howH: '玩法', ctlH: '操作',
     r1: '綠寶石', r2: '快速連續收集八顆綠寶石', r3: '金袋跌落兩格或以上後散出的金子',
     r4: '被金袋壓扁或被火花擊中的蟲子', r5: '岩顎蟲（第 4 關起）：要擊中兩次，第 7 關起要三次',
@@ -1001,7 +1066,7 @@ const I18N = {
   'zh-hans': {
     tag: '在矿坑里挖隧道，收集绿宝石，再把金袋推下去压扁虫子。',
     rotate: '把手机横放，即可使用全屏游戏机版面。',
-    stick: '拖动操控', spark: '发射', boost: '加速', k9: '加速冲刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '玩法说明', manualHide: '收起玩法说明', exitFull: '离开全屏',
+    stick: '拖动操控', spark: '发射', manTitle: '操作说明书', model: '型号 TR-83 · 12 英寸荧光显示器', secScore: '计分', secMonitor: '关于显示器', src: '源代码', boost: '加速', k9: '加速冲刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '操作说明', manualHide: '收起说明', exitFull: '离开全屏',
     howH: '玩法', ctlH: '操作',
     r1: '绿宝石', r2: '快速连续收集八颗绿宝石', r3: '金袋跌落两格或以上后散出的金子',
     r4: '被金袋压扁或被火花击中的虫子', r5: '岩颚虫（第 4 关起）：要击中两次，第 7 关起要三次',
