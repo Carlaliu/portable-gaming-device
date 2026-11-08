@@ -34,6 +34,9 @@
 <meta name="twitter:description" content="Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level, on a glowing 1983-style CRT monitor. Plays in your browser.">
 <meta name="twitter:image" content="https://tunnel-raider.wiiiimm.codes/og-image.png">
 <meta name="twitter:image:alt" content="Tunnel Raider running on a green-phosphor CRT monitor.">
+<!-- Vercel Web Analytics: page views plus the game's custom events (see README) -->
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
 <style>
 /* base reset: keep content clear of a phone's notch and home bar */
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -42,8 +45,6 @@ img{max-width:100%}
 [hidden]{display:none!important}
 </style>
 <title>Tunnel Raider</title>
-<!-- Vercel Web Analytics -->
-<script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
@@ -730,11 +731,17 @@ function updateDial(i){
   dial.setAttribute('aria-valuenow', String(i)); dial.setAttribute('aria-valuetext', MODES[MODE_ORDER[i]].name);
   document.querySelectorAll('#dialLabels .dl').forEach((b, j) => b.setAttribute('aria-current', String(j === i)));
 }
+/* ---------- analytics: Vercel Web Analytics custom events, at most two properties each (the Pro plan limit) ---------- */
+function track(name, data){
+  try { if (typeof window.va === 'function') window.va('event', data ? { name, data } : { name }); } catch (_) {}
+}
+const layoutName = () => document.documentElement.getAttribute('data-layout') || 'desk';
 function turnTo(i){
   i = Math.max(0, Math.min(MODE_ORDER.length - 1, i));
   if (MODE_ORDER[i] === modeKey) return;
   ensureAudio(); tone(2400, 0.012, 0.05);   // detent click
   setMode(MODE_ORDER[i]);
+  track('theme', { theme: MODE_ORDER[i], via: 'dial' });
 }
 (() => {
   const wrap = $('dialLabels'), dial = $('dial');
@@ -956,7 +963,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyM') { toggleMute(); return; }
   if (e.code === 'KeyF') { setFull(!full); return; }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyB') { if (S.mode === 'play') boostQueued = true; e.preventDefault(); return; }
-  if (e.code === 'KeyC') { setMode(MODE_ORDER[(MODE_ORDER.indexOf(modeKey) + 1) % MODE_ORDER.length]); return; }
+  if (e.code === 'KeyC') { setMode(MODE_ORDER[(MODE_ORDER.indexOf(modeKey) + 1) % MODE_ORDER.length]); track('theme', { theme: modeKey, via: 'key' }); return; }
   if (e.code === 'Enter' && !tvOn) { ensureAudio(); powerOn(); e.preventDefault(); return; }
   if (e.code === 'Enter' && (S.mode === 'title' || S.mode === 'over')) { startGame(); e.preventDefault(); }
 });
@@ -1107,12 +1114,13 @@ function applyLang(l, writeHash){
   try { localStorage.setItem('tr-lang', lang); } catch (_) {}
   if (writeHash && hashLang() !== lang) location.hash = lang;
 }
-document.querySelectorAll('#langSeg [data-lang]').forEach(b => b.addEventListener('click', () => applyLang(b.dataset.lang, true)));
+document.querySelectorAll('#langSeg [data-lang]').forEach(b => b.addEventListener('click', () => { const was = lang; applyLang(b.dataset.lang, true); if (lang !== was) track('language', { lang }); }));
 addEventListener('hashchange', () => { const h = hashLang(); if (h && h !== lang) applyLang(h, false); });
 $('manualBtn').addEventListener('click', () => {
   const m = $('manual'), open = m.hidden;
   m.hidden = !open; $('manualBtn').setAttribute('aria-expanded', String(open));
   $('manualLbl').textContent = open ? I18N[lang].manualHide : I18N[lang].manual;
+  if (open) track('instructions_open', { layout: layoutName() });
 });
 { let stored = null; try { stored = localStorage.getItem('tr-lang'); } catch (_) {} applyLang(hashLang() || stored || 'en', false); }
 
@@ -1145,6 +1153,7 @@ addEventListener('online', () => trToast(I18N[lang].netOn, { state: 'on', ms: 50
 /* ---------- full screen: the picture alone, browser full screen where the page allows it ---------- */
 let full = false;
 function setFull(v){
+  if (v !== full) track('fullscreen', { on: v, layout: layoutName() });
   full = v;
   if (v) document.documentElement.setAttribute('data-full', ''); else document.documentElement.removeAttribute('data-full');
   $('fullBtn').setAttribute('aria-pressed', String(v));
@@ -1174,8 +1183,9 @@ function togglePause(forceOn){
 let booted = false;
 function startGame(){
   ensureAudio();
-  S.level = 1; S.score = 0; S.lives = 3; S.nextLife = 20000; S.streak = 0;
+  S.level = 1; S.score = 0; S.lives = 3; S.nextLife = 20000; S.streak = 0; S.bestAtStart = best;
   genLevel(1);
+  track('game_start', { layout: layoutName(), grid: W + 'x' + H });
   overlay.hidden = true;
   if (!booted) { booted = true; S.mode = 'boot'; S.bootT = 0; playBoot(); }
   else { S.mode = 'ready'; S.modeT = 1.4; }
@@ -1197,6 +1207,7 @@ function powerOn(){
   tvOn = true; warmT = 0; age.dg = 0; accReset = true;
   $('powerBtn').setAttribute('aria-checked', 'true'); document.documentElement.removeAttribute('data-fresh');
   if (ac && !muted) { tone(58, 0.9, 0.04, 14); tone(15000, 0.4, 0.006, 0); }
+  track('power_on', { theme: modeKey, layout: layoutName() });
   startGame();
 }
 function flipPower(){ ensureAudio(); if (ac) { tone(700, 0.03, 0.06, -200); tone(1400, 0.015, 0.05, 0, 0.06); } if (tvOn) powerOff(); else powerOn(); }
@@ -1214,6 +1225,7 @@ $('resetBtn').addEventListener('pointerdown', e => {
   e.preventDefault(); ensureAudio(); if (ac) tone(1300, 0.015, 0.06);
   const b = $('resetBtn'); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 140);
   if (!tvOn) return;
+  track('reset', { level: S.level, mode: S.mode });
   booted = false; held.length = 0; stickDir = null; fireHeld = false; age.dipLeft = 0.2; accReset = true;
   $('pauseBtn').setAttribute('aria-pressed', 'false');
   startGame();
@@ -1339,7 +1351,7 @@ function updatePlayer(dt){
     }
   }
   if (S.sun.active && wdist(S.sun.x * C + C / 2, S.sun.y * C + C / 2, pp.x, pp.y) < C * 0.6) {
-    S.sun.active = false; S.sun.used = true;
+    S.sun.active = false; S.sun.used = true; track('sunstone', { level: S.level });
     addScore(1000, pp.x, pp.y - 10); sfx.sun();
     S.bonusT = Math.max(5, 15 - S.level); S.bonusChain = 0;
     S.monsters.forEach(m => { if (m.type === 'b') { m.type = 'g'; m.morphT = 8; } });
@@ -1391,7 +1403,7 @@ function updateBags(dt){
           else killMonster(j, 250);
         }
       }
-      if (S.mode === 'play' && Math.abs(wrapD(pp.x - bx, W * C)) < C * 0.6 && pp.y - by > -C * 0.2 && pp.y - by < C * 0.8) killPlayer();
+      if (S.mode === 'play' && Math.abs(wrapD(pp.x - bx, W * C)) < C * 0.6 && pp.y - by > -C * 0.2 && pp.y - by < C * 0.8) killPlayer('sack');
       if (landed) {
         b.fy = b.y;
         if (b.dist >= 2) {
@@ -1515,7 +1527,7 @@ function updateMonsters(dt){
     const mp = ppos(S.monsters[j]);
     if (wdist(mp.x, mp.y, pp.x, pp.y) < C * 0.68) {
       if (bonus) { const v = [200, 400, 800, 1600][Math.min(3, S.bonusChain)]; sfx.eat(S.bonusChain); S.bonusChain++; killMonster(j, v); }
-      else { killPlayer(); return; }
+      else { killPlayer({ g: 'grub', b: 'borer', r: 'rockjaw' }[S.monsters[j].type] || 'grub'); return; }
     }
   }
 }
@@ -1544,8 +1556,9 @@ function updateSparks(dt){
 }
 
 /* ---------- life and death ---------- */
-function killPlayer(){
+function killPlayer(cause){
   if (S.mode !== 'play') return;
+  track('life_lost', { level: S.level, cause: cause || 'grub' });
   S.mode = 'dying'; S.modeT = 1.7; sfx.die();
   const pp = ppos(S.player); burst(pp.x, pp.y, ['cart', 'drill', 'window'], 20);
 }
@@ -1553,6 +1566,8 @@ function afterDeath(){
   S.lives--;
   if (S.lives <= 0) {
     S.mode = 'over'; saveBest();
+    track('game_over', { level: S.level, score: S.score });
+    if (S.score > 0 && S.score > (S.bestAtStart || 0)) track('new_best', { score: S.score, level: S.level });
     showOverlay('over', { n: S.level, s: String(S.score).padStart(6, '0') });
     return;
   }
@@ -1584,7 +1599,7 @@ function update(dt){
     if ((S.spawnT -= dt) <= 0) { spawnMonster(); S.spawnT = Math.max(1.6, 6 - 0.45 * S.level); /* early levels: grubs arrive well apart */ }
   }
   if (S.spawned >= S.total && !S.sun.used && !S.sun.active && S.monsters.length) S.sun.active = true;
-  if (S.emLeft <= 0 || (S.spawned >= S.total && S.monsters.length === 0)) { S.mode = 'clear'; S.modeT = 2.2; S.bonusT = 0; sfx.clear(); }
+  if (S.emLeft <= 0 || (S.spawned >= S.total && S.monsters.length === 0)) { S.mode = 'clear'; S.modeT = 2.2; S.bonusT = 0; sfx.clear(); track('level_cleared', { level: S.level, how: S.emLeft <= 0 ? 'emeralds' : 'grubs' }); }
 }
 
 /* ---------- drawing into the low-res buffer (game units, C = 32) ---------- */
@@ -1993,6 +2008,9 @@ requestAnimationFrame(frame);
 (function () {
   var t = function (k) { return window.trT ? window.trT(k) : k; };
   var toast = function (text, opts) { if (window.trToast) window.trToast(text, opts); };
+  var ev = function (name, data) { try { if (typeof window.va === 'function') window.va('event', data ? { name: name, data: data } : { name: name }); } catch (_) {} };
+  // opened from a home-screen icon rather than a browser tab
+  if (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone) ev('launch_installed', { layout: document.documentElement.getAttribute('data-layout') || 'desk' });
 
   // install button beside the language switch, when the browser offers it
   var deferred = null, installBtn = null;
@@ -2004,10 +2022,10 @@ requestAnimationFrame(frame);
     var right = lang.parentNode.classList.contains('bar-right') ? lang.parentNode : null;
     if (!right) { right = document.createElement('div'); right.className = 'bar-right'; lang.parentNode.insertBefore(right, lang); right.appendChild(lang); }
     installBtn = document.createElement('button'); installBtn.type = 'button'; installBtn.className = 'install-btn'; installBtn.textContent = t('install');
-    installBtn.onclick = function () { if (!deferred) return; deferred.prompt(); deferred.userChoice.finally(function () { deferred = null; installBtn.hidden = true; }); };
+    installBtn.onclick = function () { if (!deferred) return; deferred.prompt(); deferred.userChoice.then(function (c) { ev('install_prompt', { outcome: c && c.outcome }); }).finally(function () { deferred = null; installBtn.hidden = true; }); };
     right.insertBefore(installBtn, lang);
   });
-  addEventListener('appinstalled', function () { if (installBtn) installBtn.hidden = true; });
+  addEventListener('appinstalled', function () { if (installBtn) installBtn.hidden = true; ev('app_installed'); });
   document.addEventListener('click', function (e) {   // keep the install label in the chosen language
     if (installBtn && e.target.closest && e.target.closest('#langSeg')) setTimeout(function () { installBtn.textContent = t('install'); }, 0);
   });
@@ -2016,14 +2034,14 @@ requestAnimationFrame(frame);
   addEventListener('load', function () {
     var hadController = !!navigator.serviceWorker.controller, reloading = false;
     navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
-      function offer(worker) { toast(t('update'), { state: 'info', button: t('restart'), onClick: function () { worker.postMessage({ type: 'SKIP_WAITING' }); } }); }
+      function offer(worker) { toast(t('update'), { state: 'info', button: t('restart'), onClick: function () { ev('update_applied'); worker.postMessage({ type: 'SKIP_WAITING' }); } }); }
       if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
       reg.addEventListener('updatefound', function () {
         var w = reg.installing; if (!w) return;
         w.addEventListener('statechange', function () {
           if (w.state !== 'installed') return;
           if (navigator.serviceWorker.controller) offer(w);
-          else { try { if (!localStorage.getItem('tr-offline')) { localStorage.setItem('tr-offline', '1'); toast(t('ready'), { state: 'on', ms: 5000 }); } } catch (_) {} }
+          else { try { if (!localStorage.getItem('tr-offline')) { localStorage.setItem('tr-offline', '1'); toast(t('ready'), { state: 'on', ms: 5000 }); ev('offline_ready'); } } catch (_) {} }
         });
       });
       navigator.serviceWorker.addEventListener('controllerchange', function () {

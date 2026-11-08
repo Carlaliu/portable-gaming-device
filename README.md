@@ -77,6 +77,32 @@ High scores and settings stay on the device; there is no server.
 
 `index.html`, `sw.js` and the icons are generated from the artifact source. The service worker's version is a hash of everything it caches, so any change to the page or icons ships as an update automatically.
 
+## Analytics
+
+The live site uses [Vercel Web Analytics](https://vercel.com/docs/analytics): page views plus a handful of custom game events. Nothing personal is sent, and no cookies are set. Custom events need a Vercel Pro or Enterprise plan; on Pro each event carries at most two properties, so every event below stays within that limit. Find them under **Analytics → Events** in the Vercel dashboard.
+
+| Event | Properties | When |
+| --- | --- | --- |
+| `power_on` | `theme`, `layout` | The set is switched on |
+| `game_start` | `layout`, `grid` | A new game begins (`grid` is the playfield size, e.g. `15x10`) |
+| `level_cleared` | `level`, `how` | A level ends, by collecting every emerald or clearing every grub |
+| `sunstone` | `level` | The sunstone is picked up |
+| `life_lost` | `level`, `cause` | A cart is lost to a `sack`, `grub`, `borer` or `rockjaw` |
+| `game_over` | `level`, `score` | The last cart is lost |
+| `new_best` | `score`, `level` | A game beats the device's previous high score |
+| `reset` | `level`, `mode` | The RESET button is pressed |
+| `theme` | `theme`, `via` | The phosphor is changed by `dial` or `key` |
+| `language` | `lang` | The guide's language is switched |
+| `instructions_open` | `layout` | The operating instructions are opened |
+| `fullscreen` | `on`, `layout` | Full screen is toggled |
+| `launch_installed` | `layout` | The game opens as an installed app |
+| `install_prompt` | `outcome` | The install prompt is `accepted` or `dismissed` |
+| `app_installed` | | The browser reports the app was installed |
+| `offline_ready` | | The game is cached for offline play for the first time |
+| `update_applied` | | A player restarts into a new version |
+
+Events go through a small `track()` helper that does nothing when the analytics script isn't loaded, so the game runs the same offline, in the Claude artifact, or on any other host.
+
 ## Languages
 
 English (default), Traditional Chinese and Simplified Chinese. The language travels in the link, so you can share it:
