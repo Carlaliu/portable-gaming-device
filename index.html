@@ -176,7 +176,7 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
   :root[data-layout="console"] .tv-face{grid-template-columns:minmax(176px,1fr) auto minmax(176px,1fr);grid-template-rows:auto minmax(0,1fr) auto auto minmax(0,1fr) auto;
     grid-template-areas:"pwr screen plate" "stick screen ." "stick screen dial" "stick screen rock" "stick screen ." "stick screen fire"}
   /* the badge returns to the top right; the dial, full size, sits mid-right over the switches */
-  :root[data-layout="console"] .nameplate{display:grid;grid-area:plate;align-self:start;justify-self:center;width:auto;padding:5px 12px}
+  :root[data-layout="console"] .nameplate{display:grid;grid-area:plate;align-self:start;justify-self:center;width:calc(100% - 12px);box-sizing:border-box;padding:6px 8px}
   :root[data-layout="console"] .nameplate b{font-size:10px}
   :root[data-layout="console"] .nameplate span{font-size:8px}
   :root[data-layout="console"] .dial-block{align-self:end}
@@ -300,12 +300,12 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 /* console: any touch screen held sideways. Stick | tube | dial and spark, filling the screen */
 [data-layout="console"] body{overflow:hidden}
 [data-layout="console"] header,[data-layout="console"] .below,[data-layout="console"] .feet,[data-layout="console"] .rotate-hint{display:none}
-[data-layout="console"] .wrap{max-width:none;padding-block:0;gap:0}
+[data-layout="console"] .wrap{max-width:none;padding-block:6px;gap:0}
 [data-layout="console"] .tv{filter:none}
-[data-layout="console"] .tv-face{box-sizing:border-box;--fp:10px;--sp:8px;--avail-h:calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+[data-layout="console"] .tv-face{box-sizing:border-box;--fp:10px;--sp:8px;--avail-h:calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12px);
   height:var(--avail-h);padding:var(--fp);border-radius:18px;gap:10px;align-items:center;
   grid-template-columns:minmax(140px,1fr) auto minmax(140px,1fr);grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"rock screen dial" "pwr screen dial" "stick screen fire"}
-@supports (height:100dvh){[data-layout="console"] .tv-face{--avail-h:calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))}}
+@supports (height:100dvh){[data-layout="console"] .tv-face{--avail-h:calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12px)}}
 [data-layout="console"] .tube-surround{grid-area:screen;padding:var(--sp);border-radius:18px;
   align-self:stretch;width:min(calc((var(--avail-h) - 2 * var(--fp) - 2 * var(--sp)) * 1.75 + 2 * var(--sp)), calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)) - 2 * var(--fp) - 320px))}
 [data-layout="console"] .screen{aspect-ratio:auto;width:100%;height:100%}
@@ -1679,7 +1679,7 @@ function renderFrame(){
   if (S.mode === 'boot') drawBoot(); else {
   g.drawImage(dirtCanvas, 0, HUD);
   g.setTransform(K, 0, 0, K, 0, HUD);
-  g.save(); g.beginPath(); g.rect(0, 0, W * C, H * C); g.clip();   // sprites half through an edge show on both sides, never over the score bar
+  g.save(); g.beginPath(); g.rect(0, -10, W * C, H * C + 10); g.clip();   /* a little headroom so the cart's lamp and drill aren't trimmed in the top row */   // sprites half through an edge show on both sides, never over the score bar
   drawTunnels();
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (S.em[idx(x, y)]) drawGem(x, y);
   S.golds.forEach(drawGold);
