@@ -1,0 +1,979 @@
+import { track as vaTrack } from '@vercel/analytics';
+import * as game from "../games/tunnel-raider/game";
+import { dirtCanvas, genLevel, makeDirt } from "../games/tunnel-raider/game";
+export let W = 15, H = 10;
+export const C = 32, CELL = 24, HUD = 20, K = CELL / C;   // game units per cell, low-res pixels per cell
+export let LW = W * CELL, LH = H * CELL + HUD;              // low-res frame buffer, like a 1980s graphics mode; resized to fit the screen
+export const $ = (id: string): any => document.getElementById(id);
+export const cv = $('cv'), ctx = cv.getContext('2d');
+export const lo = document.createElement('canvas'); lo.width = LW; lo.height = LH;
+export const lx = lo.getContext('2d', { willReadFrequently: true });
+export const glow = document.createElement('canvas'); glow.width = 120; glow.height = 87;   // resized with the grid
+export const gx = glow.getContext('2d');
+export const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+export const acc = document.createElement('canvas'); acc.width = LW; acc.height = LH;   // what the phosphor is still glowing with
+export const ax = acc.getContext('2d');
+export let accImg = ax.createImageData(LW, LH), A = new Float32Array(LW * LH * 4);
+export let accReset = true, warmT = 0, frameDt = 1 / 60, mask = null;
+export const WARM = 0.75;
+/* an old tube's quirks: magnetised patches, burn-in, dust, the odd tear or brown-out */
+export const age = { dg: 99, next: 6, tearLeft: 0, tearY: 0, tearH: 0, tearDx: 0, dipLeft: 0,
+  stains: [
+    { x: 0.08 + Math.random() * 0.18, y: 0.08 + Math.random() * 0.2, r: 0.36, tint: '#ff92e8', k: 0.85 },
+    { x: 0.74 + Math.random() * 0.2, y: 0.62 + Math.random() * 0.26, r: 0.3, tint: '#9effb6', k: 0.7 },
+  ] };
+export let burn = null;
+export const dust = document.createElement('canvas'); dust.width = 720; dust.height = 520;
+(() => {
+  const d = dust.getContext('2d');
+  for (let i = 0; i < 16; i++) {
+    d.fillStyle = `rgba(0,0,0,${0.15 + Math.random() * 0.3})`;
+    d.beginPath(); d.arc(Math.random() * 720, Math.random() * 520, 0.6 + Math.random() * 1.6, 0, Math.PI * 2); d.fill();
+  }
+  for (let i = 0; i < 6; i++) { d.fillStyle = 'rgba(255,255,255,.07)'; d.fillRect(Math.random() * 720, Math.random() * 520, 1.5, 1.5); }
+  d.strokeStyle = 'rgba(0,0,0,.16)'; d.lineWidth = 0.8; d.beginPath();
+  const hx = 520 + Math.random() * 150, hy = 60 + Math.random() * 100;
+  d.moveTo(hx, hy); d.bezierCurveTo(hx + 20, hy + 30, hx - 15, hy + 50, hx + 12, hy + 80); d.stroke();   // a stray hair on the glass
+})();
+export function buildBurn(){
+  // years of the same title screen wore the phosphor: those spots now glow a little less
+  burn = document.createElement('canvas'); burn.width = LW; burn.height = LH;
+  const b = burn.getContext('2d');
+  b.fillStyle = '#fff'; b.fillRect(0, 0, LW, LH);
+  b.fillStyle = '#d0d0d0'; b.font = '16px Silkscreen, "Courier New", monospace'; b.textAlign = 'center'; b.textBaseline = 'middle';
+  b.fillText('TUNNEL RAIDER', LW / 2, LH * 0.42);
+  b.fillStyle = '#dadada'; b.font = '8px Silkscreen, "Courier New", monospace'; b.textAlign = 'left'; b.textBaseline = 'top';
+  b.fillText('000000', 6, 6); b.fillText('HI 000000', 80, 6);
+}
+
+/* ---------- display modes ---------- */
+export const CGA_ROLES = { bg:0, dirt:2, ds1:0, ds2:1, core:0, spawn:1, gemDark:0, gem:1, gemHi:3, bagDark:0, bag:3, bagBand:2, gold:3, goldDark:2, goldHi:1,
+  cart:3, cartShade:1, window:2, lamp:3, drill:1, drillLine:0, track:2, wheel:3, grub:1, grubBelly:3, borer:2, borerBelly:3, horn:3, eye:3, pupil:0,
+  scared:3, scaredBelly:1, scaredFlash:2, sun:3, sunRay:1, spark:3, sparkTrail:1, text:3, textDim:1, hud:1 };
+export const MONO_ROLES = { bg:0, dirt:1, ds1:0, ds2:2, core:0, spawn:1, gemDark:0, gem:2, gemHi:3, bagDark:0, bag:2, bagBand:1, gold:3, goldDark:1, goldHi:2,
+  cart:3, cartShade:2, window:1, lamp:3, drill:2, drillLine:0, track:1, wheel:2, grub:2, grubBelly:3, borer:3, borerBelly:2, horn:3, eye:3, pupil:0,
+  scared:1, scaredBelly:2, scaredFlash:3, sun:3, sunRay:2, spark:3, sparkTrail:2, text:3, textDim:2, hud:2 };
+/* half: seconds for the phosphor glow to halve after the beam moves on. bezel: highlight, body, shadow, plate ink, unlit glass */
+export const MODES = {
+  greenP1:  { name:'GREEN P1', pal:['#140e09','#0f5a1d','#2fbf4b','#b2ffbd'], roles:MONO_ROLES, phos:3, phos2:2, half:0.045, bloom:0.36, mask:false,
+              bezel:['#43473f','#2c2f2a','#1d1f1b','#8f978a','#1a120c'] },
+  greenP39: { name:'LONG GREEN P39', pal:['#120c08','#0b4416','#33e05a','#c6ffd0'], roles:MONO_ROLES, phos:3, phos2:2, half:0.17, bloom:0.44, mask:false,
+              bezel:['#3a3f3a','#252925','#171a17','#86907f','#180f0a'] },
+  amberP3:  { name:'AMBER P3', pal:['#170d07','#6b3900','#de8c12','#ffd890'], roles:MONO_ROLES, phos:3, phos2:2, half:0.065, bloom:0.4, mask:false,
+              bezel:['#403a33','#2a2622','#1b1815','#9a8f80','#1c120b'] },
+  whiteP4:  { name:'PAPER WHITE P4', pal:['#15100c','#3a404e','#9aa3b6','#eef2ff'], roles:MONO_ROLES, phos:3, phos2:2, half:0.02, bloom:0.28, mask:false,
+              bezel:['#e3dcc8','#cfc6b0','#a9a08a','#5a5446','#1b140f'] },
+  cga1:     { name:'CGA COLOUR 1', pal:['#140e0a','#55ffff','#ff55ff','#ffffff'], roles:CGA_ROLES, phos:1, phos2:2, half:0.012, bloom:0.3, mask:true,
+              bezel:['#ddd4bd','#c9bfa6','#a39a82','#574f40','#1a120d'] },
+  cga0:     { name:'CGA COLOUR 0', pal:['#140e0a','#55ff55','#ff5555','#ffff55'], roles:CGA_ROLES, phos:1, phos2:3, half:0.012, bloom:0.3, mask:true,
+              bezel:['#ddd4bd','#c9bfa6','#a39a82','#574f40','#1a120d'] },
+};
+export const MODE_ORDER = Object.keys(MODES);
+export const LEGACY = { green:'greenP1', amber:'amberP3', white:'whiteP4' };
+export let modeKey = 'greenP1', fx = true;
+try { let m = localStorage.getItem('eb-mode'); m = LEGACY[m] || m; if (MODES[m]) modeKey = m; fx = localStorage.getItem('eb-fx') !== '0'; } catch (e) {}
+export let M = MODES[modeKey], palRGB = [];
+export const col = role => M.pal[M.roles[role]];
+document.querySelectorAll('#modes [data-mode]').forEach(b => {
+  b.querySelector('.sw4').innerHTML = MODES[b.dataset.mode].pal.map(c => `<i style="background:${c}"></i>`).join('');
+});
+export function setMode(k){
+  modeKey = k; M = MODES[k];
+  palRGB = M.pal.map(h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]);
+  document.querySelectorAll('#modes [data-mode]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.mode === k)));
+  const R = document.documentElement.style, [hi, mid, low, ink, glass] = M.bezel;
+  R.setProperty('--phos', M.pal[M.phos]); R.setProperty('--phos2', M.pal[M.phos2]);
+  R.setProperty('--plastic-hi', hi); R.setProperty('--plastic', mid); R.setProperty('--plastic-lo', low);
+  R.setProperty('--bezel-ink', ink); R.setProperty('--glass', glass);
+  $('plate').textContent = 'TR-83 · ' + M.name;
+  updateDial(MODE_ORDER.indexOf(k));
+  try { localStorage.setItem('eb-mode', k); } catch (e) {}
+  accReset = true; warmT = 0; age.dg = 0;
+  if (ac && !muted && (typeof tvOn === 'undefined' || tvOn)) { tone(58, 0.9, 0.04, 14); tone(15000, 0.4, 0.006, 0); }   // degauss "boinng" and flyback whine
+  makeDirt();
+}
+/* the phosphor dial: six detents, turned by dragging, clicking (next), scrolling, arrow keys or the labels */
+export const SHORT = { greenP1:'GREEN', greenP39:'P39', amberP3:'AMBER', whiteP4:'WHITE', cga1:'CGA 1', cga0:'CGA 0' };
+export const ANG = [-120, -72, -24, 24, 72, 120];
+export function updateDial(i){
+  const cap = $('dialCap'), dial = $('dial'); if (!cap) return;
+  cap.style.transform = `rotate(${ANG[i]}deg)`;
+  dial.setAttribute('aria-valuenow', String(i)); dial.setAttribute('aria-valuetext', MODES[MODE_ORDER[i]].name);
+  document.querySelectorAll('#dialLabels .dl').forEach((b, j) => b.setAttribute('aria-current', String(j === i)));
+}
+/* ---------- analytics: Vercel Web Analytics custom events, at most two properties each (the Pro plan limit) ---------- */
+export function track(name: string, data?: Record<string, string | number | boolean | null>){
+  try { vaTrack(name, data); } catch (_) {}
+}
+export const layoutName = () => document.documentElement.getAttribute('data-layout') || 'desk';
+export function turnTo(i){
+  i = Math.max(0, Math.min(MODE_ORDER.length - 1, i));
+  if (MODE_ORDER[i] === modeKey) return;
+  ensureAudio(); tone(2400, 0.012, 0.05);   // detent click
+  setMode(MODE_ORDER[i]);
+  track('theme', { theme: MODE_ORDER[i], via: 'dial' });
+}
+(() => {
+  const wrap = $('dialLabels'), dial = $('dial');
+  MODE_ORDER.forEach((k, i) => {
+    const a = ANG[i] * Math.PI / 180;
+    const t = document.createElement('span'); t.className = 'tk'; t.style.transform = `rotate(${ANG[i]}deg) translateY(-48px)`; wrap.appendChild(t);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'dl'; b.textContent = SHORT[k];
+    b.setAttribute('aria-label', MODES[k].name);
+    b.style.left = (50 + 44 * Math.sin(a)) + '%'; b.style.top = (50 - 44 * Math.cos(a)) + '%';
+    b.addEventListener('click', () => turnTo(i));
+    wrap.appendChild(b);
+  });
+  let pid = null, moved = false, sx = 0, sy = 0, wheelT = 0;
+  dial.addEventListener('pointerdown', e => {
+    pid = e.pointerId; moved = false; sx = e.clientX; sy = e.clientY;
+    try { dial.setPointerCapture(pid); } catch (_) {}
+    dial.classList.add('grabbing'); e.preventDefault(); dial.focus({ preventScroll: true });
+  });
+  dial.addEventListener('pointermove', e => {
+    if (e.pointerId !== pid) return;
+    if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) > 6) moved = true;
+    if (!moved) return;
+    const r = dial.getBoundingClientRect();
+    const ang = Math.atan2(e.clientX - (r.left + r.width / 2), -(e.clientY - (r.top + r.height / 2))) * 180 / Math.PI;
+    if (Math.abs(ang) > 150) return;   // past the end stops
+    let near = 0; ANG.forEach((a, i) => { if (Math.abs(a - ang) < Math.abs(ANG[near] - ang)) near = i; });
+    turnTo(near);
+  });
+  dial.addEventListener('pointerup', e => {
+    if (e.pointerId !== pid) return;
+    pid = null; dial.classList.remove('grabbing');
+    if (!moved) turnTo((MODE_ORDER.indexOf(modeKey) + 1) % MODE_ORDER.length === 0 ? 0 : MODE_ORDER.indexOf(modeKey) + 1);
+  });
+  dial.addEventListener('pointercancel', () => { pid = null; dial.classList.remove('grabbing'); });
+  dial.addEventListener('wheel', e => {
+    e.preventDefault();
+    const now = performance.now(); if (now - wheelT < 180) return; wheelT = now;
+    turnTo(MODE_ORDER.indexOf(modeKey) + (e.deltaY > 0 ? 1 : -1));
+  }, { passive: false });
+  dial.addEventListener('keydown', e => {
+    const i = MODE_ORDER.indexOf(modeKey);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') turnTo(i + 1);
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') turnTo(i - 1);
+    else if (e.key === 'Home') turnTo(0);
+    else if (e.key === 'End') turnTo(MODE_ORDER.length - 1);
+    else return;
+    e.preventDefault(); e.stopPropagation();
+  });
+})();
+export function setFx(v){ fx = v; accReset = true; $('fxBtn').setAttribute('aria-pressed', String(v)); try { localStorage.setItem('eb-fx', v ? '1' : '0'); } catch (e) {} }
+
+/* ---------- utilities ---------- */
+export const idx = (x, y) => y * W + x;
+export const inb = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+export const DIRS = { up:{dx:0,dy:-1}, down:{dx:0,dy:1}, left:{dx:-1,dy:0}, right:{dx:1,dy:0} };
+
+export let best = 0;
+try { best = parseInt(localStorage.getItem('eb-best') || '0', 10) || 0; } catch (e) {}
+export function saveBest(){ try { localStorage.setItem('eb-best', String(best)); } catch (e) {} }
+
+/* ---------- high-score table: the top ten, kept on this device only (localStorage) ---------- */
+export const BOARD_KEY = 'tr-board', BOARD_MAX = 10, NAME_MAX = 9;
+export const cleanName = v => String(v || '').toUpperCase().replace(/[^A-Z ]/g, '').slice(0, NAME_MAX);
+export let board = [], lastName = '';
+try {
+  const b = JSON.parse(localStorage.getItem(BOARD_KEY) || '[]');
+  if (Array.isArray(b)) board = b.filter(e => e && Number.isFinite(e.s) && e.s > 0).map(e => ({ n: cleanName(e.n).trim() || 'RAIDER', s: Math.floor(e.s), l: Math.max(1, e.l | 0) })).sort((a, b) => b.s - a.s).slice(0, BOARD_MAX);
+  lastName = cleanName(localStorage.getItem('tr-name'));
+} catch (_) {}
+if (board.length && board[0].s > best) best = board[0].s;
+export function saveBoard(){ try { localStorage.setItem(BOARD_KEY, JSON.stringify(board)); localStorage.setItem('tr-name', lastName); } catch (_) {} }
+export const boardRank = sc => { const i = board.findIndex(e => sc > e.s); return i < 0 ? board.length : i; };   // ties go below the older score
+export const qualifies = sc => sc > 0 && boardRank(sc) < BOARD_MAX;
+export const ordinal = n => n + (n === 1 ? 'ST' : n === 2 ? 'ND' : n === 3 ? 'RD' : 'TH');
+
+/* ---------- audio (PC-speaker style square waves) ---------- */
+export let ac = null, muted = false;
+export function ensureAudio(){
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+  if (ac && ac.state === 'suspended') ac.resume().catch(()=>{});
+}
+export function tone(f, dur, vol=0.045, slide=0, delay=0){
+  if (!ac || muted) return;
+  const t0 = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'square'; o.frequency.setValueAtTime(f, t0);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t0 + dur);
+  g.gain.setValueAtTime(vol, t0); g.gain.setValueAtTime(vol, t0 + dur * 0.85); g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+export const sfx = {
+  gem: n => tone(620 + n * 55, 0.06),
+  chain: () => [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.08, 0.04, 0, i * 0.07)),
+  thud: () => tone(120, 0.12, 0.06, -50),
+  burst: () => { tone(220, 0.2, 0.045, 500); },
+  gold: () => { tone(880, 0.05); tone(1320, 0.08, 0.045, 0, 0.06); },
+  zap: () => tone(1500, 0.18, 0.03, -1200),
+  kill: () => tone(420, 0.2, 0.045, -320),
+  eat: n => tone(500 + n * 160, 0.14, 0.045, 300),
+  sun: () => [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.07, 0.045, 0, i * 0.06)),
+  die: () => [440, 392, 330, 262, 196].forEach((f, i) => tone(f, 0.16, 0.045, -20, i * 0.15)),
+  clear: () => [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.1, 0.04, 0, i * 0.09)),
+  life: () => [1047, 1319, 1568].forEach((f, i) => tone(f, 0.09, 0.05, 0, i * 0.08)),
+  siren: hi => tone(hi ? 700 : 560, 0.1, 0.03),
+  boost: () => { tone(260, 0.3, 0.05, 900); tone(130, 0.3, 0.03, 300); },
+  boostReady: () => { tone(1568, 0.05, 0.03); tone(2093, 0.07, 0.03, 0, 0.05); },
+};
+
+/* ---------- state ---------- */
+export const S: any = {
+  mode: 'title', prevMode: null, modeT: 0, time: 0,
+  level: 1, score: 0, lives: 3, nextLife: 20000,
+  dug: new Uint8Array(W * H), em: new Uint8Array(W * H), emLeft: 0,
+  bags: [], golds: [], monsters: [], sparks: [], parts: [], pops: [],
+  spawned: 0, total: 0, maxAlive: 3, spawnT: 0,
+  sun: { active: false, used: false, x: W - 2, y: 1 },
+  bonusT: 0, bonusChain: 0, sirenT: 0, sirenHi: false,
+  charge: 1, streak: 0, lastGem: -9,
+  player: null, dist: new Int16Array(W * H), distT: 0,
+};
+
+/* ---------- input ---------- */
+export const held = [];
+export let stickDir = null, fireHeld = false, fireCool = false, boostQueued = false, boostShown = '';
+export const BOOST_MUL = 1.6, BOOST_TIME = 1.6, BOOST_RECHARGE = 7;   // a 60% burst for 1.6 s, refilling over 7 s
+export let fireQueued = false;
+export const KEYMAP = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right', KeyW:'up', KeyS:'down', KeyA:'left', KeyD:'right' };
+export const press = d => { if (!held.includes(d)) held.push(d); };
+export const release = d => { const i = held.indexOf(d); if (i >= 0) held.splice(i, 1); };
+export const wantDir = () => stickDir ? DIRS[stickDir] : held.length ? DIRS[held[held.length - 1]] : null;
+
+addEventListener('keydown', e => {
+  if (S.mode === 'entry' && !e.metaKey && !e.ctrlKey && !e.altKey) { if (entryKey(e)) e.preventDefault(); return; }
+  const d = KEYMAP[e.code];
+  if (d) { press(d); e.preventDefault(); return; }
+  if (e.code === 'Space' || e.code === 'KeyZ' || e.code === 'KeyX') { if (menuFire()) e.preventDefault(); else if (S.mode !== 'title' && S.mode !== 'over') { fireQueued = true; e.preventDefault(); } return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
+  if (e.code === 'KeyM') { toggleMute(); return; }
+  if (e.code === 'KeyF') { setFull(!full); return; }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyB') { if (S.mode === 'play') boostQueued = true; e.preventDefault(); return; }
+  if (e.code === 'KeyC') { setMode(MODE_ORDER[(MODE_ORDER.indexOf(modeKey) + 1) % MODE_ORDER.length]); track('theme', { theme: modeKey, via: 'key' }); return; }
+  if (e.code === 'Enter' && !tvOn) { ensureAudio(); powerOn(); e.preventDefault(); return; }
+  if (e.code === 'Enter' && (S.mode === 'title' || S.mode === 'over')) { startGame(); e.preventDefault(); }
+});
+addEventListener('keyup', e => { const d = KEYMAP[e.code]; if (d) release(d); });
+addEventListener('blur', () => { held.length = 0; if (S.mode === 'play' || S.mode === 'ready') togglePause(true); });
+
+/* floating thumb-stick: the stick centres wherever the thumb lands, follows it past the rim,
+   snaps to four directions with a dead zone and hysteresis so diagonal wobble doesn't flicker */
+(() => {
+  const zone = $('stickzone'), base = $('stickbase'), knob = $('knob');
+  const RIM = 46, DEAD = 12, BIAS = 1.35;
+  let id = null, ox = 0, oy = 0, zr = null, axis = null;
+  function setDir(d){
+    if (d === stickDir) return;
+    stickDir = d;
+    zone.querySelectorAll('.tick').forEach(t => t.classList.toggle('on', t.dataset.d === d));
+    if (d) { try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} }
+  }
+  function placeBase(){ base.style.left = (ox - zr.left) + 'px'; base.style.top = (oy - zr.top) + 'px'; }
+  function move(e){
+    if (e.pointerId !== id) return;
+    let dx = e.clientX - ox, dy = e.clientY - oy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > RIM) { const k = (dist - RIM) / dist; ox += dx * k; oy += dy * k; dx -= dx * k; dy -= dy * k; placeBase(); }
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+    if (dist < DEAD) { axis = null; setDir(null); return; }
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (axis === 'h' && ay > ax * BIAS) axis = 'v';
+    else if (axis === 'v' && ax > ay * BIAS) axis = 'h';
+    else if (!axis) axis = ax >= ay ? 'h' : 'v';
+    setDir(axis === 'h' ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  }
+  function end(e){
+    if (e.pointerId !== id) return;
+    id = null; axis = null; setDir(null);
+    zone.classList.remove('active');
+    base.style.left = '50%'; base.style.top = '50%'; knob.style.transform = '';
+  }
+  zone.addEventListener('pointerdown', e => {
+    if (id !== null) return;
+    e.preventDefault(); ensureAudio();
+    id = e.pointerId; try { zone.setPointerCapture(id); } catch (_) {}
+    zr = zone.getBoundingClientRect();
+    ox = e.clientX; oy = e.clientY;
+    placeBase(); zone.classList.add('active'); move(e);
+  });
+  zone.addEventListener('pointermove', move);
+  zone.addEventListener('pointerup', end);
+  zone.addEventListener('pointercancel', end);
+  zone.addEventListener('contextmenu', e => e.preventDefault());
+
+  const fire = $('fireBtn');
+  fire.addEventListener('pointerdown', e => { e.preventDefault(); ensureAudio(); if (menuFire()) { fire.classList.add('on'); return; } fireQueued = true; fireHeld = true; fire.classList.add('on'); try { fire.setPointerCapture(e.pointerId); } catch (_) {} });
+  const off = () => { fireHeld = false; fire.classList.remove('on'); };
+  fire.addEventListener('pointerup', off); fire.addEventListener('pointercancel', off); fire.addEventListener('lostpointercapture', off);
+  fire.addEventListener('contextmenu', e => e.preventDefault());
+  const boost = $('boostBtn');
+  boost.addEventListener('pointerdown', e => { e.preventDefault(); ensureAudio(); boostQueued = true; boost.classList.add('on'); try { boost.setPointerCapture(e.pointerId); } catch (_) {} });
+  const boff = () => boost.classList.remove('on');
+  boost.addEventListener('pointerup', boff); boost.addEventListener('pointercancel', boff); boost.addEventListener('lostpointercapture', boff);
+  boost.addEventListener('contextmenu', e => e.preventDefault());
+})();
+
+/* ---------- UI ---------- */
+export const overlay = $('overlay');
+/* ---------- languages: English (default) and Traditional Chinese, carried in the link as #en / #zh-hant ---------- */
+export const kb = k => `<kbd>${k}</kbd>`;
+export const I18N = {
+  en: {
+    tag: 'Tunnel through the mine, scoop up emeralds and drop sacks of gold on the grubs.',
+    rotate: 'Turn your phone sideways for the full-screen console layout.',
+    stick: 'DRAG TO STEER', spark: 'FIRE', manTitle: 'Operating Instructions', model: 'Model TR-83 · 12″ phosphor monitor', secScore: 'Scoring', secMonitor: 'The monitor', src: 'Source code', boost: 'BOOST', k9: 'Speed boost', k9v: `${kb('Shift')} or ${kb('B')}`, manual: 'Instructions', manualHide: 'Fold away', exitFull: 'Exit full screen',
+    howH: 'How it plays', ctlH: 'Controls',
+    r1: 'Emerald', r2: 'Eight emeralds in quick succession', r3: 'Gold from a sack that fell two or more cells',
+    r4: 'Grub crushed by a sack or hit by a spark', r5: 'Rockjaw (from level 4): two hits from sparks or sacks, three from level 7',
+    r6: 'Sunstone (appears once every grub has arrived)', r7: 'Grubs rammed while the sunstone glows', r8: 'Spare drill cart', r8v: 'every 20,000',
+    howNote: 'Grubs keep to tunnels. Horned borers chew straight through the earth towards you. Each level the grubs get cannier: they wander less, turn into borers sooner and stay borers longer. From level 3, borers shove sacks sideways and will line one up over your cart if they can. From level 4, banded rockjaws arrive that always dig their own tunnels; the pips over their heads show how many more hits they can take. A falling sack crushes you too, so never linger beneath one. Everything starts slow: the grubs quicken every level and so does your cart, but in an open tunnel they never outrun you. BOOST gives your cart a short burst of speed; its meter refills in about seven seconds.',
+    k1: 'Move and dig', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} or ${kb('WASD')}`,
+    k2: 'Throw a spark', k2v: `${kb('Space')} or ${kb('Z')}`,
+    k3: 'Pause', k3v: `${kb('P')} or ${kb('Esc')}`,
+    k4: 'Phosphor dial', k4v: `Drag, click, scroll or ${kb('C')}`,
+    k5: 'Sound on / off', k6: 'Full screen', k6v: `${kb('F')} or the FULL switch`, k7: 'Start', k8: 'Power', k8v: 'POWER switch · RESET reboots',
+    ctlNote: "Monochrome monitors glowed in one phosphor colour, and each phosphor faded at its own rate: long-afterglow green leaves smears behind anything that moves. The CGA themes use the two four-colour palettes of IBM's 1981 Color Graphics Adapter, seen through a colour tube's stripe mask. This set is old: every turn of the dial degausses the tube, the magnetised colour patches creep back over a few seconds, and you'll spot faint burn-in, dust and the odd picture tear. Switch GLOW off for a clean picture. A tribute to Windmill Software's <i>Digger</i> (1983); characters, art, sound and code here are original.",
+    titleText: 'ARROWS TO DIG · SPACE FOR A SPARK<br>CLEAR EVERY EMERALD OR EVERY GRUB', start: 'START',
+    paused: 'PAUSED', pausedText: 'PRESS P OR ESC TO CARRY ON', resume: 'RESUME',
+    over: 'CAVE-IN', overText: (n, s) => `LEVEL ${n} · ${s} POINTS`, again: 'DIG AGAIN',
+    netOff: 'OFFLINE · THE GAME KEEPS RUNNING', netOn: 'BACK ONLINE', ready: 'SAVED FOR OFFLINE PLAY', update: 'NEW VERSION READY', restart: 'RESTART', install: 'Install app',
+  },
+  'zh-hant': {
+    tag: '在礦坑裏挖隧道，收集綠寶石，再把金袋推下去壓扁蟲子。',
+    rotate: '把手機橫放，即可使用全螢幕遊戲機版面。',
+    stick: '拖動操控', spark: '發射', manTitle: '操作說明書', model: '型號 TR-83 · 12 吋螢光顯示器', secScore: '計分', secMonitor: '關於顯示器', src: '原始碼', boost: '加速', k9: '加速衝刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '操作說明', manualHide: '收起說明', exitFull: '離開全螢幕',
+    howH: '玩法', ctlH: '操作',
+    r1: '綠寶石', r2: '快速連續收集八顆綠寶石', r3: '金袋跌落兩格或以上後散出的金子',
+    r4: '被金袋壓扁或被火花擊中的蟲子', r5: '岩顎蟲（第 4 關起）：要擊中兩次，第 7 關起要三次',
+    r6: '太陽石（所有蟲子出場後才出現）', r7: '太陽石發光期間撞倒的蟲子', r8: '後備鑽車', r8v: '每 20,000 分',
+    howNote: '蟲子只會沿隧道走。長角的鑽地蟲會直接鑽穿泥土向你衝來。每過一關，蟲子都會更狡猾：少了亂走，更快變成鑽地蟲，而且維持得更久。第 3 關起，鑽地蟲會把金袋橫推，有機會更會故意把金袋推到你的鑽車正上方。第 4 關起會出現有條紋的岩顎蟲，牠們總是自己挖隧道，頭上的小點表示還要擊中多少次。跌落的金袋同樣會壓扁你，千萬別在金袋下逗留。一開始一切都很慢：每過一關，蟲子和你的鑽車都會加快，但在已挖好的隧道裏，蟲子永遠追不上你。BOOST（加速）會令鑽車短暫加速，能量約七秒後補滿。',
+    k1: '移動及挖掘', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} 或 ${kb('WASD')}`,
+    k2: '發射火花', k2v: `${kb('空白鍵')} 或 ${kb('Z')}`,
+    k3: '暫停', k3v: `${kb('P')} 或 ${kb('Esc')}`,
+    k4: '螢光粉旋鈕', k4v: `拖動、點按、滾動或按 ${kb('C')}`,
+    k5: '開關聲音', k6: '全螢幕', k6v: `${kb('F')} 或 FULL 開關`, k7: '開始', k8: '電源', k8v: 'POWER 開關 · RESET 重新開機',
+    ctlNote: '單色顯示器只會發出一種螢光粉的顏色，而每種螢光粉的餘暉長短不一：長餘暉綠色會在移動物件後面拖出殘影。CGA 主題用的是 IBM 1981 年 Color Graphics Adapter 的兩組四色調色盤，並透過彩色顯像管的條紋遮罩呈現。這部電視機已經很舊：每次轉動旋鈕都會消磁，磁化色斑幾秒後會慢慢回來，你亦會看到淡淡的烙印、灰塵和偶爾的畫面撕裂。關掉 GLOW 便可看到乾淨的畫面。本作向 Windmill Software 的《Digger》（1983）致敬；角色、美術、聲音和程式碼均為原創。',
+    titleText: '方向鍵挖掘 · 空白鍵發射火花<br>清除所有綠寶石或所有蟲子即可過關', start: '開始',
+    paused: '已暫停', pausedText: '按 P 或 Esc 繼續', resume: '繼續',
+    over: '坍塌了！', overText: (n, s) => `第 ${n} 關 · ${s} 分`, again: '再挖一次',
+    netOff: '離線中 · 遊戲照常運作', netOn: '已恢復連線', ready: '已儲存，可離線遊玩', update: '新版本已準備好', restart: '重新啟動', install: '安裝應用程式',
+  },
+  'zh-hans': {
+    tag: '在矿坑里挖隧道，收集绿宝石，再把金袋推下去压扁虫子。',
+    rotate: '把手机横放，即可使用全屏游戏机版面。',
+    stick: '拖动操控', spark: '发射', manTitle: '操作说明书', model: '型号 TR-83 · 12 英寸荧光显示器', secScore: '计分', secMonitor: '关于显示器', src: '源代码', boost: '加速', k9: '加速冲刺', k9v: `${kb('Shift')} 或 ${kb('B')}`, manual: '操作说明', manualHide: '收起说明', exitFull: '离开全屏',
+    howH: '玩法', ctlH: '操作',
+    r1: '绿宝石', r2: '快速连续收集八颗绿宝石', r3: '金袋跌落两格或以上后散出的金子',
+    r4: '被金袋压扁或被火花击中的虫子', r5: '岩颚虫（第 4 关起）：要击中两次，第 7 关起要三次',
+    r6: '太阳石（所有虫子出场后才出现）', r7: '太阳石发光期间撞倒的虫子', r8: '后备钻车', r8v: '每 20,000 分',
+    howNote: '虫子只会沿隧道走。长角的钻地虫会直接钻穿泥土向你冲来。每过一关，虫子都会更狡猾：少了乱走，更快变成钻地虫，而且维持得更久。第 3 关起，钻地虫会把金袋横推，有机会更会故意把金袋推到你的钻车正上方。第 4 关起会出现有条纹的岩颚虫，它们总是自己挖隧道，头上的小点表示还要击中多少次。跌落的金袋同样会压扁你，千万别在金袋下逗留。一开始一切都很慢：每过一关，虫子和你的钻车都会加快，但在已挖好的隧道里，虫子永远追不上你。BOOST（加速）会让钻车短暂加速，能量约七秒后补满。',
+    k1: '移动及挖掘', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} 或 ${kb('WASD')}`,
+    k2: '发射火花', k2v: `${kb('空格键')} 或 ${kb('Z')}`,
+    k3: '暂停', k3v: `${kb('P')} 或 ${kb('Esc')}`,
+    k4: '荧光粉旋钮', k4v: `拖动、点按、滚动或按 ${kb('C')}`,
+    k5: '开关声音', k6: '全屏', k6v: `${kb('F')} 或 FULL 开关`, k7: '开始', k8: '电源', k8v: 'POWER 开关 · RESET 重新启动',
+    ctlNote: '单色显示器只会发出一种荧光粉的颜色，而每种荧光粉的余晖长短不一：长余晖绿色会在移动对象后面拖出残影。CGA 主题用的是 IBM 1981 年 Color Graphics Adapter 的两组四色调色板，并通过彩色显像管的条纹遮罩呈现。这部电视机已经很旧：每次转动旋钮都会消磁，磁化色斑几秒后会慢慢回来，你也会看到淡淡的烙印、灰尘和偶尔的画面撕裂。关掉 GLOW 便可看到干净的画面。本作向 Windmill Software 的《Digger》（1983）致敬；角色、美术、声音和代码均为原创。',
+    titleText: '方向键挖掘 · 空格键发射火花<br>清除所有绿宝石或所有虫子即可过关', start: '开始',
+    paused: '已暂停', pausedText: '按 P 或 Esc 继续', resume: '继续',
+    over: '坍塌了！', overText: (n, s) => `第 ${n} 关 · ${s} 分`, again: '再挖一次',
+    netOff: '离线中 · 游戏照常运行', netOn: '已恢复连接', ready: '已保存，可离线游玩', update: '新版本已准备好', restart: '重新启动', install: '安装应用',
+  },
+};
+export const LANGS = Object.keys(I18N), LANG_ALIAS = { zh: 'zh-hant', 'zh-hk': 'zh-hant', 'zh-tw': 'zh-hant', 'zh-mo': 'zh-hant', 'zh-cn': 'zh-hans', 'zh-sg': 'zh-hans' };
+export const hashLang = () => { const h = location.hash.slice(1).toLowerCase(); return LANG_ALIAS[h] || (LANGS.includes(h) ? h : null); };
+export let lang = 'en', ovKind = 'title', ovVars: any = {};
+export function renderOverlay(){
+  const T = I18N[lang];
+  const v = { title: ['TUNNEL RAIDER', T.titleText, T.start], paused: [T.paused, T.pausedText, T.resume], over: [T.over, T.overText(ovVars.n, ovVars.s), T.again] }[ovKind];
+  $('ovTitle').textContent = v[0]; $('ovText').innerHTML = v[1]; $('ovBtn').innerHTML = '<span class="blink">▶</span> ' + v[2];
+}
+export function showOverlay(kind, vars: any = {}){ ovKind = kind; ovVars = vars; renderOverlay(); overlay.hidden = false; }
+export function applyLang(l, writeHash){
+  lang = LANGS.includes(l) ? l : 'en';
+  document.documentElement.lang = { en: 'en', 'zh-hant': 'zh-Hant', 'zh-hans': 'zh-Hans' }[lang];
+  const T = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => { const v = T[el.dataset.i18n]; if (typeof v === 'string') el.innerHTML = v; });
+  $('manualLbl').textContent = $('manualBtn').getAttribute('aria-expanded') === 'true' ? T.manualHide : T.manual;
+  document.querySelectorAll('#langSeg [data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+  $('exitFull').setAttribute('aria-label', T.exitFull);
+  renderOverlay();
+  try { localStorage.setItem('tr-lang', lang); } catch (_) {}
+  if (writeHash && hashLang() !== lang) location.hash = lang;
+}
+document.querySelectorAll('#langSeg [data-lang]').forEach(b => b.addEventListener('click', () => { const was = lang; applyLang(b.dataset.lang, true); if (lang !== was) track('language', { lang }); }));
+addEventListener('hashchange', () => { const h = hashLang(); if (h && h !== lang) applyLang(h, false); });
+$('manualBtn').addEventListener('click', () => {
+  const m = $('manual'), open = m.hidden;
+  m.hidden = !open; $('manualBtn').setAttribute('aria-expanded', String(open));
+  $('manualLbl').textContent = open ? I18N[lang].manualHide : I18N[lang].manual;
+  if (open) track('instructions_open', { layout: layoutName() });
+});
+{ let stored = null; try { stored = localStorage.getItem('tr-lang'); } catch (_) {} applyLang(hashLang() || stored || 'en', false); }
+
+/* ---------- status badge: network changes (5 s) and, in the installed app, offline-ready and update notices ---------- */
+export let badgeTimer = 0;
+export function trToast(text, opts: any = {}){
+  const box = $('netToast'), btn = $('netBtn');
+  clearTimeout(badgeTimer); box.classList.remove('leaving');
+  box.dataset.state = opts.state || 'info'; $('netMsg').textContent = text;
+  btn.hidden = !opts.button;
+  if (opts.button) { btn.textContent = opts.button; btn.onclick = () => { hide(); opts.onClick && opts.onClick(); }; }
+  box.hidden = true; void box.offsetWidth; box.hidden = false;   // restart the slide-in
+  function hide(){ box.classList.add('leaving'); badgeTimer = setTimeout(() => { box.hidden = true; box.classList.remove('leaving'); }, 360); }
+  if (opts.ms) badgeTimer = setTimeout(hide, opts.ms);
+}
+window.trToast = trToast;
+/* backstop for older iOS: a second tap on the set within 350 ms never becomes a zoom */
+{ let lastTap = 0;
+  document.addEventListener('touchend', e => {
+    const now = e.timeStamp || Date.now();
+    if (now - lastTap < 350 && e.target.closest && e.target.closest('.tv, .netbadge')) e.preventDefault();
+    lastTap = now;
+  }, { passive: false });
+  document.addEventListener('dblclick', e => { if (e.target.closest && e.target.closest('.tv')) e.preventDefault(); }, { passive: false });
+}
+window.trT = k => I18N[lang][k];
+addEventListener('offline', () => trToast(I18N[lang].netOff, { state: 'off', ms: 5000 }));
+addEventListener('online', () => trToast(I18N[lang].netOn, { state: 'on', ms: 5000 }));
+
+/* ---------- full screen: the picture alone, browser full screen where the page allows it ---------- */
+export let full = false;
+export function setFull(v){
+  if (v !== full) track('fullscreen', { on: v, layout: layoutName() });
+  full = v;
+  if (v) document.documentElement.setAttribute('data-full', ''); else document.documentElement.removeAttribute('data-full');
+  $('fullBtn').setAttribute('aria-pressed', String(v));
+  try {
+    if (v && !document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+    else if (!v && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  } catch (_) {}
+}
+$('fullBtn').addEventListener('click', () => setFull(!full));
+document.querySelectorAll('.rocker').forEach(b => b.addEventListener('pointerdown', () => { ensureAudio(); if (ac) tone(1700, 0.012, 0.05); }));   // switch clack
+$('exitFull').addEventListener('click', () => setFull(false));
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && full) setFull(false); });
+$('ovBtn').addEventListener('click', () => { ensureAudio(); if (S.mode === 'paused') togglePause(); else startGame(); });
+$('pauseBtn').addEventListener('click', () => togglePause());
+$('muteBtn').addEventListener('click', () => toggleMute());
+$('fxBtn').addEventListener('click', () => setFx(!fx));
+document.querySelectorAll('#modes button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+export function toggleMute(){ muted = !muted; $('muteBtn').setAttribute('aria-pressed', String(!muted)); }
+export function togglePause(forceOn?){
+  if (typeof tvOn !== 'undefined' && !tvOn) return;
+  if (S.mode === 'paused') { if (forceOn) return; S.mode = S.prevMode; overlay.hidden = true; $('pauseBtn').setAttribute('aria-pressed', 'false'); return; }
+  if (S.mode === 'title' || S.mode === 'over' || S.mode === 'entry') return;
+  S.prevMode = S.mode; S.mode = 'paused'; held.length = 0;
+  $('pauseBtn').setAttribute('aria-pressed', 'true');
+  showOverlay('paused');
+}
+export let booted = false;
+export function startGame(){
+  ensureAudio();
+  S.level = 1; S.score = 0; S.lives = 3; S.nextLife = 20000; S.streak = 0; S.bestAtStart = best; S.showBoard = false; S.boardHi = -1;
+  genLevel(1);
+  track('game_start', { layout: layoutName(), grid: W + 'x' + H });
+  overlay.hidden = true;
+  if (!booted) { booted = true; S.mode = 'boot'; S.bootT = 0; playBoot(); }
+  else { S.mode = 'ready'; S.modeT = 1.4; }
+}
+/* power: off collapses the picture to a line, then a dot that fades; on warms up, degausses and boots */
+export let tvOn = false, offT = 99;   // the set starts switched off
+S.mode = 'off';
+document.documentElement.setAttribute('data-off', ''); document.documentElement.setAttribute('data-fresh', '');
+export function powerOff(){
+  document.documentElement.setAttribute('data-off', '');
+  tvOn = false; offT = 0; booted = false; S.mode = 'off'; held.length = 0; stickDir = null; fireHeld = false;
+  overlay.hidden = true; saveBest();
+  $('pauseBtn').setAttribute('aria-pressed', 'false');
+  $('powerBtn').setAttribute('aria-checked', 'false');
+  if (ac && !muted) { tone(90, 0.09, 0.06, -40); tone(12000, 0.5, 0.008, -11000); }
+}
+export function powerOn(){
+  document.documentElement.removeAttribute('data-off');
+  tvOn = true; warmT = 0; age.dg = 0; accReset = true;
+  $('powerBtn').setAttribute('aria-checked', 'true'); document.documentElement.removeAttribute('data-fresh');
+  if (ac && !muted) { tone(58, 0.9, 0.04, 14); tone(15000, 0.4, 0.006, 0); }
+  track('power_on', { theme: modeKey, layout: layoutName() });
+  startGame();
+}
+export function flipPower(){ ensureAudio(); if (ac) { tone(700, 0.03, 0.06, -200); tone(1400, 0.015, 0.05, 0, 0.06); } if (tvOn) powerOff(); else powerOn(); }
+// tap to toggle, or flick the knob: right for on, left for off
+{ let sx = null, flicked = false;
+  $('powerBtn').addEventListener('pointerdown', e => { sx = e.clientX; flicked = false; });
+  $('powerBtn').addEventListener('pointerup', e => {
+    if (sx === null) return; const dx = e.clientX - sx; sx = null;
+    if (Math.abs(dx) > 12) { flicked = true; if ((dx > 0) !== tvOn) flipPower(); }
+  });
+  $('powerBtn').addEventListener('click', () => { if (flicked) { flicked = false; return; } flipPower(); });
+}
+/* reset: reboots on the press itself, straight back into the BIOS and floppy load (does nothing with the set switched off) */
+$('resetBtn').addEventListener('pointerdown', e => {
+  e.preventDefault(); ensureAudio(); if (ac) tone(1300, 0.015, 0.06);
+  const b = $('resetBtn'); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 140);
+  if (!tvOn) return;
+  track('reset', { level: S.level, mode: S.mode });
+  booted = false; held.length = 0; stickDir = null; fireHeld = false; age.dipLeft = 0.2; accReset = true;
+  $('pauseBtn').setAttribute('aria-pressed', 'false');
+  startGame();
+});
+$('resetBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); $('resetBtn').dispatchEvent(new PointerEvent('pointerdown')); } });
+
+/* ---------- cold boot: POST beep, then the floppy drive spins up, recalibrates and reads ---------- */
+export const BOOT_LEN = 4.0;
+export let noiseBuf = null;
+export function noise(){
+  if (!noiseBuf) { noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true; return s;
+}
+export function headClick(t, vol = 0.22, freq = 2600){
+  const s = noise(), f = ac.createBiquadFilter(), g = ac.createGain();
+  f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 2.5;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
+  s.connect(f).connect(g).connect(ac.destination); s.start(t, Math.random()); s.stop(t + 0.03);
+}
+export function playBoot(){
+  if (!ac || muted) return;
+  const t0 = ac.currentTime;
+  tone(1000, 0.2, 0.05, 0, 0.85);                             // the single POST beep: all is well
+  // drive motor: a low filtered rumble with a hum underneath
+  const m = noise(), lp = ac.createBiquadFilter(), mg = ac.createGain(), hum = ac.createOscillator(), hg = ac.createGain();
+  lp.type = 'lowpass'; lp.frequency.value = 220;
+  mg.gain.setValueAtTime(0.0001, t0 + 1.0); mg.gain.exponentialRampToValueAtTime(0.16, t0 + 1.25);
+  mg.gain.setValueAtTime(0.16, t0 + 3.1); mg.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.45);
+  hum.type = 'sawtooth'; hum.frequency.setValueAtTime(40, t0 + 1.0); hum.frequency.linearRampToValueAtTime(75, t0 + 1.4);
+  hg.gain.setValueAtTime(0.0001, t0 + 1.0); hg.gain.exponentialRampToValueAtTime(0.012, t0 + 1.3);
+  hg.gain.setValueAtTime(0.012, t0 + 3.1); hg.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.4);
+  m.connect(lp).connect(mg).connect(ac.destination); hum.connect(hg).connect(ac.destination);
+  m.start(t0 + 1.0); m.stop(t0 + 3.5); hum.start(t0 + 1.0); hum.stop(t0 + 3.5);
+  // recalibrate: the head rattles back to track 0
+  for (let t = 1.15; t < 1.45; t += 0.013) headClick(t0 + t, 0.18, 1900);
+  // reading: steps out track by track, with pauses while sectors stream in
+  let t = 1.6;
+  while (t < 3.0) {
+    const run = 1 + ((Math.random() * 4) | 0);
+    for (let k = 0; k < run; k++) { headClick(t0 + t, 0.2, 2400 + Math.random() * 600); t += 0.03; }
+    t += 0.08 + Math.random() * 0.2;
+  }
+  headClick(t0 + 3.15, 0.25, 1500);                          // the head parks
+}
+export function drawBoot(){
+  const t = S.bootT, lines = [];
+  if (t > 0.05) lines.push('TR-83 PERSONAL COMPUTER   BIOS 1.0');
+  if (t > 0.2) { const k = Math.min(640, Math.floor((t - 0.2) / 0.6 * 40) * 16); lines.push(`MEMORY TEST  ${String(k).padStart(3, ' ')}K${t > 0.82 ? '  OK' : ''}`); }
+  if (t > 1.0) lines.push('DRIVE A:  360K FLOPPY');
+  if (t > 1.15) lines.push('');
+  if (t > 1.2) lines.push('BOOTING FROM DRIVE A:');
+  if (t > 1.9) lines.push('A>TUNNEL');
+  lines.forEach((s, i) => txt(s, 12, 14 + i * 14, 'text'));
+  let y = 14 + lines.length * 14;
+  if (t > 2.1) {
+    // the loader: a framed bar of 24 cells that fills in fits and starts, like sectors arriving off the disk
+    const SIZE = 47104, CELLS = LW < 330 ? 16 : 24, t0 = 2.1, t1 = BOOT_LEN - 0.45;
+    const STEPS = [[0, 0], [.1, .06], [.18, .06], [.3, .27], [.4, .31], [.5, .31], [.63, .58], [.71, .63], [.8, .63], [.92, .94], [1, 1]];
+    const f = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+    let p = 1;
+    for (let i = 1; i < STEPS.length; i++) if (f <= STEPS[i][0]) { const [a, pa] = STEPS[i - 1], [b, pb] = STEPS[i]; p = pa + (pb - pa) * ((f - a) / (b - a)); break; }
+    const bytes = Math.floor(p * SIZE / 512) * 512, done = p >= 1;
+    txt('LOADING TUNNEL.EXE', 12, y, 'text'); y += 14;
+    const bx = 12, bw = CELLS * 9 + 3, bh = 11;
+    g.fillStyle = col('hud'); g.fillRect(bx, y, bw, 1); g.fillRect(bx, y + bh - 1, bw, 1); g.fillRect(bx, y, 1, bh); g.fillRect(bx + bw - 1, y, 1, bh);
+    const filled = Math.floor(p * CELLS);
+    for (let c = 0; c < CELLS; c++) { g.fillStyle = col(c < filled ? 'text' : 'textDim'); g.fillRect(bx + 2 + c * 9, y + 2, c < filled ? 8 : 8, c < filled ? bh - 4 : 1); if (c >= filled) g.fillRect(bx + 2 + c * 9 + 3, y + bh - 4, 2, 1); }
+    txt(String(Math.round(p * 100)).padStart(3, ' ') + '%', bx + bw + 8, y + 2, 'text');
+    y += 18;
+    const spin = '|/-\\'[Math.floor(t * 12) % 4];
+    const trk = String(Math.min(39, Math.floor(p * 40))).padStart(2, '0'), sec = 1 + (Math.floor(t * 9) % 9);
+    if (!done) txt(LW < 330 ? `${spin} TRK ${trk} SEC ${sec}  ${String(bytes).padStart(5, ' ')}/${SIZE}` : `${spin} TRACK ${trk} SECTOR ${sec}   ${String(bytes).padStart(5, ' ')} / ${SIZE} BYTES`, 12, y, 'hud');
+    else txt(`${SIZE} BYTES LOADED  ·  RUNNING...`, 12, y, 'text');
+    y += 14;
+  }
+  if (Math.floor(t * 3) % 2 === 0) { g.fillStyle = col('text'); g.fillRect(12, y + 6, 7, 2); }
+}
+
+/* ---------- main update ---------- */
+export function update(dt){
+  S.time += dt;
+  for (let i = S.parts.length - 1; i >= 0; i--) { const q = S.parts[i]; q.life -= dt; q.vy += 220 * dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.life <= 0) S.parts.splice(i, 1); }
+  for (let i = S.pops.length - 1; i >= 0; i--) { const q = S.pops[i]; q.life -= dt; q.y -= 24 * dt; if (q.life <= 0) S.pops.splice(i, 1); }
+  if (S.mode === 'entry') { updateEntry(dt); return; }
+  if (S.mode === 'over') {   // attract loop: CAVE-IN card and the high-score table take turns
+    S.overT += dt;
+    if (board.length) { const sb = ((S.overT + (S.boardFirst ? 0 : 7)) % 12) < 7; if (sb !== S.showBoard) { S.showBoard = sb; overlay.hidden = sb; } }
+    return;
+  }
+  if (S.mode === 'boot') { S.bootT += dt; if (S.bootT >= BOOT_LEN) { S.mode = 'ready'; S.modeT = 1.4; } return; }
+  game.update(dt);
+}
+
+/* ---------- drawing into the low-res buffer (game units, C = 32) ---------- */
+export const g = lx;
+export function rr(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+export function poly(pts){ g.beginPath(); g.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]); g.closePath(); g.fill(); }
+export function circ(x, y, r){ g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+
+export function txt(s, x, y, role, align = 'left', size = 8){
+  g.font = `${size}px Silkscreen, "Courier New", monospace`; g.textAlign = align as CanvasTextAlign; g.textBaseline = 'top';
+  g.fillStyle = col(role); g.fillText(s, x, y);
+}
+export function banner(t1, t2?){
+  const y = HUD + Math.round((LH - HUD) / 2) - 23;
+  g.fillStyle = col('bg'); g.fillRect(0, y, LW, t2 ? 46 : 32);
+  g.fillStyle = col('hud'); g.fillRect(0, y, LW, 1); g.fillRect(0, y + (t2 ? 45 : 31), LW, 1);
+  txt(t1, LW / 2, y + 8, 'text', 'center', 16);
+  if (t2) txt(t2, LW / 2, y + 30, 'hud', 'center', 8);
+}
+
+/* ---------- name entry and the table, drawn on the tube like an arcade cabinet ---------- */
+export const NKEYS = [];
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach((k, i) => NKEYS.push({ k, r: Math.floor(i / 10), c: i % 10, w: 1 }));
+NKEYS.push({ k: ' ', r: 2, c: 6, w: 1 }, { k: 'DEL', r: 2, c: 7, w: 1 }, { k: 'END', r: 2, c: 8, w: 2 });
+export let keyRects = [];
+export function startEntry(){
+  S.mode = 'entry'; overlay.hidden = true;
+  S.entry = { name: lastName, cur: lastName ? NKEYS.length - 1 : 0, rank: boardRank(S.score), dir: null, rep: 0, t: 0 };
+  held.length = 0;
+  if (ac && !muted) [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.09, 0.04, 0, i * 0.09));
+}
+export function enterOver(boardFirst){
+  S.mode = 'over'; S.overT = 0; S.boardFirst = boardFirst;
+  showOverlay('over', { n: S.level, s: String(S.score).padStart(6, '0') });
+  S.showBoard = boardFirst && board.length > 0; overlay.hidden = S.showBoard;
+}
+export function entryMove(d){
+  const E = S.entry, k = NKEYS[E.cur];
+  if (d === 'left' || d === 'right') { const n = NKEYS.length; E.cur = (E.cur + (d === 'right' ? 1 : n - 1)) % n; }
+  else {
+    const r = (k.r + (d === 'down' ? 1 : 2)) % 3, col = Math.min(k.c, 9);
+    E.cur = NKEYS.findIndex(q => q.r === r && col >= q.c && col < q.c + q.w);
+    if (E.cur < 0) E.cur = NKEYS.findIndex(q => q.r === r && q.c + q.w > 8);
+  }
+  if (ac && !muted) tone(660, 0.02, 0.03);
+}
+export function entryType(k){
+  const E = S.entry;
+  if (k === 'END') return entryFinish();
+  if (k === 'DEL') { if (E.name) { E.name = E.name.slice(0, -1); if (ac && !muted) tone(330, 0.04, 0.04, -80); } return; }
+  if (E.name.length >= NAME_MAX || (k === ' ' && !E.name)) { if (ac && !muted) tone(140, 0.08, 0.04); return; }
+  E.name += k; if (ac && !muted) tone(1175, 0.03, 0.04);
+  if (E.name.length >= NAME_MAX) E.cur = NKEYS.length - 1;   // full: jump to END
+}
+export function entryFinish(){
+  const E = S.entry, name = E.name.trim() || 'RAIDER', rank = boardRank(S.score);
+  board.splice(rank, 0, { n: name, s: S.score, l: S.level }); board = board.slice(0, BOARD_MAX);
+  lastName = name; saveBoard();
+  track('high_score', { rank: rank + 1, score: S.score });
+  S.boardHi = rank;
+  if (ac && !muted) [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, 0.07, 0.04, 0, i * 0.07));
+  enterOver(true);
+}
+export function entryKey(e){
+  const dir = KEYMAP[e.code];
+  if (dir && e.code.startsWith('Arrow')) { entryMove(dir); return true; }
+  if (e.code === 'Space') { entryType(NKEYS[S.entry.cur].k); return true; }
+  if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Escape') { entryFinish(); return true; }
+  if (e.code === 'Backspace' || e.code === 'Delete') { entryType('DEL'); return true; }
+  const m = /^Key([A-Z])$/.exec(e.code);
+  if (m) { S.entry.cur = NKEYS.findIndex(q => q.k === m[1]); entryType(m[1]); return true; }
+  return false;
+}
+export function updateEntry(dt){
+  const E = S.entry; E.t += dt; E.rep -= dt;
+  if (stickDir !== E.dir) { E.dir = stickDir; if (stickDir) { entryMove(stickDir); E.rep = 0.4; } }
+  else if (stickDir && E.rep <= 0) { entryMove(stickDir); E.rep = 0.15; }
+}
+// FIRE (button or Space) picks a letter, or starts a new game from the attract loop
+export function menuFire(){
+  if (S.mode === 'entry') { entryType(NKEYS[S.entry.cur].k); return true; }
+  if (S.mode === 'over' && S.overT > 0.8) { startGame(); return true; }
+  return false;
+}
+cv.addEventListener('pointerdown', e => {
+  if (S.mode !== 'entry' && !(S.mode === 'over' && S.showBoard)) return;
+  e.preventDefault(); ensureAudio();
+  if (S.mode === 'over') { if (S.overT > 0.8) startGame(); return; }
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * LW, y = (e.clientY - r.top) / r.height * LH;
+  const hit = keyRects.find(q => x >= q.x - 1 && x < q.x + q.w + 1 && y >= q.y - 1 && y < q.y + q.h + 1);
+  if (hit) { S.entry.cur = hit.i; entryType(NKEYS[hit.i].k); }
+});
+export function panel(){
+  g.fillStyle = col('bg'); g.fillRect(0, HUD, LW, LH - HUD);
+  g.fillStyle = col('hud'); for (let x = 4; x < LW - 4; x += 4) { g.fillRect(x, HUD + 4, 2, 1); g.fillRect(x, LH - 5, 2, 1); }
+}
+export function drawEntry(){
+  const E = S.entry, blink = Math.floor(E.t * 3) % 2 === 0;
+  panel();
+  const cw = Math.min(24, Math.floor((LW - 12) / 10)), ch = 17, gw = cw * 10;
+  const top = HUD + Math.max(10, Math.round((LH - HUD - 158) / 2));
+  txt('NEW HIGH SCORE', LW / 2, top, blink ? 'gold' : 'text', 'center', 16);
+  txt(`${ordinal(E.rank + 1)}  ${String(S.score).padStart(6, '0')}  L${S.level}`, LW / 2, top + 22, 'hud', 'center');
+  // nine name slots with a flashing cursor
+  const sw = Math.min(14, Math.floor((LW - 20) / NAME_MAX)), sx = Math.round(LW / 2 - sw * NAME_MAX / 2), sy = top + 40;
+  for (let i = 0; i < NAME_MAX; i++) {
+    const x = sx + i * sw, ch1 = E.name[i];
+    if (ch1 && ch1 !== ' ') txt(ch1, x + sw / 2, sy, 'text', 'center', 16);
+    const cursor = i === E.name.length && E.name.length < NAME_MAX;
+    if (!cursor || blink) { g.fillStyle = col(cursor ? 'gold' : 'hud'); g.fillRect(x + 2, sy + 17, sw - 4, cursor ? 2 : 1); }
+  }
+  // the letter grid: stick or arrows to move, FIRE to pick
+  const gx = Math.round(LW / 2 - gw / 2), gy = sy + 30;
+  keyRects = [];
+  NKEYS.forEach((q, i) => {
+    const x = gx + q.c * cw, y = gy + q.r * ch, w = q.w * cw - 2, h = ch - 3, on = i === E.cur;
+    keyRects.push({ x, y, w, h, i });
+    if (on) { g.fillStyle = col('text'); g.fillRect(x, y, w, h); }
+    const role = on ? 'bg' : (q.k.length > 1 ? 'hud' : 'text'), cx = Math.round(x + w / 2), cy = y + Math.round(h / 2);
+    g.fillStyle = col(role);
+    if (q.k === ' ') { g.fillRect(cx - 4, cy + 1, 9, 1); g.fillRect(cx - 4, cy - 1, 1, 2); g.fillRect(cx + 4, cy - 1, 1, 2); }
+    else if (q.k === 'DEL') { for (let j = 0; j < 4; j++) g.fillRect(cx - 3 + j, cy - j, 1, j * 2 + 1); g.fillRect(cx + 1, cy - 1, 4, 3); }
+    else txt(q.k, cx, cy - 4, role, 'center');
+  });
+  txt('STICK TO MOVE · FIRE TO PICK', LW / 2, gy + ch * 3 + 6, 'textDim', 'center');
+}
+export function drawBoard(){
+  panel();
+  const blink = Math.floor(S.overT * 4) % 2 === 0, AH = LH - HUD;
+  const rh = Math.max(11, Math.min(15, Math.floor((AH - 62) / BOARD_MAX))), wide = LW >= 300;
+  const top = HUD + Math.max(10, Math.round((AH - (42 + rh * BOARD_MAX + 18)) / 2));
+  txt('HIGH SCORES', LW / 2, top, 'text', 'center', 16);
+  const bw = Math.min(LW - 20, wide ? 240 : 200), x0 = Math.round(LW / 2 - bw / 2), y0 = top + 30;
+  for (let i = 0; i < BOARD_MAX; i++) {
+    const e = board[i], y = y0 + i * rh, hi = i === S.boardHi;
+    if (hi && !blink) continue;
+    const role = hi ? 'gold' : i < 3 ? 'text' : 'hud';
+    txt(ordinal(i + 1), x0 + 24, y, role, 'right');
+    txt(e ? e.n : '.........', x0 + 34, y, e ? role : 'textDim');
+    if (wide) txt(e ? 'L' + e.l : '', x0 + bw - 58, y, role, 'right');
+    txt(e ? String(e.s).padStart(6, '0') : '------', x0 + bw, y, e ? role : 'textDim', 'right');
+  }
+  if (Math.floor(S.overT * 2) % 2 === 0) txt('PRESS FIRE TO DIG', LW / 2, y0 + rh * BOARD_MAX + 8, 'hud', 'center');
+}
+
+export function renderFrame(){
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = col('bg'); g.fillRect(0, 0, LW, LH);
+  if (S.mode === 'boot') drawBoot(); else {
+  game.draw();
+  if (S.mode === 'entry') drawEntry();
+  if (S.mode === 'over' && S.showBoard) drawBoard();
+  }
+  // snap every pixel to the four colours the hardware could show
+  const img = g.getImageData(0, 0, LW, LH), d = img.data, P = palRGB;
+  const useAcc = fx, decay = Math.pow(0.5, frameDt / M.half), ad = accImg.data, bg = P[0], reset = accReset;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], gg = d[i + 1], b = d[i + 2];
+    let bi = 0, bd = 1e9;
+    for (let k = 0; k < 4; k++) { const p = P[k], dr = r - p[0], dg = gg - p[1], db = b - p[2], dd = dr * dr + dg * dg + db * db; if (dd < bd) { bd = dd; bi = k; } }
+    const p = P[bi]; d[i] = p[0]; d[i + 1] = p[1]; d[i + 2] = p[2];
+    if (useAcc) {
+      // phosphor afterglow: each channel keeps the brighter of the new beam and the fading old glow
+      for (let c = 0; c < 3; c++) {
+        let v = reset ? p[c] : bg[c] + (A[i + c] - bg[c]) * decay;
+        if (v < p[c]) v = p[c];
+        A[i + c] = v; ad[i + c] = v;
+      }
+      ad[i + 3] = 255;
+    }
+  }
+  accReset = false;
+  g.putImageData(img, 0, 0);
+  if (useAcc) ax.putImageData(accImg, 0, 0);
+}
+
+/* ---------- CRT presentation ---------- */
+export function tickAge(dt){
+  age.dg += dt;
+  if (age.tearLeft > 0) age.tearLeft -= dt;
+  if (age.dipLeft > 0) age.dipLeft -= dt;
+  if ((age.next -= dt) <= 0) {
+    if (Math.random() < 0.65) {
+      age.tearLeft = 0.06 + Math.random() * 0.14; age.tearY = (Math.random() * LH) | 0;
+      age.tearH = 4 + ((Math.random() * 26) | 0); age.tearDx = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 7);
+    } else age.dipLeft = 0.08 + Math.random() * 0.12;
+    age.next = 4 + Math.random() * 11;
+  }
+}
+export function drawOff(w, h){
+  const t = reduceMotion ? 9 : offT, hi = M.pal[3], cx = w / 2, cy = h / 2;
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  ctx.fillStyle = M.bezel[4]; ctx.fillRect(0, 0, w, h);
+  if (t < 0.16) {
+    // the vertical scan collapses: the picture squeezes into a bright band
+    const k = t / 0.16, sy = Math.max(0.006, 1 - k * k), y = h * (1 - sy) / 2;
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(lo, 0, y, w, h * sy);
+    ctx.globalAlpha = 0.25 + k * 0.75; ctx.fillStyle = hi; ctx.fillRect(0, y, w, h * sy); ctx.globalAlpha = 1;
+  } else if (t < 0.42) {
+    // then the line pulls in from both sides
+    const k = (t - 0.16) / 0.26, sx = Math.max(0.012, 1 - Math.pow(k, 0.7)), lh = Math.max(2, h * 0.008);
+    ctx.shadowColor = hi; ctx.shadowBlur = h * 0.04; ctx.fillStyle = '#ffffff';
+    ctx.fillRect(cx - w * sx / 2, cy - lh / 2, w * sx, lh);
+    ctx.fillStyle = hi; ctx.globalAlpha = 0.7; ctx.fillRect(cx - w * sx / 2, cy - lh * 1.5, w * sx, lh * 3); ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  } else if (t < 2.2) {
+    // and the last of the charge lingers as a dot that slowly dies
+    const k = (t - 0.42) / 1.78, r = w * (0.016 - 0.008 * k), a = Math.pow(1 - k, 2);
+    const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 4);
+    gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(0.25, hexA(hi, a * 0.9)); gr.addColorStop(1, hexA(hi, 0));
+    ctx.fillStyle = gr; ctx.fillRect(cx - r * 4, cy - r * 4, r * 8, r * 8);
+  }
+  if (vig) ctx.drawImage(vig, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(dust, 0, 0, w, h);
+}
+export function hexA(hex, a){ return `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`; }
+export function drawPicture(src, oy, dh){
+  const w = cv.width, live = fx && !reduceMotion;
+  const wob = live ? Math.max(0, 1 - age.dg / 0.9) : 0;      // degauss wobble, dying away
+  const tearing = live && age.tearLeft > 0;
+  if (!wob && !tearing) { ctx.drawImage(src, 0, oy, w, dh); return; }
+  const strip = 4, sh = dh / LH, ux = w / LW;
+  for (let y = 0; y < LH; y += strip) {
+    let dx = 0;
+    if (wob) dx += Math.sin(y * 0.09 + age.dg * 40) * 10 * wob * ux;
+    if (tearing && y >= age.tearY && y < age.tearY + age.tearH) dx += age.tearDx * ux;
+    ctx.drawImage(src, 0, y, LW, strip, dx, oy + y * sh, w, strip * sh);
+  }
+}
+export function drawAged(w, h){
+  if (burn) { ctx.globalCompositeOperation = 'multiply'; ctx.imageSmoothingEnabled = true; ctx.drawImage(burn, 0, 0, w, h); }
+  const k = Math.min(1, age.dg / 6);   // magnetisation creeps back after each degauss
+  if (k > 0) {
+    for (const st of age.stains) {
+      const x = st.x * w, y = st.y * h, gr = ctx.createRadialGradient(x, y, 0, x, y, st.r * w);
+      gr.addColorStop(0, M.mask ? st.tint : '#a6a6a6'); gr.addColorStop(1, '#ffffff');
+      ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = k * st.k;
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+}
+export let scan = null, vig = null;
+/* ---------- the field adapts to the screen: pick a grid whose shape matches the box the layout gives the tube ---------- */
+export function targetGrid(){
+  const r = cv.parentElement.getBoundingClientRect();
+  if (r.width < 60 || r.height < 60) return [15, 10];
+  const ar = r.width / r.height, fit = w => Math.round((w * CELL / ar - HUD) / CELL);
+  if (ar >= 1) { const w = ar > 1.75 ? 17 : 15; return [w, Math.min(14, Math.max(7, fit(w)))]; }
+  const w = r.width >= 520 ? 13 : r.width < 350 ? 10 : 11;   // upright: fewer, larger cells, more rows
+  return [w, Math.min(22, Math.max(9, fit(w)))];
+}
+export function setGrid(w, h){
+  if (w === W && h === H) return false;
+  W = w; H = h; LW = W * CELL; LH = H * CELL + HUD;
+  lo.width = LW; lo.height = LH; acc.width = LW; acc.height = LH;
+  accImg = ax.createImageData(LW, LH); A = new Float32Array(LW * LH * 4); accReset = true;
+  glow.width = Math.round(LW / 3); glow.height = Math.round(LH / 3);
+  dirtCanvas.width = LW; dirtCanvas.height = LH - HUD;
+  S.dug = new Uint8Array(W * H); S.em = new Uint8Array(W * H); S.dist = new Int16Array(W * H);
+  buildBurn(); fitCanvas();
+  return true;
+}
+export function fitGrid(){ const [w, h] = targetGrid(); setGrid(w, h); }
+export function fitCanvas(){
+  // the picture fills the tube, letterboxed in glass if the current field doesn't quite match
+  const box = cv.parentElement.getBoundingClientRect(), dpr = Math.min(3, window.devicePixelRatio || 1);
+  if (box.width < 10 || box.height < 10) return;
+  const sc = Math.min(box.width / LW, box.height / LH), cw = Math.floor(LW * sc), ch = Math.floor(LH * sc);
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  cv.width = Math.max(LW, Math.round(cw * dpr)); cv.height = Math.round(cv.width * LH / LW);
+  scan = document.createElement('canvas'); scan.width = cv.width; scan.height = cv.height;
+  const s = scan.getContext('2d'), rowH = cv.height / LH;
+  s.fillStyle = `rgba(0,0,0,${rowH >= 2.5 ? 0.5 : 0.32})`;
+  for (let y = 0; y < LH; y++) s.fillRect(0, Math.round(y * rowH + rowH * 0.55), cv.width, Math.max(1, Math.round(rowH * 0.45)));
+  vig = document.createElement('canvas'); vig.width = cv.width; vig.height = cv.height;
+  const v = vig.getContext('2d'), gr = v.createRadialGradient(cv.width / 2, cv.height / 2, Math.min(cv.width, cv.height) * 0.35, cv.width / 2, cv.height / 2, Math.max(cv.width, cv.height) * 0.72);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.6)');
+  v.fillStyle = gr; v.fillRect(0, 0, cv.width, cv.height);
+  // colour-tube stripe mask: repeating red, green, blue columns
+  mask = document.createElement('canvas'); mask.width = cv.width; mask.height = 1;
+  const mk = mask.getContext('2d'), mw = Math.max(1, Math.round(cv.width / (LW * 3))), stripes = ['#ff7a7a', '#7aff7a', '#7a7aff'];
+  for (let x = 0, i = 0; x < cv.width; x += mw, i++) { mk.fillStyle = stripes[i % 3]; mk.fillRect(x, 0, mw, 1); }
+}
+/* upright layouts: the set fills the phone from just under the title to the bottom edge */
+export function sizeTv(){
+  const root = document.documentElement;
+  if (!/portrait/.test(root.getAttribute('data-layout') || '')) { root.style.removeProperty('--tv-h'); return; }
+  const vh = window.visualViewport ? visualViewport.height : innerHeight;
+  const top = document.querySelector('.tv').getBoundingClientRect().top + window.scrollY;
+  const below = getComputedStyle(document.querySelector('.feet')).display === 'none' ? 8 : 22;
+  root.style.setProperty('--tv-h', Math.max(440, Math.floor(vh - top - below)) + 'px');
+}
+export function resize(){
+  sizeTv();
+  // while nothing is being played, re-deal the field to suit the new screen shape; mid-game it keeps its shape until the next seam
+  if (S.mode === 'off' || S.mode === 'title') { const [w, h] = targetGrid(); if (w !== W || h !== H) { genLevel(S.level = 1); } }
+  fitCanvas();
+}
+new ResizeObserver(() => resize()).observe(cv.parentElement);
+addEventListener('resize', resize);
+
+export function present(){
+  const w = cv.width, h = cv.height, src = fx ? acc : lo;
+  if (!tvOn) { drawOff(w, h); return; }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = M.bezel[4]; ctx.fillRect(0, 0, w, h);
+  // power-on: the picture opens from a bright line and brightens as the tube warms
+  let sy = 1, dim = 0;
+  if (warmT < WARM && !reduceMotion) {
+    const t = warmT / WARM;
+    sy = t < 0.35 ? 0.008 + 0.992 * (1 - Math.pow(1 - t / 0.35, 3)) : 1;
+    dim = Math.max(0, 1 - t * 1.15);
+  }
+  const oy = h * (1 - sy) / 2, dh = h * sy;
+  ctx.imageSmoothingEnabled = false;
+  drawPicture(src, oy, dh);
+  if (sy < 1) { ctx.fillStyle = M.pal[3]; ctx.globalAlpha = 0.8 * (1 - sy); ctx.fillRect(0, h / 2 - Math.max(1, dh / 2), w, Math.max(2, dh)); ctx.globalAlpha = 1; }
+  if (fx) {
+  // phosphor bloom: a blurred copy added on top
+  gx.imageSmoothingEnabled = true; gx.clearRect(0, 0, glow.width, glow.height); gx.drawImage(src, 0, 0, glow.width, glow.height);
+  ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true; ctx.globalAlpha = M.bloom;
+  ctx.drawImage(glow, 0, oy, w, dh);
+  ctx.globalAlpha = 0.16; ctx.drawImage(src, 1.5, oy, w, dh);    // slight horizontal smear, like an analogue signal
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  if (M.mask && mask) { ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.28; ctx.drawImage(mask, 0, 0, w, h); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
+  if (scan) ctx.drawImage(scan, 0, 0);
+  if (!reduceMotion) {
+    const by = ((S.time * 0.09) % 1.3 - 0.15) * h, gr = ctx.createLinearGradient(0, by - h * 0.08, 0, by + h * 0.08);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.035)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0, by - h * 0.08, w, h * 0.16);
+    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.03})`; ctx.fillRect(0, 0, w, h);
+  }
+  drawAged(w, h);
+  if (vig) ctx.drawImage(vig, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(dust, 0, 0, w, h);
+  }
+  if (fx && !reduceMotion && age.dipLeft > 0) dim = Math.max(dim, 0.28);   // brown-out
+  if (dim > 0) { ctx.fillStyle = `rgba(0,0,0,${dim * 0.85})`; ctx.fillRect(0, 0, w, h); }
+}
+
+/* ---------- loop ---------- */
+export let last = performance.now();
+export function frame(now){
+  let dt = Math.min(0.05, (now - last) / 1000); last = now;
+  frameDt = Math.max(0.001, dt); warmT += dt; tickAge(dt);
+  if (!tvOn) offT += dt;
+  if (S.mode !== 'paused') { while (dt > 0) { const step = Math.min(dt, 1 / 60); update(step); dt -= step; } }
+  renderFrame(); present();
+  const cool = S.charge < 1; if (cool !== fireCool) { fireCool = cool; $('fireBtn').classList.toggle('cool', cool); }
+  const bk = (S.boostT > 0 ? 'a' : '') + Math.round((S.boost || 0) * 40);
+  if (bk !== boostShown) { boostShown = bk; const bb = $('boostBtn'); $('boostFill').style.width = ((S.boost || 0) * 100) + '%'; bb.classList.toggle('active', S.boostT > 0); bb.classList.toggle('cool', S.boostT <= 0 && (S.boost || 0) < 1); }
+  requestAnimationFrame(frame);
+}
+
+setMode(modeKey); setFx(fx);
+sizeTv();
+genLevel(1);
+resize();
+buildBurn();
+if (document.fonts && document.fonts.load) document.fonts.load('16px Silkscreen').then(buildBurn).catch(()=>{});
+requestAnimationFrame(frame);
+
+/* setters for state the game modules change (an imported binding can't be assigned from outside its module) */
+export function setBest(v){ best = v; }
+export function clearFireQueued(){ fireQueued = false; }
+export function clearBoostQueued(){ boostQueued = false; }
+
+/* test hook for the Playwright checks; only with ?test in the address */
+if (/[?&]test\b/.test(location.search)) (window as any).__gg = { S, get board(){ return board; }, get keyRects(){ return keyRects; }, NKEYS, cv, get LW(){ return LW; }, get LH(){ return LH; }, overlay, killPlayer: (c) => game.killPlayer(c) };
