@@ -328,19 +328,16 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-layout="phone-portrait"] .power{bottom:9px}
 [data-layout="phone-portrait"] .nameplate{bottom:18px}
 [data-layout="phone-portrait"] .nameplate span{display:none}
-/* upright = handheld: joystick on the left, the two keys on the right, staggered like A/B buttons */
+/* upright = handheld: joystick on the left, the two keys stacked on the right */
 [data-layout$="portrait"] .pad{flex-direction:row;align-items:stretch;gap:14px}
 [data-layout$="portrait"] .stickzone{flex:1.25 1 0;width:auto;height:156px}
 [data-layout$="portrait"] .stickbase{transform:none}
 [data-layout$="portrait"] .keyrow{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;gap:16px;padding-block:6px}
 [data-layout$="portrait"] .keyrow .fire,[data-layout$="portrait"] .keyrow .boost{flex:none;height:56px}
-[data-layout$="portrait"] .keyrow .fire{margin-left:22px}
-[data-layout$="portrait"] .keyrow .boost{margin-right:22px}
 [data-layout="phone-portrait"] .stickzone{height:144px}
 [data-layout="phone-portrait"] .stickbase{transform:scale(.9)}
 [data-layout="phone-portrait"] .keyrow .fire,[data-layout="phone-portrait"] .keyrow .boost{height:50px;font-size:13px;letter-spacing:.14em}
-[data-layout="phone-portrait"] .keyrow .fire{margin-left:16px}
-[data-layout="phone-portrait"] .keyrow .boost{margin-right:16px}
+/* the two keys stack square on each other, same width, filling the column beside the stick */
 [data-full][data-layout$="portrait"] .tv-face{height:var(--avail-h);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"screen" "pad";padding:10px}
 [data-full][data-layout$="portrait"] .tube-surround{width:100%;height:auto}
 .pad{display:flex;flex-direction:column;align-items:stretch;gap:14px;grid-area:pad;min-width:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
