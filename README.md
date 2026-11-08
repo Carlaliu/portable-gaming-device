@@ -53,7 +53,8 @@ A small detector picks a layout from the real viewport and input type, so it fit
 
 | Layout | When | What you get |
 | --- | --- | --- |
-| Console | Touch screen held sideways | Gamepad style: joystick left, tube centre, dial and switches top right, FIRE and BOOST bottom right |
+| Console | Phone held sideways | Gamepad style: switches and power top left over the joystick, dial top right over FIRE and BOOST |
+| Tall console | Tablet or opened foldable held sideways (560px+ tall) | Power and reset top left over a full-height joystick; dial, switches and FIRE / BOOST down the right |
 | Phone portrait | Upright phone, or a tall narrow window | The set fills the screen, with a tall playfield and handheld-style controls: joystick left, FIRE and BOOST right |
 | Tablet portrait | Upright tablet | Large tube, controls underneath |
 | Desk | Mouse or trackpad | The full set with the guide below |

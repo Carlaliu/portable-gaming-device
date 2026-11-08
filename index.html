@@ -168,6 +168,20 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-layout="console"] .dial-block{grid-area:dial;align-self:start;justify-self:center}
 [data-layout="console"] .stickzone{align-self:stretch;height:auto;min-height:0}
 [data-full][data-layout="console"] .controls{display:none}
+/* tall landscape (iPad, opened foldables): power and reset top left over a full-height stick;
+   on the right, the dial at the top, the four switches in the middle, FIRE and BOOST at the bottom */
+@media (min-height:560px){
+  :root[data-layout="console"] .tv-face{grid-template-columns:minmax(176px,1fr) auto minmax(176px,1fr);grid-template-rows:auto minmax(0,1fr) auto minmax(0,1fr) auto;
+    grid-template-areas:"pwr screen dial" "stick screen ." "stick screen rock" "stick screen ." "stick screen fire"}
+  :root[data-layout="console"] .rockers{align-self:center}
+  :root[data-layout="console"] .power{align-self:center}
+  :root[data-layout="console"] .keyrow{gap:16px}
+  :root[data-layout="console"] .fire{height:56px}
+  :root[data-layout="console"] .boost{height:48px}
+  :root[data-layout="console"] .stickbase{transform:scale(1.15)}
+  :root[data-layout="console"] .tube-surround{width:min(calc((var(--avail-h) - 2 * var(--fp) - 2 * var(--sp)) * 1.75 + 2 * var(--sp)), calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)) - 2 * var(--fp) - 392px))}
+}
+
 [data-layout="console"] .emboss{display:none}
 @media (max-width:520px){.emboss{display:none}}
 /* power: a slide switch. The ridged knob travels along a slot, O at the left end, I at the right */
