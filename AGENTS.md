@@ -36,6 +36,18 @@ Right now the repo is still Tunnel Raider as it was copied, with the same page t
 - The instructions shown match the game that is loaded. In the loader they cover the console itself (picking and loading a game, POWER, RESET, the switches and dial).
 - Tunnel Raider's current manual (the `#manual` leaflet with its `I18N` strings) becomes that game's instructions; each new game adds its own in the same style.
 
+### 6. Rebrand the console as Game Guy
+
+- The page header and every bit of branding on the CRT set change from Tunnel Raider to the console's name. **It must include "Game Guy"** and should feel nerdy and retro, along the lines of **Game Guy 3000** (the working name until the owner settles it).
+- Today's spots to change:
+  - **Page header:** wordmark and `TR-83` badge (`.mk-model`), and the tagline beside it.
+  - **Nameplate on the set:** `TUNNEL RAIDER` with the `TR-83 · <phosphor>` line (`.nameplate`, set by `setMode()`).
+  - **Embossed model line:** `TR-83 · 12″ PHOSPHOR MONITOR` (`.emboss`).
+  - **BIOS banner:** `TR-83 PERSONAL COMPUTER   BIOS 1.0` (`drawBoot()`).
+  - **Instructions:** the `model` string in `I18N` for all three languages.
+  - **App identity:** `<title>`, `apple-mobile-web-app-title`, share tags and image, `manifest.webmanifest` name and short name, icons, README.
+- Model code: replace `TR-83` with a console model code to match, such as `GG-3000`. Game names (Tunnel Raider and the rest) appear only inside their own game: its loading screen, instructions and title.
+
 ## Where things are now
 
 | File | What it is |
@@ -75,5 +87,5 @@ Useful places in `index.html`:
 ## Open questions
 
 - Which games join Tunnel Raider, and in what order.
-- The console's own name and branding on the set (currently the TR-83 badge and Tunnel Raider nameplate) and its site address.
+- The final console name (working name Game Guy 3000) and model code, and the site address.
 - Whether games stay inside one `index.html` or move to one file or folder per game (for example `games/<id>/`) loaded by the console.
