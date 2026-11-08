@@ -43,6 +43,16 @@ Open `index.html` in a browser, or serve the folder with any static host (see [D
 - From level 3, borers shove sacks sideways and line them up over your cart.
 - From level 4, rockjaws dig their own tunnels and take two hits (three from level 7).
 
+### High scores
+
+The top ten scores are kept on the device (in the browser's local storage, so they survive offline play and app restarts but never leave the device). When a game ends with a score that makes the table, the tube switches to an arcade-style name entry:
+
+- Up to nine letters and spaces.
+- Move round the letter grid with the joystick or arrow keys and pick with **FIRE** (or <kbd>Space</kbd>), or tap a letter on the screen. On a keyboard you can also just type, with <kbd>Backspace</kbd> to delete and <kbd>Enter</kbd> to finish.
+- The last name used is filled in, so a repeat player only has to press **END**.
+
+After a game, the CAVE-IN card and the high-score table take turns on the screen, with your new entry flashing. Press **FIRE** at either to dig again.
+
 ## The monitor
 
 - **Phosphor dial:** green (P1), long-afterglow green (P39), amber (P3), paper white (P4) and the two four-colour CGA palettes. Each phosphor fades at its own rate.
@@ -90,6 +100,7 @@ The live site uses [Vercel Web Analytics](https://vercel.com/docs/analytics): pa
 | `life_lost` | `level`, `cause` | A cart is lost to a `sack`, `grub`, `borer` or `rockjaw` |
 | `game_over` | `level`, `score` | The last cart is lost |
 | `new_best` | `score`, `level` | A game beats the device's previous high score |
+| `high_score` | `rank`, `score` | A name is entered on the high-score table |
 | `reset` | `level`, `mode` | The RESET button is pressed |
 | `theme` | `theme`, `via` | The phosphor is changed by `dial` or `key` |
 | `language` | `lang` | The guide's language is switched |
