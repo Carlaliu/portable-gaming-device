@@ -161,6 +161,13 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-layout="console"] .power{position:static;flex-wrap:wrap;justify-content:center;gap:8px}
 [data-layout="console"] .power > .ctl-label,[data-layout="console"] .reset-grp .ctl-label{display:none}
 [data-layout="console"] .reset-grp{margin:0;padding:0;border:0;box-shadow:none}
+/* sideways gamepad: switches and power top left over the joystick; dial top right over FIRE and BOOST */
+[data-layout="console"] .controls{display:contents}
+[data-layout="console"] .rockers{grid-area:rock;align-self:end;justify-self:center}
+[data-layout="console"] .power{grid-area:pwr;align-self:start;justify-self:center;flex-wrap:nowrap}
+[data-layout="console"] .dial-block{grid-area:dial;align-self:start;justify-self:center}
+[data-layout="console"] .stickzone{align-self:stretch;height:auto;min-height:0}
+[data-full][data-layout="console"] .controls{display:none}
 [data-layout="console"] .emboss{display:none}
 @media (max-width:520px){.emboss{display:none}}
 /* power: a slide switch. The ridged knob travels along a slot, O at the left end, I at the right */
@@ -273,10 +280,10 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-layout="console"] .tv{filter:none}
 [data-layout="console"] .tv-face{box-sizing:border-box;--fp:10px;--sp:8px;--avail-h:calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   height:var(--avail-h);padding:var(--fp);border-radius:18px;gap:10px;align-items:center;
-  grid-template-columns:minmax(140px,1fr) auto minmax(140px,1fr);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"stick screen ctl" "stick screen fire"}
+  grid-template-columns:minmax(140px,1fr) auto minmax(140px,1fr);grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"rock screen dial" "pwr screen dial" "stick screen fire"}
 @supports (height:100dvh){[data-layout="console"] .tv-face{--avail-h:calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))}}
 [data-layout="console"] .tube-surround{grid-area:screen;padding:var(--sp);border-radius:18px;
-  align-self:stretch;width:min(calc((var(--avail-h) - 2 * var(--fp) - 2 * var(--sp)) * 1.75 + 2 * var(--sp)), calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)) - 2 * var(--fp) - 300px))}
+  align-self:stretch;width:min(calc((var(--avail-h) - 2 * var(--fp) - 2 * var(--sp)) * 1.75 + 2 * var(--sp)), calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px)) - 2 * var(--fp) - 320px))}
 [data-layout="console"] .screen{aspect-ratio:auto;width:100%;height:100%}
 [data-layout="console"] .controls{grid-area:ctl;flex-direction:column;flex-wrap:nowrap;gap:8px;align-self:start}
 [data-layout="console"] .nameplate,[data-layout="console"] .grille,[data-layout="console"] .tk,[data-layout="console"] .dial-block .ctl-label{display:none}
@@ -926,7 +933,7 @@ const I18N = {
     r1: 'Emerald', r2: 'Eight emeralds in quick succession', r3: 'Gold from a sack that fell two or more cells',
     r4: 'Grub crushed by a sack or hit by a spark', r5: 'Rockjaw (from seam 4): two hits from sparks or sacks, three from seam 7',
     r6: 'Sunstone (appears once every grub has arrived)', r7: 'Grubs rammed while the sunstone glows', r8: 'Spare drill cart', r8v: 'every 20,000',
-    howNote: 'Grubs keep to tunnels. Horned borers chew straight through the earth towards you. Each level the grubs get cannier: they wander less, turn into borers sooner and stay borers longer. From level 3, borers shove sacks sideways and will line one up over your cart if they can. From level 4, banded rockjaws arrive that always dig their own tunnels; the pips over their heads show how many more hits they can take. A falling sack crushes you too, so never linger beneath one. Grubs start slow and quicken every level, but never outrun your cart in an open tunnel; from level 9 your cart speeds up too, and so do they. BOOST gives your cart a short burst of speed; its meter refills in about seven seconds.',
+    howNote: 'Grubs keep to tunnels. Horned borers chew straight through the earth towards you. Each level the grubs get cannier: they wander less, turn into borers sooner and stay borers longer. From level 3, borers shove sacks sideways and will line one up over your cart if they can. From level 4, banded rockjaws arrive that always dig their own tunnels; the pips over their heads show how many more hits they can take. A falling sack crushes you too, so never linger beneath one. Everything starts slow: the grubs quicken every level and so does your cart, but in an open tunnel they never outrun you. BOOST gives your cart a short burst of speed; its meter refills in about seven seconds.',
     k1: 'Move and dig', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} or ${kb('WASD')}`,
     k2: 'Throw a spark', k2v: `${kb('Space')} or ${kb('Z')}`,
     k3: 'Pause', k3v: `${kb('P')} or ${kb('Esc')}`,
@@ -946,7 +953,7 @@ const I18N = {
     r1: '綠寶石', r2: '快速連續收集八顆綠寶石', r3: '金袋跌落兩格或以上後散出的金子',
     r4: '被金袋壓扁或被火花擊中的蟲子', r5: '岩顎蟲（第 4 關起）：要擊中兩次，第 7 關起要三次',
     r6: '太陽石（所有蟲子出場後才出現）', r7: '太陽石發光期間撞倒的蟲子', r8: '後備鑽車', r8v: '每 20,000 分',
-    howNote: '蟲子只會沿隧道走。長角的鑽地蟲會直接鑽穿泥土向你衝來。每過一關，蟲子都會更狡猾：少了亂走，更快變成鑽地蟲，而且維持得更久。第 3 關起，鑽地蟲會把金袋橫推，有機會更會故意把金袋推到你的鑽車正上方。第 4 關起會出現有條紋的岩顎蟲，牠們總是自己挖隧道，頭上的小點表示還要擊中多少次。跌落的金袋同樣會壓扁你，千萬別在金袋下逗留。蟲子起初很慢，每過一關都會加快，但在已挖好的隧道裏永遠不會比你的鑽車快；第 9 關起，你的鑽車也會加速，蟲子亦會跟著加快。BOOST（加速）會令鑽車短暫加速，能量約七秒後補滿。',
+    howNote: '蟲子只會沿隧道走。長角的鑽地蟲會直接鑽穿泥土向你衝來。每過一關，蟲子都會更狡猾：少了亂走，更快變成鑽地蟲，而且維持得更久。第 3 關起，鑽地蟲會把金袋橫推，有機會更會故意把金袋推到你的鑽車正上方。第 4 關起會出現有條紋的岩顎蟲，牠們總是自己挖隧道，頭上的小點表示還要擊中多少次。跌落的金袋同樣會壓扁你，千萬別在金袋下逗留。一開始一切都很慢：每過一關，蟲子和你的鑽車都會加快，但在已挖好的隧道裏，蟲子永遠追不上你。BOOST（加速）會令鑽車短暫加速，能量約七秒後補滿。',
     k1: '移動及挖掘', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} 或 ${kb('WASD')}`,
     k2: '發射火花', k2v: `${kb('空白鍵')} 或 ${kb('Z')}`,
     k3: '暫停', k3v: `${kb('P')} 或 ${kb('Esc')}`,
@@ -966,7 +973,7 @@ const I18N = {
     r1: '绿宝石', r2: '快速连续收集八颗绿宝石', r3: '金袋跌落两格或以上后散出的金子',
     r4: '被金袋压扁或被火花击中的虫子', r5: '岩颚虫（第 4 关起）：要击中两次，第 7 关起要三次',
     r6: '太阳石（所有虫子出场后才出现）', r7: '太阳石发光期间撞倒的虫子', r8: '后备钻车', r8v: '每 20,000 分',
-    howNote: '虫子只会沿隧道走。长角的钻地虫会直接钻穿泥土向你冲来。每过一关，虫子都会更狡猾：少了乱走，更快变成钻地虫，而且维持得更久。第 3 关起，钻地虫会把金袋横推，有机会更会故意把金袋推到你的钻车正上方。第 4 关起会出现有条纹的岩颚虫，它们总是自己挖隧道，头上的小点表示还要击中多少次。跌落的金袋同样会压扁你，千万别在金袋下逗留。虫子起初很慢，每过一关都会加快，但在已挖好的隧道里永远不会比你的钻车快；第 9 关起，你的钻车也会加速，虫子也会跟着加快。BOOST（加速）会让钻车短暂加速，能量约七秒后补满。',
+    howNote: '虫子只会沿隧道走。长角的钻地虫会直接钻穿泥土向你冲来。每过一关，虫子都会更狡猾：少了乱走，更快变成钻地虫，而且维持得更久。第 3 关起，钻地虫会把金袋横推，有机会更会故意把金袋推到你的钻车正上方。第 4 关起会出现有条纹的岩颚虫，它们总是自己挖隧道，头上的小点表示还要击中多少次。跌落的金袋同样会压扁你，千万别在金袋下逗留。一开始一切都很慢：每过一关，虫子和你的钻车都会加快，但在已挖好的隧道里，虫子永远追不上你。BOOST（加速）会让钻车短暂加速，能量约七秒后补满。',
     k1: '移动及挖掘', k1v: `${kb('←')} ${kb('↑')} ${kb('→')} ${kb('↓')} 或 ${kb('WASD')}`,
     k2: '发射火花', k2v: `${kb('空格键')} 或 ${kb('Z')}`,
     k3: '暂停', k3v: `${kb('P')} 或 ${kb('Esc')}`,
@@ -1313,12 +1320,13 @@ function computeDist(){
   }
 }
 const smartness = () => Math.min(1, (S.level - 1) / 6);   // 0 on seam 1, full cunning by seam 7
-/* speed: grubs start slow and gain each seam, but are capped just under the cart's open-tunnel speed.
-   From seam 9 the whole game quickens: the cart and that cap rise together, up to 35% faster. */
+/* speed: everything starts slow. The cart starts at 72% of full speed and the grubs at about a third of that;
+   both gain every level, and the grubs are always capped just under the cart's open-tunnel speed. */
 const CART_RUN = 6.2, CART_DIG = 4.3;
-const pace = () => S.level <= 8 ? 1 : Math.min(1.35, 1 + 0.04 * (S.level - 8));
-const EARLY = [1.5, 1.8, 2.15];   // seams 1 to 3 crawl, so new players can learn the sacks
-const grubSpeed = () => Math.min(S.level <= 3 ? EARLY[S.level - 1] : 2.15 + 0.42 * (S.level - 3), 0.92 * CART_RUN * pace());
+// the cart starts at 72% and gains a little every level, reaching full speed around level 9, then up to 135%
+const pace = () => S.level <= 8 ? 0.72 + 0.035 * (S.level - 1) : Math.min(1.35, 1 + 0.04 * (S.level - 8));
+const EARLY = [1.0, 1.25, 1.55];   // levels 1 to 3 crawl, so new players can learn the sacks
+const grubSpeed = () => Math.min(S.level <= 3 ? EARLY[S.level - 1] : 1.55 + 0.4 * (S.level - 3), 0.92 * CART_RUN * pace());
 function spawnMonster(){
   const rock = S.level >= 4 && Math.random() < Math.min(0.45, 0.12 * (S.level - 3));
   S.monsters.push({ x: W - 1, y: 0, tx: W - 1, ty: 0, t: 0, moving: false, mdx: -1, mdy: 0,
@@ -1473,7 +1481,7 @@ function update(dt){
     S.bonusT -= dt;
     if ((S.sirenT -= dt) <= 0) { S.sirenHi = !S.sirenHi; sfx.siren(S.sirenHi); S.sirenT = 0.28; }
   } else if (S.spawned < S.total && S.monsters.length < S.maxAlive) {
-    if ((S.spawnT -= dt) <= 0) { spawnMonster(); S.spawnT = Math.max(1.4, 4 - 0.3 * S.level); }
+    if ((S.spawnT -= dt) <= 0) { spawnMonster(); S.spawnT = Math.max(1.6, 6 - 0.45 * S.level); /* early levels: grubs arrive well apart */ }
   }
   if (S.spawned >= S.total && !S.sun.used && !S.sun.active && S.monsters.length) S.sun.active = true;
   if (S.emLeft <= 0 || (S.spawned >= S.total && S.monsters.length === 0)) { S.mode = 'clear'; S.modeT = 2.2; S.bonusT = 0; sfx.clear(); }

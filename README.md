@@ -36,7 +36,7 @@ Open `index.html` in a browser, or serve the folder with any static host (see [D
 
 ### How it gets harder
 
-- Grubs crawl through the first three levels, then quicken every level, but stay below the cart's open-tunnel speed. From level 9 the cart speeds up too, and the cap rises with it.
+- Everything starts slow. The cart begins at 72% of full speed and the grubs at about a fifth of that, arriving several seconds apart. Both quicken every level, but grubs always stay below the cart's open-tunnel speed.
 - Grubs wander less, turn into tunnelling borers sooner and stay borers longer.
 - From level 3, borers shove sacks sideways and line them up over your cart.
 - From level 4, rockjaws dig their own tunnels and take two hits (three from level 7).
