@@ -159,12 +159,18 @@ button:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 [data-layout="console"] .reset-grp{margin:0;padding:0;border:0;box-shadow:none}
 [data-layout="console"] .emboss{display:none}
 @media (max-width:520px){.emboss{display:none}}
-.powerrock{width:78px;height:38px;border-radius:7px;background:#12110e;border:1px solid #070605;padding:3px;cursor:pointer;box-shadow:inset 0 2px 5px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.14)}
-.powerrock i{display:block;height:100%;border-radius:4px;position:relative;background:linear-gradient(90deg,#3e3a32,#5a564c 44%,#2e2b25 56%,#1f1d19);transform:perspective(110px) rotateY(24deg);transition:transform .16s cubic-bezier(.3,1.6,.5,1),background .16s}
-.powerrock[aria-checked="true"] i{background:linear-gradient(90deg,#1f1d19,#2e2b25 44%,#5a564c 56%,#3e3a32);transform:perspective(110px) rotateY(-24deg)}
-.powerrock i::before,.powerrock i::after{position:absolute;top:50%;transform:translateY(-50%);font:700 11px/1 var(--body);color:#8d8676}
-.powerrock i::before{content:"O";left:11px}
-.powerrock i::after{content:"I";right:13px}
+/* power: a slide switch. The ridged knob travels along a slot, O at the left end, I at the right */
+.powerrock{position:relative;width:86px;height:34px;padding:0;border-radius:7px;cursor:pointer;touch-action:none;border:1px solid #070605;
+  background:linear-gradient(180deg,#0b0a08,#191714);box-shadow:inset 0 2px 5px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.14)}
+.powerrock::before,.powerrock::after{position:absolute;top:50%;transform:translateY(-50%);font:700 11px/1 var(--body);color:#5f5a4f;pointer-events:none}
+.powerrock::before{content:"O";left:12px}
+.powerrock::after{content:"I";right:14px}
+.powerrock i{position:absolute;z-index:1;top:3px;left:3px;width:40px;height:26px;border-radius:5px;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.28) 0 2px,rgba(255,255,255,.07) 2px 4px) center/22px 14px no-repeat,linear-gradient(180deg,#615c52,#3c3831 55%,#2a2722);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 3px rgba(0,0,0,.6);transition:left .2s cubic-bezier(.3,1.5,.5,1)}
+.powerrock[aria-checked="true"] i{left:41px}
+.powerrock i::after{content:"";position:absolute;inset:auto 6px 3px;height:2px;border-radius:1px;background:#2b2924;transition:background .3s,box-shadow .3s}
+.powerrock[aria-checked="true"] i::after{background:var(--phos);box-shadow:0 0 6px var(--phos)}
 .powerrock:focus-visible{outline:2px solid var(--phos);outline-offset:3px}
 .reset-grp{display:flex;align-items:center;gap:8px;margin-left:12px;padding-left:14px;border-left:1px solid rgba(0,0,0,.25);box-shadow:-1px 0 0 rgba(255,255,255,.08)}
 .resetbtn{width:30px;height:20px;border-radius:4px;cursor:pointer;border:1px solid #070605;background:linear-gradient(180deg,#4a463d,#2a2722 55%,#1d1b17);box-shadow:0 0 0 3px #12110e,0 3px 0 3px #0b0a08,inset 0 1px 0 rgba(255,255,255,.2);transition:transform .05s,box-shadow .05s}
@@ -1054,7 +1060,16 @@ function powerOn(){
   if (ac && !muted) { tone(58, 0.9, 0.04, 14); tone(15000, 0.4, 0.006, 0); }
   startGame();
 }
-$('powerBtn').addEventListener('click', () => { ensureAudio(); if (ac) tone(900, 0.02, 0.07); if (tvOn) powerOff(); else powerOn(); });
+function flipPower(){ ensureAudio(); if (ac) { tone(700, 0.03, 0.06, -200); tone(1400, 0.015, 0.05, 0, 0.06); } if (tvOn) powerOff(); else powerOn(); }
+// tap to toggle, or flick the knob: right for on, left for off
+{ let sx = null, flicked = false;
+  $('powerBtn').addEventListener('pointerdown', e => { sx = e.clientX; flicked = false; });
+  $('powerBtn').addEventListener('pointerup', e => {
+    if (sx === null) return; const dx = e.clientX - sx; sx = null;
+    if (Math.abs(dx) > 12) { flicked = true; if ((dx > 0) !== tvOn) flipPower(); }
+  });
+  $('powerBtn').addEventListener('click', () => { if (flicked) { flicked = false; return; } flipPower(); });
+}
 /* reset: reboots on the press itself, straight back into the BIOS and floppy load (does nothing with the set switched off) */
 $('resetBtn').addEventListener('pointerdown', e => {
   e.preventDefault(); ensureAudio(); if (ac) tone(1300, 0.015, 0.06);
