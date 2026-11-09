@@ -4,6 +4,12 @@
 
 A 1983-style home console in the browser, on an old phosphor monitor. Switch it on, watch the BIOS and the floppy drive boot, pick a disk from the menu and play. Each game has its own loading screen, instructions and high-score table, and it all works offline once loaded.
 
+| The disk menu | Loading Tunnel Raider | Tunnel Raider |
+| --- | --- | --- |
+| ![The disk menu](docs/screens/menu.png) | ![Tunnel Raider loading](docs/screens/load-tunnel.png) | ![Tunnel Raider](docs/screens/play-tunnel.png) |
+| **Loading Dino Run** | **Dino Run** | |
+| ![Dino Run loading](docs/screens/load-dino.png) | ![Dino Run](docs/screens/play-dino.png) | |
+
 ## Games
 
 | # | Game | File | Load time | What it is |
@@ -13,7 +19,7 @@ A 1983-style home console in the browser, on an old phosphor monitor. Switch it 
 
 The characters, art, sound and code in both are original.
 
-Each game also has its own page that boots straight into its disk: `/tunnel-raider` and `/dino-run`, each with its own title and share text.
+Each game also has its own page that boots straight into its disk: `/tunnel-raider` and `/dino-run`, each with its own title, description and share image.
 
 ## The console
 
@@ -143,6 +149,21 @@ Rules (the unit tests check them):
 - **Loads within 5 seconds:** `loadSecs` is 5 or less, and different from every other game's.
 - **Three languages:** the name and instructions come in `en`, `zh-hant` and `zh-hans`.
 - **Original work:** characters, art and sound are your own, even for a tribute.
+
+### Share images and screenshots
+
+The share images (`public/og-image.png`, plus `public/og-<slug>.png` for each game's page) and the screenshots above (`docs/screens/`) are made from the real console by one script:
+
+```sh
+npm run build && npm run preview &
+NODE_PATH=$(npm root -g) node tools/share-images/make.cjs
+```
+
+It switches the set on, captures the menu, each game's loading screen and some play (Dino Run on autopilot, caught mid-jump). It then lays each capture out beside the name and a fan of floppy disks (`tools/share-images/share.css`) at 1200 × 630.
+
+- **A new game:** add an entry to `IMAGES` in the script.
+- **The test that checks it:** the unit tests fail if a game's page has no share image.
+- **Kept out of the offline cache:** share images are only for link previews, so players never download them.
 
 ### Offline and updates
 

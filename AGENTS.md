@@ -96,7 +96,8 @@ Requirements 1 to 8 below are built: the console boots into a disk menu with two
 | `src/games/types.ts` | The plug-in contract: `GameDisk`, `GameRuntime`, `ConsoleAPI` |
 | `src/games/registry.ts` | Finds `*/disk.ts` (eager) and `*/game.ts` (lazy) |
 | `src/games/tunnel-raider/`, `src/games/dino-run/` | The two games (`disk.ts`, `game.ts`, plus helpers) |
-| `public/` | Icons, favicon, share image |
+| `public/` | Icons, favicon, share images (`og-image.png`, `og-<slug>.png` per game) |
+| `tools/share-images/` | `make.cjs` captures the console and renders the share images and `docs/screens/`; `share.css` is their layout |
 
 Useful places:
 
@@ -119,6 +120,8 @@ Useful places:
 - **Offline.** The console and every game must play with no connection once cached. Anything in `public/` or built from `src/` is precached; files fetched some other way need a `runtimeCaching` rule in `astro.config.mjs`.
 - **Languages.** The page chrome and instructions come in English, Traditional Chinese and Simplified Chinese (`I18N`, chosen by `#en`, `#zh-hant` or `#zh-hans`). On-tube text stays English in the pixel font.
 - **High scores.** Local only, per device, one table per game (`gg-board-<id>`).
+- **Keyboard focus.** After a pointer click or tap on the set's buttons, the console drops focus (`blur`), so Space and Enter go to the game instead of pressing the button again (it used to switch the set off mid-jump). Keep that for any new button on the set.
+- **Share images.** Every game page needs `public/og-<slug>.png` (a unit test checks). Re-run `tools/share-images/make.cjs` after visible changes to the set, the menu or a game, and add new games to its `IMAGES` list. Share images stay out of the offline precache.
 - **Analytics.** Vercel Web Analytics custom events through `track(name, data)`. The account is on Vercel Pro, which allows **at most two properties per event**, and values must be strings, numbers, booleans or null. When there are several games, put the game id in the event properties and drop a less useful one to stay within two. Keep the README's event table up to date.
 
 ## Working conventions

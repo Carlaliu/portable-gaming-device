@@ -14,8 +14,15 @@ interface Props {
   description: string;
   /** Boot straight into this disk after the first power-on (its id), instead of the menu. */
   autoload?: string;
+  /** Share image (1200 × 630, in public/), and what it shows. */
+  ogImage?: string;
+  ogAlt?: string;
 }
-const { title, description, autoload } = Astro.props;
+const {
+  title, description, autoload,
+  ogImage = '/og-image.png',
+  ogAlt = 'The Game Guy 3000 Deluxe: a 1983-style home console on a green-phosphor CRT monitor, its disk menu on the screen and floppy disks beside it.',
+} = Astro.props;
 const shareTitle = autoload ? `${title} · Game Guy 3000 Deluxe` : 'Game Guy 3000 Deluxe: a 1983 home console in your browser';
 const pageTitle = autoload ? `${title} · Game Guy 3000 Deluxe` : 'Game Guy 3000 Deluxe';
 ---
@@ -39,19 +46,19 @@ const pageTitle = autoload ? `${title} · Game Guy 3000 Deluxe` : 'Game Guy 3000
 <meta property="og:site_name" content="Game Guy 3000 Deluxe">
 <meta property="og:title" content={shareTitle}>
 <meta property="og:description" content={description}>
-<meta property="og:image" content="/og-image.png">
+<meta property="og:image" content={ogImage}>
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The Game Guy 3000 Deluxe: a 1983-style home console on a green-phosphor CRT monitor.">
+<meta property="og:image:alt" content={ogAlt}>
 <meta property="og:locale" content="en_GB">
 <meta property="og:locale:alternate" content="zh_HK">
 <meta property="og:locale:alternate" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content={shareTitle}>
 <meta name="twitter:description" content={description}>
-<meta name="twitter:image" content="/og-image.png">
-<meta name="twitter:image:alt" content="The Game Guy 3000 Deluxe on a green-phosphor CRT monitor.">
+<meta name="twitter:image" content={ogImage}>
+<meta name="twitter:image:alt" content={ogAlt}>
 <title>{pageTitle}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

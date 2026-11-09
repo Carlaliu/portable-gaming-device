@@ -1,0 +1,25 @@
+html,body{margin:0;width:1200px;height:630px;overflow:hidden}
+body{position:relative;background:radial-gradient(90% 75% at 64% -6%,#2e2a22 0,#1a1813 46%,#111110 80%) #111110;color:#ddd3ba;font-family:Spectral,Georgia,serif}
+.tv{position:absolute;right:-56px;top:48px;width:690px;filter:drop-shadow(0 28px 36px rgba(0,0,0,.7))}
+.copy{position:absolute;left:60px;top:58px;width:470px;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:58px;line-height:1;letter-spacing:.18em;text-transform:uppercase;color:#e4dac0}
+h1 small{display:block;font-size:22px;letter-spacing:.2em;color:#a99d84;margin-top:10px}
+.label{display:flex;align-items:center;gap:14px}
+.model{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:19px;letter-spacing:.18em;color:#16140f;background:#cfc3a3;padding:3px 9px 2px;border-radius:3px}
+.mon{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:16px;letter-spacing:.2em;color:#857c69;text-transform:uppercase}
+.tag{margin:0;font-style:italic;font-size:24px;line-height:1.35;color:#a99d84;max-width:20ch}
+.foot{position:absolute;left:60px;bottom:24px;font-family:"Barlow Condensed","Noto Sans TC",sans-serif;font-weight:600;font-size:16px;letter-spacing:.16em;text-transform:uppercase;color:#857c69}
+.foot span{color:#e6dcc3}
+/* 3.5-inch floppies, fanned out */
+.disks{position:absolute;left:58px;bottom:62px;height:190px;width:520px}
+.disk{position:absolute;bottom:0;width:168px;height:174px;border-radius:5px 16px 5px 5px;box-shadow:0 14px 26px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 0 rgba(0,0,0,.35)}
+.disk .shutter{position:absolute;left:38px;top:0;width:86px;height:54px;border-radius:0 0 3px 3px;background:linear-gradient(180deg,#d9dde0,#9ea4a8 70%,#878c90);box-shadow:inset 0 -1px 0 rgba(0,0,0,.3)}
+.disk .shutter::after{content:"";position:absolute;left:56px;top:9px;width:16px;height:32px;border-radius:2px;background:#2a2622}
+.disk .lab{position:absolute;left:14px;right:14px;bottom:12px;height:84px;border-radius:3px;background:repeating-linear-gradient(180deg,#f3ecd9 0 16px,#cfd9e6 16px 17px) #f3ecd9;color:#1d2a52;padding:8px 10px 0;box-sizing:border-box}
+.disk .lab b{display:block;font-family:"Permanent Marker",cursive;font-weight:400;font-size:21px;line-height:1.05}
+.disk .lab i{display:block;font-family:"IBM Plex Mono",monospace;font-style:normal;font-weight:600;font-size:12px;margin-top:6px;color:#3b4a6e}
+.disk .hole{position:absolute;right:12px;top:62px;width:10px;height:10px;border-radius:2px;background:#16140f}
+.c1{background:linear-gradient(160deg,#3b3f45,#26292d)}
+.c2{background:linear-gradient(160deg,#7b2b38,#521a25)}
+.c3{background:linear-gradient(160deg,#2e4a6b,#1e3048)}
+.c4{background:linear-gradient(160deg,#59616b,#3d434a)}

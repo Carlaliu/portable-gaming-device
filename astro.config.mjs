@@ -17,7 +17,7 @@ export default defineConfig({
       manifest: {
     "name": "Game Guy 3000 Deluxe",
     "short_name": "Game Guy",
-    "description": "A 1983-style home console on a glowing phosphor monitor: pick a floppy and play Tunnel Raider or Dino Run. Plays offline.",
+    "description": "A 1983-style home console in your browser: pick a floppy and play Tunnel Raider, Dino Run and more, with drive sounds, high scores and offline play.",
     "id": "./",
     "start_url": "./",
     "scope": "./",
@@ -79,7 +79,7 @@ export default defineConfig({
   },
       generateSW: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
-        globIgnores: ['manifest.webmanifest'],   // the plugin adds it itself
+        globIgnores: ['manifest.webmanifest', 'og-*.png'],   // the plugin adds the manifest itself; share images are only for link previews
         navigateFallback: '/',
         ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^test$/],
         cleanupOutdatedCaches: true,

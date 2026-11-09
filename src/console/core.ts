@@ -477,6 +477,12 @@ export function flipPower(){ ensureAudio(); if (ac) { tone(700, 0.03, 0.06, -200
   $('powerBtn').addEventListener('click', () => { if (flicked) { flicked = false; return; } flipPower(); });
 }
 /* reset: reboots on the press itself, straight back into the BIOS and floppy load (does nothing with the set switched off) */
+/* after a mouse click or tap on the set's buttons, let go of keyboard focus: otherwise Space (jump, fire) or Enter
+   would press that button again, e.g. switch the set off. A keyboard press (detail 0) keeps focus for keyboard users. */
+document.addEventListener('click', e => {
+  const b = (e.target as Element).closest?.('button');
+  if (b && e.detail > 0 && b.closest('.tv')) setTimeout(() => b.blur(), 0);
+});
 $('resetBtn').addEventListener('pointerdown', e => {
   e.preventDefault(); ensureAudio(); if (ac) tone(1300, 0.015, 0.06);
   const b = $('resetBtn'); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 140);

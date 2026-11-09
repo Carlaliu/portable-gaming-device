@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DISKS, loadGameCode } from '../../src/games/registry';
@@ -33,6 +33,9 @@ describe('game disks', () => {
   it.each(DISKS.map(d => [d.id, d] as const))('%s has a name and instructions in all three languages', (_id, d) => {
     expect(d.manual.length).toBeGreaterThan(0);
     for (const l of ['en', 'zh-hant', 'zh-hans'] as const) expect(d.strings?.[l]?.[d.nameKey]).toBeTruthy();
+  });
+  it.each(DISKS.map(d => [d.id, d] as const))('%s has a share image for its page', (_id, d) => {
+    expect(existsSync(join(GAMES_DIR, '../../public', `og-${d.slug}.png`))).toBe(true);
   });
   it.each(DISKS.map(d => [d.id, d] as const))('%s has game code that makes a runtime', async (_id, d) => {
     const create = await loadGameCode(d.id);

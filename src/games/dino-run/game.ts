@@ -109,6 +109,6 @@ function draw(){
 
 const create: CreateGame = a => {
   api = a; useApi(a);
-  return { start, update, draw };
+  return { start, update, draw, debug: { state: () => D } };
 };
 export default create;
