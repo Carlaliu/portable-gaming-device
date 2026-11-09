@@ -34,6 +34,16 @@ describe('game disks', () => {
     expect(d.manual.length).toBeGreaterThan(0);
     for (const l of ['en', 'zh-hant', 'zh-hans'] as const) expect(d.strings?.[l]?.[d.nameKey]).toBeTruthy();
   });
+  it('no two disks define the same string key differently (they share one table)', () => {
+    for (const l of ['en', 'zh-hant', 'zh-hans'] as const) {
+      const seen = new Map<string, [string, unknown]>();
+      for (const d of DISKS) for (const [k, v] of Object.entries(d.strings?.[l] ?? {})) {
+        const prev = seen.get(k);
+        if (prev && prev[1] !== v) throw new Error(`"${k}" (${l}) differs between ${prev[0]} and ${d.id}`);
+        seen.set(k, [d.id, v]);
+      }
+    }
+  });
   it.each(DISKS.map(d => [d.id, d] as const))('%s has a share image for its page', (_id, d) => {
     expect(existsSync(join(GAMES_DIR, '../../public', `og-${d.slug}.png`))).toBe(true);
   });

@@ -9,8 +9,8 @@ A 1983-style home console in the browser, on an old phosphor monitor. Switch it 
 | ![The disk menu](docs/screens/menu.png) | ![Tunnel Raider loading](docs/screens/load-tunnel.png) | ![Tunnel Raider](docs/screens/play-tunnel.png) |
 | **Loading Dino Run** | **Dino Run** | **Loading Invader Force** |
 | ![Dino Run loading](docs/screens/load-dino.png) | ![Dino Run](docs/screens/play-dino.png) | ![Invader Force loading](docs/screens/load-invader.png) |
-| **Invader Force** | | |
-| ![Invader Force](docs/screens/play-invader.png) | | |
+| **Invader Force** | **Loading I Invade** | **I Invade** |
+| ![Invader Force](docs/screens/play-invader.png) | ![I Invade loading](docs/screens/load-iinvade.png) | ![I Invade](docs/screens/play-iinvade.png) |
 
 ## Games
 
@@ -19,10 +19,11 @@ A 1983-style home console in the browser, on an old phosphor monitor. Switch it 
 | 1 | **Tunnel Raider** | `TUNNEL.EXE` | 4.4 s | Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level. A stage clock ticks on the top bar, and digging out every block of earth on a level wins a spare cart. A tribute to Windmill Software's *Digger* (1983). |
 | 2 | **Dino Run** | `DINORUN.COM` | 1.8 s | Jump the cacti and boulders, duck the pterosaurs, run as far as you can. A tribute to the offline dinosaur game in Google Chrome (2014). |
 | 3 | **Invader Force** | `INVFORCE.EXE` | 3.1 s | Hold the line against a marching alien formation: one shot at a time, walls that crumble, a mystery saucer, and a short shield on BOOST. A tribute to Taito's *Space Invaders* (1978). |
+| 4 | **I Invade** | `IINVADE.EXE` | 2.6 s | The same war from the other side: steer the alien fleet as it sinks, bomb the tanks from its bomb bay, and call in the UFO for a heavy strike. Wipe out the tanks or touch down on their row. The tanks shoot back, and learn to dodge. |
 
-The characters, art, sound and code in all three are original.
+The characters, art, sound and code in all four are original.
 
-Each game also has its own page that boots straight into its disk: `/tunnel-raider`, `/dino-run` and `/invader-force`, each with its own title, description and share image.
+Each game also has its own page that boots straight into its disk: `/tunnel-raider`, `/dino-run`, `/invader-force` and `/i-invade`, each with its own title, description and share image.
 
 ## The console
 
@@ -36,7 +37,7 @@ Each game also has its own page that boots straight into its disk: `/tunnel-raid
 - **The phosphor dial and switches:**
   - **Dial:** green P1, long-afterglow green P39, radar P7 (a visible beam sweeping down the tube), amber P3, paper white P4 and the two CGA palettes.
   - **Switches:** SOUND, GLOW (all the tube effects), HOLD (pause) and FULL (full screen).
-- **FIRE and BOOST** change with the game: FIRE and BOOST in Tunnel Raider, JUMP and DUCK in Dino Run, FIRE and SHIELD in Invader Force. In Dino Run and Invader Force a tap on the screen works as JUMP or FIRE.
+- **FIRE and BOOST** change with the game: FIRE and BOOST in Tunnel Raider, JUMP and DUCK in Dino Run, FIRE and SHIELD in Invader Force, BOMB and UFO in I Invade. In Dino Run, Invader Force and I Invade a tap on the screen works as JUMP, FIRE or BOMB.
 - **Instructions:** the printed leaflet under the set shows the console's instructions while the menu is up and the loaded game's while you play.
 
 ### High scores
@@ -190,6 +191,7 @@ It switches the set on, captures the menu, each game's loading screen and some p
 | `all_dug` | `level`, `secs` | Tunnel Raider: every block of earth dug out (+1 cart) |
 | `sunstone` | `level` | Tunnel Raider: the sunstone is picked up |
 | `life_lost` | `level`, `cause` | Tunnel Raider: a cart is lost to a `sack`, `grub`, `borer` or `rockjaw` |
+| `touchdown` | `level`, `aliens` | I Invade: the fleet lands; `aliens` is how many made it |
 | `theme` | `theme`, `via` | The phosphor changes by `dial` or `key` |
 | `language` | `lang` | The leaflet's language changes |
 | `instructions_open` | `layout` | The instructions are opened |
@@ -211,4 +213,4 @@ Once the console has its own address:
 
 ## Credits
 
-Tunnel Raider is a tribute to Windmill Software's *Digger* (1983); Dino Run to the offline dinosaur game in Google Chrome (2014); Invader Force to Taito's *Space Invaders* (1978). All three are original work: no characters, art, sound or code are copied.
+Tunnel Raider is a tribute to Windmill Software's *Digger* (1983); Dino Run to the offline dinosaur game in Google Chrome (2014); Invader Force to Taito's *Space Invaders* (1978), and I Invade turns that genre round so you play the invaders. All four are original work: no characters, art, sound or code are copied.
