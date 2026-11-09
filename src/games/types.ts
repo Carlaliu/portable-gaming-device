@@ -1,50 +1,140 @@
-/* What every game disk gives the console.
-   Game modules must not touch console imports at the top level (the modules import each other);
-   only inside these functions, which the console calls after everything has loaded. */
+/* The plug-in contract between the console and its games.
 
-/** A section of the game's Operating Instructions. Strings are I18N keys; `v` is a key or, with `lit`, literal HTML. */
+   A game is a folder in src/games/ with two modules:
+   - disk.ts  exports `disk: GameDisk`: the label, loading screen, instructions and strings. Small, loaded up front
+              so the menu and the loading screen can show before the game itself arrives.
+   - game.ts  default-exports `create(api) => GameRuntime`: the game. Downloaded while the drive "reads" the disk.
+
+   Neither may import from src/console: everything a game needs comes through the ConsoleAPI it is handed.
+   The console finds games on its own (src/games/registry.ts); there is no list to edit. */
+
+export type Lang = 'en' | 'zh-hant' | 'zh-hans';
+export type Strings = Record<Lang, Record<string, any>>;
+
+/** A section of a game's Operating Instructions. Strings are I18N keys; `v` is a key or, with `lit`, literal HTML. */
 export type ManualSection =
   | { h: string; p: string }
   | { h: string; list: { k: string; v: string; lit?: boolean }[]; keys?: boolean };
 
-export type Strings = Record<'en' | 'zh-hant' | 'zh-hans', Record<string, any>>;
+/** Colour roles every phosphor theme defines; draw only with these so the game works on green, amber, white and CGA. */
+export type Role =
+  | 'bg' | 'text' | 'textDim' | 'hud' | 'dirt' | 'ds1' | 'ds2' | 'tunnel' | 'gem' | 'gemHi' | 'bag' | 'goldHi'
+  | 'cart' | 'cartShade' | 'window' | 'lamp' | 'drill' | 'drillLine' | 'wheel' | 'grub' | 'borer' | 'rockjaw'
+  | 'eye' | 'spark' | 'gold' | 'sun' | (string & {});
 
-export interface GameDisk {
-  /** Short id, used for storage keys (`gg-board-<id>`) and analytics. */
-  id: string;
-  /** Title in the pixel font, on the loader and the loading screen. */
-  title: string;
-  /** I18N key for the title in the instructions. */
-  nameKey: string;
-  /** The file the drive "reads", and its size in bytes, shown while loading. */
-  file: string;
-  size: number;
-  /** How long the disk takes to load, in seconds. Never more than 5. */
-  loadSecs: number;
-  /** The load's progress curve: [fraction of the time, fraction loaded] pairs, uneven like sectors off a disk. */
-  steps: [number, number][];
-  /** One line under the title on the loader, in the pixel font. */
-  blurb: string;
-  /** Verb for "PRESS FIRE TO …" on the high-score table. */
-  verb: string;
-  /** I18N keys for the FIRE and BOOST button labels in this game. */
-  fireKey: string;
-  boostKey: string;
-  /** I18N keys for the game-over card's title and button. */
-  overKey: string;
-  againKey: string;
-  /** This game's Operating Instructions. */
-  manual: ManualSection[];
-  /** Extra I18N strings this game brings. */
-  strings?: Partial<Strings>;
+export type Dir = 'up' | 'down' | 'left' | 'right';
+export type Step = { dx: number; dy: number };
+
+/** What the console lends a game. Values are live: read them each frame, don't copy them at start-up. */
+export interface ConsoleAPI {
+  /* ---- the picture: a low-res buffer, snapped to four colours and run through the CRT pass ---- */
+  /** Drawing context for the low-res buffer, LW × LH pixels. Row 0..HUD is the status bar. */
+  readonly g: CanvasRenderingContext2D;
+  readonly LW: number; readonly LH: number; readonly HUD: number;
+  /** Grid for tile games: W × H cells of CELL low-res pixels; game units are C per cell, K low-res px per unit. */
+  readonly W: number; readonly H: number; readonly C: number; readonly K: number;
+  /** Re-fit the grid (and the buffer) to the tube's current shape. Call when starting a game. */
+  fitGrid(): void;
+  /** The colour for a role in the current phosphor theme. */
+  col(role: Role): string;
+  /** The current theme's four colours as [r, g, b], by palette index; the theme itself (its `roles` map a role to an index). */
+  readonly palRGB: number[][];
+  readonly palette: any;
+  /** Pixel-font text: size 8 or 16, align left / center / right. */
+  txt(s: string, x: number, y: number, role?: Role, align?: 'left' | 'center' | 'right', size?: number): void;
+  /** A centred two-line banner over the playfield (GET READY, LEVEL CLEARED …). */
+  banner(title: string, sub?: string): void;
+  /** Shape helpers: a rounded-rect path (fill or stroke it yourself), and a filled polygon and circle in the current fillStyle. */
+  rr(x: number, y: number, w: number, h: number, r: number): void;
+  poly(pts: number[]): void;
+  circ(x: number, y: number, r: number): void;
+  /** Grid helpers: index of a cell, and whether a cell is on the board. */
+  idx(x: number, y: number): number;
+  inb(x: number, y: number): boolean;
+  readonly DIRS: Record<Dir, Step>;
+
+  /* ---- shared state ---- */
+  /** mode (`ready` | `play` | `dying` | `clear` …), modeT, time, score, level, lives, plus room for the game's own fields. */
+  readonly S: any;
+
+  /* ---- input ---- */
+  /** Directions held on the keyboard, newest last. */
+  readonly held: Dir[];
+  /** The on-screen stick's direction, or null. */
+  readonly stickDir: Dir | null;
+  /** The step to move in now (stick first, then the newest key), or null. */
+  wantDir(): Step | null;
+  /** FIRE / BOOST / tap-on-screen: `…Queued` is a press not yet handled, `…Held` is down now. */
+  readonly fireQueued: boolean; readonly fireHeld: boolean;
+  readonly boostQueued: boolean; readonly boostHeld: boolean;
+  readonly tapQueued: boolean; readonly tapHeld: boolean;
+  clearFire(): void; clearBoost(): void; clearTap(): void;
+
+  /* ---- sound ---- */
+  /** A synth beep: frequency (Hz), duration (s), volume, pitch slide (Hz), delay (s). Silent when SOUND is off. */
+  tone(freq: number, dur: number, vol?: number, slide?: number, delay?: number): void;
+
+  /* ---- scores and the end of a game ---- */
+  /** This game's best on this device; set it when the score passes it. */
+  best: number;
+  saveBest(): void;
+  /** The game is over: the console saves the best, then runs name entry or the attract loop. */
+  finishGame(): void;
+
+  /* ---- odds and ends ---- */
+  /** Vercel Analytics custom event (at most two properties). */
+  track(name: string, data?: Record<string, string | number | boolean | null>): void;
+  /** A small seeded random generator. */
+  mulberry32(seed: number): () => number;
+  /** The loader's sector bar, for loading screens. Returns the y below it. */
+  diskInfo(y: number, p: number, t: number, disk: GameDisk): number;
+}
+
+/** A running game, made by `create(api)` in the game's game.ts. */
+export interface GameRuntime {
   /** A new game: reset the field and score. The console then counts down `ready` and switches to `play`. */
   start(): void;
-  /** Called every step while this game is in `ready`, `play`, `dying` or `clear`. */
+  /** Every step while the game is in `ready`, `play`, `dying` or `clear`. */
   update(dt: number): void;
   /** Draw the playfield and HUD into the low-res buffer. */
   draw(): void;
-  /** Draw the themed loading screen; p is 0..1 loaded, t the seconds since the drive started. */
-  drawLoad(p: number, t: number): void;
-  /** Optional: the palette changed. */
+  /** Optional: the phosphor theme changed. */
   onPalette?(): void;
+  /** Optional hooks for the Playwright tests. */
+  debug?: Record<string, (...a: any[]) => any>;
+}
+export type CreateGame = (api: ConsoleAPI) => GameRuntime;
+
+/** A game's disk: everything the console shows before and around the game. */
+export interface GameDisk {
+  /** Short id, used for storage keys (`gg-board-<id>`) and analytics. */
+  id: string;
+  /** Position on the disk menu. */
+  order: number;
+  /** Its own page: /<slug> boots straight into this disk. */
+  slug: string;
+  /** Title and description for that page and its share preview (English). */
+  page: { title: string; description: string };
+  /** Title in the pixel font, on the menu and the loading screen. */
+  title: string;
+  /** I18N key for the title in the instructions. */
+  nameKey: string;
+  /** The file the drive "reads", and its size in bytes. */
+  file: string;
+  size: number;
+  /** How long the load takes, in seconds. Never more than 5. */
+  loadSecs: number;
+  /** The load's progress curve: [fraction of the time, fraction loaded], uneven like sectors off a disk. */
+  steps: [number, number][];
+  /** One line under the title on the menu, in the pixel font. */
+  blurb: string;
+  /** Verb for "PRESS FIRE TO …" on the high-score table. */
+  verb: string;
+  /** I18N keys for the FIRE and BOOST labels, and the game-over card's title and button. */
+  fireKey: string; boostKey: string; overKey: string; againKey: string;
+  /** Operating Instructions, and the strings they (and the labels above) use. */
+  manual: ManualSection[];
+  strings: Partial<Strings>;
+  /** The themed loading screen; p is 0..1 loaded, t the seconds since the drive started. */
+  drawLoad(api: ConsoleAPI, p: number, t: number): void;
 }

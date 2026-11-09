@@ -3,9 +3,9 @@
 import {
   S, g, col, txt, LW, LH, HUD, ac, muted, tone, noise, headClick, ensureAudio, stickDir, held, fireHeld,
   overlay, $, tvOn, age, setAccReset, track, layoutName, startGame, setGame, game, readBest, setManual,
-  clearInput, ordinal,
+  clearInput, ordinal, api, fetchRuntime, runtimeReady,
 } from './core';
-import { GAMES } from '../games';
+import { DISKS as GAMES } from '../games/registry';
 import type { GameDisk } from '../games/types';
 
 export const BOOT_LEN = 4.0, WARM_LEN = 2.3, MAX_LOAD = 5;
@@ -169,7 +169,8 @@ export function drawMenu(){
   });
   const by = top + 60 + n * (rowH + 6) + 6;
   if (Math.floor(t * 2) % 2 === 0) txt('STICK TO CHOOSE · FIRE TO LOAD', LW / 2, by, 'hud', 'center');
-  txt(`DRIVE A: ${n} DISKS`, LW / 2, by + 14, 'textDim', 'center');
+  if (S.diskError > 0) { S.diskError -= 1 / 60; txt('DISK ERROR · CONNECT AND TRY AGAIN', LW / 2, by + 14, 'gold', 'center'); }
+  else txt(`DRIVE A: ${n} DISKS`, LW / 2, by + 14, 'textDim', 'center');
 }
 
 /* ---------- loading a game ---------- */
@@ -179,6 +180,9 @@ export function loadGame(i: number){
   setGame(d);
   try { localStorage.setItem('gg-last', d.id); } catch (_) {}
   S.mode = 'load'; S.loadT = 0; S.loadAt = performance.now(); S.loadLen = Math.min(MAX_LOAD, d.loadSecs);
+  // the game's code arrives while the drive reads; the bar waits at the last sector if it's late
+  S.loadErr = null;
+  fetchRuntime(d).catch(err => { S.loadErr = err; });
   clearInput();
   if (ac && !muted) tone(1200, 0.03, 0.04);
   playDisk(0.05, S.loadLen - 0.05);
@@ -187,15 +191,22 @@ export function loadGame(i: number){
 // boots and loads run on the wall clock, like the drive sounds, so a slow frame rate can't stretch them
 export function updateBoot(){
   S.bootT = (performance.now() - S.bootAt) / 1000;
-  if (S.bootT >= S.bootLen) enterMenu();
+  if (S.bootT < S.bootLen) return;
+  // a game's own page (/dino-run …) boots straight into its disk the first time; RESET and SELECT go to the menu
+  const auto = document.documentElement.dataset.autoload, i = auto && !S.autoDone ? GAMES.findIndex(d => d.id === auto) : -1;
+  S.autoDone = true;
+  if (i >= 0) { S.menuSel = i; loadGame(i); } else enterMenu();
 }
 export function updateLoad(_dt: number){
   S.loadT = (performance.now() - S.loadAt) / 1000;
-  if (S.loadT >= S.loadLen + 0.35) startGame();
+  if (S.loadT < S.loadLen + 0.35) return;
+  if (runtimeReady(game.id)) startGame();
+  else if (S.loadErr) { S.diskError = 2.5; enterMenu(); }   // couldn't fetch the game (offline before it was cached)
 }
 export function drawLoad(){
-  const p = progress(game.steps, S.loadT / S.loadLen);
-  game.drawLoad(p, S.loadT);
+  let p = progress(game.steps, S.loadT / S.loadLen);
+  if (p >= 1 && !runtimeReady(game.id)) p = 0.99;
+  game.drawLoad(api, p, S.loadT);
 }
 
 /* ---------- SELECT: back to the disk menu through a warm boot ---------- */

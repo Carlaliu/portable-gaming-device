@@ -34,6 +34,7 @@ document.addEventListener('click', e => {   // keep the install label in the cho
 
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   const updateSW = registerSW({
+    immediate: true,   // register now rather than after window load (a slow font request can hold that up)
     // a new version has downloaded: offer a restart rather than cutting a game off mid-level
     onNeedRefresh() {
       trToast(t('update'), { state: 'info', button: t('restart'), onClick: () => { track('update_applied'); updateSW(true); } });

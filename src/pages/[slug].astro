@@ -1,0 +1,11 @@
+---
+/* One page per game (/tunnel-raider, /dino-run …): the same console, booting straight into that disk. */
+import ConsoleLayout from '../layouts/ConsoleLayout.astro';
+import { DISKS } from '../games/registry';
+
+export function getStaticPaths(){
+  return DISKS.map(d => ({ params: { slug: d.slug }, props: { id: d.id, title: d.page.title, description: d.page.description } }));
+}
+const { id, title, description } = Astro.props;
+---
+<ConsoleLayout title={title} description={description} autoload={id} />

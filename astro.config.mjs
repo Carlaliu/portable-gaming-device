@@ -1,33 +1,20 @@
-import { defineConfig } from 'vite';
-import { VitePWA } from 'vite-plugin-pwa';
+import { defineConfig } from 'astro/config';
+import react from '@astrojs/react';
+import { AstroPWAIntegration as AstroPWA } from '@vite-pwa/astro';
 
-// Static build for Vercel (or any static host). The PWA plugin precaches every built file with a
-// content hash, so each deploy is a new offline version without hand-editing a service worker.
+// Static site (Vercel or any static host). Pages build to /index.html, /tunnel-raider.html, /dino-run.html …
+// served without the .html (vercel.json: cleanUrls). The PWA integration precaches every built file by content
+// hash, so each deploy is a new offline version without hand-editing a service worker.
 export default defineConfig({
-  base: './',
-  build: { target: 'es2022', assetsInlineLimit: 0 },
-  plugins: [
-    VitePWA({
+  trailingSlash: 'never',
+  build: { format: 'file' },
+  integrations: [
+    react(),
+    AstroPWA({
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['favicon.svg', 'favicon.ico', 'icons/*.png', 'og-image.png'],
-      manifest: MANIFEST(),
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
-        navigateFallback: 'index.html',
-        cleanupOutdatedCaches: true,
-        runtimeCaching: [{
-          urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
-          handler: 'CacheFirst',
-          options: { cacheName: 'gg-fonts', expiration: { maxEntries: 30, maxAgeSeconds: 31536000 }, cacheableResponse: { statuses: [0, 200] } },
-        }],
-      },
-    }),
-  ],
-});
-
-function MANIFEST(): any {
-  return {
+      includeManifestIcons: false,
+      manifest: {
     "name": "Game Guy 3000 Deluxe",
     "short_name": "Game Guy",
     "description": "A 1983-style home console on a glowing phosphor monitor: pick a floppy and play Tunnel Raider or Dino Run. Plays offline.",
@@ -89,5 +76,20 @@ function MANIFEST(): any {
         "label": "The Game Guy 3000 Deluxe disk menu on a green-phosphor CRT"
       }
     ]
-  };
-}
+  },
+      generateSW: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        globIgnores: ['manifest.webmanifest'],   // the plugin adds it itself
+        navigateFallback: '/',
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^test$/],
+        cleanupOutdatedCaches: true,
+        runtimeCaching: [{
+          urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
+          handler: 'CacheFirst',
+          options: { cacheName: 'gg-fonts', expiration: { maxEntries: 30, maxAgeSeconds: 31536000 }, cacheableResponse: { statuses: [0, 200] } },
+        }],
+      },
+    }),
+  ],
+  vite: { build: { target: 'es2022', assetsInlineLimit: 0 } },
+});

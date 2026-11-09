@@ -1,0 +1,99 @@
+---
+/* The page around the console: head, the inline layout detector, the set and the leaflet.
+   React components render to static HTML at build time; the console engine (src/main.ts) brings them to life.
+   The instructions leaflet is the one live React island. */
+import '../styles/console.css';
+import { Header } from '../components/Header';
+import { ConsoleSet } from '../components/ConsoleSet';
+import { ManualBar } from '../components/ManualBar';
+import { NetBadge } from '../components/NetBadge';
+import Manual from '../components/Manual';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Boot straight into this disk after the first power-on (its id), instead of the menu. */
+  autoload?: string;
+}
+const { title, description, autoload } = Astro.props;
+const shareTitle = autoload ? `${title} · Game Guy 3000 Deluxe` : 'Game Guy 3000 Deluxe: a 1983 home console in your browser';
+const pageTitle = autoload ? `${title} · Game Guy 3000 Deluxe` : 'Game Guy 3000 Deluxe';
+---
+<!doctype html>
+<html lang="en" data-autoload={autoload}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content={description}>
+<meta name="theme-color" content="#111110">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Game Guy">
+<!-- sharing previews (make og:image absolute once the console has its own address) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Game Guy 3000 Deluxe">
+<meta property="og:title" content={shareTitle}>
+<meta property="og:description" content={description}>
+<meta property="og:image" content="/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Game Guy 3000 Deluxe: a 1983-style home console on a green-phosphor CRT monitor.">
+<meta property="og:locale" content="en_GB">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content={shareTitle}>
+<meta name="twitter:description" content={description}>
+<meta name="twitter:image" content="/og-image.png">
+<meta name="twitter:image:alt" content="The Game Guy 3000 Deluxe on a green-phosphor CRT monitor.">
+<title>{pageTitle}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<script is:inline>
+/* Screen detector. Picks a layout from the real viewport and input type, so it fits any phone or tablet
+   (iPhone 17 Pro and Pro Max, iPad mini, iPad Pro and anything else) without a list of model sizes.
+   desk: mouse or trackpad · phone-portrait: touch, upright, narrow · tablet-portrait: touch, upright, 700px+
+   console: touch held sideways, game fills the screen. Inline so the right layout is there before first paint. */
+(function(){
+  var root = document.documentElement;
+  function touchy(){
+    return matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 1 && matchMedia('(hover: none)').matches)
+      || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));   // iPadOS reports itself as a Mac
+  }
+  function detect(){
+    var vv = window.visualViewport, w = vv ? vv.width : innerWidth, h = vv ? vv.height : innerHeight, lay = 'desk';
+    if (touchy()) lay = w > h ? 'console' : (Math.min(w, h) >= 700 ? 'tablet-portrait' : 'phone-portrait');
+    else if (w < 720 && h > w * 1.15) lay = 'phone-portrait';   // a tall, narrow window (side panel, resized browser) plays upright too
+    if (root.getAttribute('data-layout') !== lay) root.setAttribute('data-layout', lay);
+  }
+  detect();
+  addEventListener('resize', detect);
+  addEventListener('orientationchange', function(){ setTimeout(detect, 120); });
+  if (window.visualViewport) visualViewport.addEventListener('resize', detect);
+})();
+</script>
+</head>
+<body>
+<div class="wrap">
+  <Header />
+  <ConsoleSet />
+  <p class="rotate-hint" data-i18n="rotate">Turn your phone sideways for the full-screen console layout.</p>
+  <ManualBar />
+  <section class="below manual" id="manual" hidden aria-labelledby="manH">
+    <Manual client:load />
+  </section>
+  <NetBadge />
+  <button class="exitfull" id="exitFull" type="button" aria-label="Exit full screen">✕</button>
+</div>
+<script>
+  import '../main';
+</script>
+</body>
+</html>

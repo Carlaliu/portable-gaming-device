@@ -1,10 +1,8 @@
 /* Tunnel Raider's disk: its loading screen, instructions and the hooks the console calls. */
-import { g, col, txt, LW, LH, HUD } from '../../console/core';
-import { diskInfo } from '../../console/loader';
-import type { GameDisk } from '../types';
-import { genLevel, update, draw, makeDirt, killPlayer } from './game';
+import type { ConsoleAPI, GameDisk } from '../types';
 
-const R = (x: number, y: number, w: number, h: number, role: string) => { g.fillStyle = col(role); g.fillRect(Math.round(x), Math.round(y), w, h); };
+let api: ConsoleAPI;
+const R = (x: number, y: number, w: number, h: number, role: string) => { api.g.fillStyle = api.col(role); api.g.fillRect(Math.round(x), Math.round(y), w, h); };
 
 function gem(x: number, y: number){
   R(x + 2, y, 3, 1, 'gemHi'); R(x + 1, y + 1, 5, 1, 'gem'); R(x, y + 2, 7, 2, 'gem'); R(x + 1, y + 4, 5, 1, 'gem'); R(x + 2, y + 5, 3, 1, 'gem'); R(x + 3, y + 6, 1, 1, 'gem');
@@ -18,7 +16,9 @@ function cart(x: number, y: number, t: number){
 }
 
 /* the loading screen: a drill cart bores across a seam of earth as the disk reads, swallowing emeralds */
-function drawLoad(p: number, t: number){
+function drawLoad(a: ConsoleAPI, p: number, t: number){
+  api = a;
+  const { LW, LH, HUD, txt } = a;
   const top = HUD + Math.max(6, Math.round((LH - HUD - 150) / 3));
   txt('TUNNEL RAIDER', LW / 2, top, 'text', 'center', 16);
   txt('DIG · DROP · SURVIVE', LW / 2, top + 20, 'hud', 'center');
@@ -32,7 +32,7 @@ function drawLoad(p: number, t: number){
     if (gx > edge + 6) gem(gx - 3, by + 12);                      // emeralds still in the ground
   }
   cart(edge - 10, by + 11, t);
-  diskInfo(by + bh + 12, p, t, tunnelRaider);
+  a.diskInfo(by + bh + 12, p, t, disk);
 }
 
 const MANUAL: GameDisk['manual'] = [
@@ -47,14 +47,12 @@ const MANUAL: GameDisk['manual'] = [
   { h: 'aboutH', p: 'trCred' },
 ];
 
-export const tunnelRaider: GameDisk = {
-  id: 'tunnel', title: 'TUNNEL RAIDER', nameKey: 'trName', file: 'TUNNEL.EXE', size: 47104, loadSecs: 4.4,
+export const disk: GameDisk = {
+  id: 'tunnel', order: 1, slug: 'tunnel-raider',
+  page: { title: 'Tunnel Raider', description: 'Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level, on the Game Guy 3000 Deluxe: a 1983-style console in your browser.' }, title: 'TUNNEL RAIDER', nameKey: 'trName', file: 'TUNNEL.EXE', size: 47104, loadSecs: 4.4,
   steps: [[0, 0], [0.1, 0.06], [0.18, 0.06], [0.3, 0.27], [0.4, 0.31], [0.5, 0.31], [0.63, 0.58], [0.71, 0.63], [0.8, 0.63], [0.92, 0.94], [1, 1]],
   blurb: 'DIG · DROP · SURVIVE', verb: 'DIG', fireKey: 'spark', boostKey: 'boost', overKey: 'over', againKey: 'again',
   manual: MANUAL,
   strings: { en: { trName: 'Tunnel Raider' }, 'zh-hant': { trName: 'Tunnel Raider 隧道掘金' }, 'zh-hans': { trName: 'Tunnel Raider 隧道掘金' } },
-  start: () => genLevel(1),
-  update, draw, drawLoad,
-  onPalette: makeDirt,
+  drawLoad,
 };
-export { killPlayer };

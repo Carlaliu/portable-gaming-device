@@ -1,5 +1,4 @@
 import { inject } from '@vercel/analytics';
-import './styles/console.css';
 import './console/core';
 import './console/pwa';
 

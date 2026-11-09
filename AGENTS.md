@@ -6,7 +6,7 @@ Notes for anyone (human or agent) working in this repo. Read this before changin
 
 **Game Guy 3000 Deluxe** (Game Guy for short) is a browser game console: one old CRT monitor that boots, shows a game loader, and runs several games. It starts as a copy of [Tunnel Raider](https://github.com/wiiiimm/tunnel-raider), which is still its own repo and site (`tunnel-raider.wiiiimm.codes`); changes made here do not flow back to it.
 
-Requirements 1 to 8 below are built: the console boots into a disk menu with two games, Tunnel Raider and Dino Run. The SELECT button is built but **hidden for now** (owner's call: with the menu one RESET away it duplicates RESET). The <kbd>G</kbd> key still does SELECT.
+Requirements 1 to 8 below are built: the console boots into a disk menu with two games, Tunnel Raider and Dino Run, and each game has its own page. The SELECT button is built but **hidden for now** (owner's call: with the menu one RESET away it duplicates RESET). The <kbd>G</kbd> key still does SELECT.
 
 ## Requirements (from the owner)
 
@@ -57,7 +57,7 @@ Requirements 1 to 8 below are built: the console boots into a disk menu with two
 - It needs a place in every layout (`desk`, `console`, tall console, `phone-portrait`, `tablet-portrait`), sitting with RESET beside POWER.
 - **RESET vs SELECT:** RESET reboots the whole console (BIOS, then the loader); SELECT just swaps the game, through the loader.
 - Add a keyboard shortcut for it, and an analytics event (for example `select` with the game left and its level).
-- **Status:** hidden. The button is in `index.html` with `hidden` on its `.sel-grp`; remove that attribute to bring it back. The nameplate on an upright phone shows the full name while SELECT is hidden; with SELECT back it may need shortening to GAME GUY again (`.np-rest`).
+- **Status:** hidden. `PowerPanel` in `src/components/PowerPanel.tsx` takes `showSelect`; pass it from `ConsoleSet` to bring the button back (and add SELECT back to the console strings). The nameplate on an upright phone shows the full name while SELECT is hidden; with SELECT back it may need shortening to GAME GUY again (`.np-rest`).
 
 ### 8. Dino Run, with its own high-score table
 
@@ -66,40 +66,49 @@ Requirements 1 to 8 below are built: the console boots into a disk menu with two
 
 ## Stack (decided)
 
-**Vite + TypeScript, plain Canvas 2D, no UI framework or game engine.** The picture comes from the console's own four-colour quantiser and phosphor pass, which an engine's renderer would fight, and the DOM around the canvas is small.
+**Astro + React components + a plain TypeScript console engine on Canvas 2D.** No game engine: the picture comes from the console's own four-colour quantiser and phosphor pass, which an engine's renderer would fight.
 
-- **Offline:** `vite-plugin-pwa` (Workbox, `generateSW`, `registerType: 'prompt'`). Every build precaches files by content hash; no hand-written service worker or version numbers.
-- **Analytics:** `@vercel/analytics` (`inject()` in `main.ts`, `track()` through the console's `track` helper).
-- **Tests:** Vitest for logic (`tests/unit`), Playwright scripts for the screens (`tests/*.cjs`, run against `npm run preview`).
-- **Deploy:** Vercel's Vite preset, `npm run build` → `dist`.
+- **Astro:** builds static pages: the console (`/`) and one page per game (`/<slug>`, booting straight into that disk). `build.format: 'file'` plus `vercel.json` `cleanUrls`.
+- **React (owner's choice, for reusable components):**
+  - **The set's hardware and the page chrome:** React components rendered to static HTML at build time, with no hydration. The engine finds them by id and drives them.
+  - **The instructions leaflet:** the one live island (`client:load`). It reads the engine's state through `src/console/bus.ts`.
+  - **Rule:** don't let React re-render anything the engine mutates. To make a component live, move its state into the bus first.
+- **Offline:** `@vite-pwa/astro` (Workbox `generateSW`, `registerType: 'prompt'`, registered immediately). It precaches every built file by content hash, including each game's lazily loaded code.
+- **Analytics:** `@vercel/analytics` (`inject()` in `main.ts`, `track()` through the console's helper).
+- **Tests:** Vitest (`tests/unit`: disk rules and the plug-in rule) and Playwright scripts (`tests/flow.cjs`, `tests/pages.cjs`) against `npm run preview`.
+- **Deploy:** Vercel's Astro preset, `npm run build` → `dist`.
 - **Types:** TypeScript is loose for now (`strict: false`) because the ported console code is untyped. New code should be typed; tighten module by module.
 
 ## Where things are now
 
 | Path | What it is |
 | --- | --- |
-| `index.html` | Markup for the set, the leaflet and the inline layout detector |
-| `src/main.ts` | Entry point |
-| `src/styles/console.css` | The set, its layouts and the leaflet |
-| `src/console/core.ts` | CRT picture pipeline, input, sound, switches, languages, scores, name entry, game loop |
+| `src/pages/index.astro`, `src/pages/[slug].astro` | The console page, and one page per game |
+| `src/layouts/ConsoleLayout.astro` | Head and share tags, the inline layout detector, the set, the leaflet |
+| `src/components/` | React components (static): `ConsoleSet` and its parts, `Header`, `ManualBar`, `NetBadge`; `Manual.tsx` is the live island |
+| `src/main.ts` | Engine entry: console, PWA, analytics |
+| `src/console/core.ts` | CRT picture pipeline, input, sound, switches, scores, name entry, game loop, and the `api` games get |
 | `src/console/loader.ts` | Boot screens, disk menu, loading screens and drive sounds, SELECT |
-| `src/console/strings.ts` | The console's own strings (en, zh-hant, zh-hans) |
+| `src/console/i18n.ts` | Every string (base table plus console and disk strings), no side effects |
+| `src/console/strings.ts`, `manual.ts` | The console's own strings and instructions |
+| `src/console/bus.ts` | Tiny store shared by the engine and React islands (language, whose instructions) |
 | `src/console/pwa.ts` | Install button, offline-ready and update prompts |
-| `src/games/types.ts` | The `GameDisk` interface every game implements |
-| `src/games/index.ts` | The disks, in loader order |
-| `src/games/tunnel-raider/` | Tunnel Raider (`game.ts`) and its disk (`disk.ts`: loading screen, instructions) |
-| `src/games/dino-run/` | Dino Run (`game.ts`) and its strings |
+| `src/games/types.ts` | The plug-in contract: `GameDisk`, `GameRuntime`, `ConsoleAPI` |
+| `src/games/registry.ts` | Finds `*/disk.ts` (eager) and `*/game.ts` (lazy) |
+| `src/games/tunnel-raider/`, `src/games/dino-run/` | The two games (`disk.ts`, `game.ts`, plus helpers) |
 | `public/` | Icons, favicon, share image |
 
 Useful places:
 
-- **Modes:** `S.mode` is one of `off`, `boot`, `menu`, `load`, `ready`, `play`, `dying`, `clear`, `paused`, `entry`, `over`. The console runs `boot`, `menu`, `load`, `entry` and `over`; the loaded game's `update()` runs `ready`, `play`, `dying` and `clear`.
-- **Flow:** `startConsole('cold' | 'warm')` → `enterMenu()` → `loadGame(i)` → `startGame()` → game → `finishGame()` → name entry or the attract loop. POWER and RESET cold-boot; SELECT (`pressSelect`, key <kbd>G</kbd>) warm-boots.
-- **The loaded game:** `game` in `core.ts`, set by `setGame()`. That also loads the game's scores, relabels FIRE and BOOST (`fireKey`, `boostKey`) and switches the instructions.
-- **Drive sounds:** `playDisk(start, dur)` in `loader.ts`; a load plays it for exactly `loadSecs`.
-- **Instructions:** built from each disk's `manual` sections by `renderManual()`; the console's own are `CONSOLE_MANUAL` in `core.ts`. Tunnel Raider's strings still live in the base `I18N` table in `core.ts`; new games bring theirs in `strings`.
+- **Modes:** `S.mode` is one of `off`, `boot`, `menu`, `load`, `ready`, `play`, `dying`, `clear`, `paused`, `entry`, `over`. The console runs `boot`, `menu`, `load`, `entry` and `over`; the loaded game's runtime runs `ready`, `play`, `dying` and `clear`.
+- **Flow:** `startConsole('cold' | 'warm')` → `enterMenu()` (or, on a game's page, straight to its disk after the first boot) → `loadGame(i)`, which fetches the game's code while the drive reads (`fetchRuntime`) → `startGame()` → game → `finishGame()` → name entry or the attract loop. POWER and RESET cold-boot; <kbd>G</kbd> (`pressSelect`) warm-boots.
+- **The loaded game:** `game` (the disk) and `runtime` in `core.ts`. `setGame()` loads the game's scores, relabels FIRE and BOOST (`fireKey`, `boostKey`) and switches the leaflet.
+- **Drive sounds:** `playDisk(start, dur)` in `loader.ts`. Boots and loads run on the wall clock so the picture and the sound end together; if a game's code is late, the bar waits at the last sector.
 - **Scores:** `gg-best-<id>` and `gg-board-<id>` in localStorage (Tunnel Raider falls back to the standalone game's `eb-best` and `tr-board`); the last name typed is `gg-name`.
-- **Module rule:** the game modules and the console import each other. A game module must not use console imports at its top level, only inside functions.
+- **Plug-in rule:**
+  - **No console imports:** game folders never import from `src/console`. They get everything through `ConsoleAPI` (live getters; read values each frame).
+  - **No side effects:** loading a game's modules must have none; make canvases and the like in `create()`.
+  - **Add to the API, not the import list:** if a game needs something new from the console, add it to `ConsoleAPI` and to `api` in `core.ts`.
 
 ## How the console should keep behaving
 
@@ -107,7 +116,7 @@ Useful places:
 - **Retro and original.** Games are tributes at most: original names, characters, art, sound and code. Never copy another game's assets or trademarks.
 - **Four colours.** Everything on the tube goes through the palette quantiser and colour roles, so it looks right on green, amber, white and CGA.
 - **Every screen size.** The layout detector picks `desk`, `phone-portrait`, `tablet-portrait` or `console`, and the playfield grid adapts to the tube's shape. The loader and every loading screen have to fit all of them, including the iPhone 17 Pro and Pro Max, an opened foldable, iPad mini and iPad Pro, in portrait and landscape.
-- **Offline.** The console and every game must play with no connection once cached. Anything in `public/` or imported by the code is precached by the build; files fetched some other way need a `runtimeCaching` rule in `vite.config.ts`.
+- **Offline.** The console and every game must play with no connection once cached. Anything in `public/` or built from `src/` is precached; files fetched some other way need a `runtimeCaching` rule in `astro.config.mjs`.
 - **Languages.** The page chrome and instructions come in English, Traditional Chinese and Simplified Chinese (`I18N`, chosen by `#en`, `#zh-hant` or `#zh-hans`). On-tube text stays English in the pixel font.
 - **High scores.** Local only, per device, one table per game (`gg-board-<id>`).
 - **Analytics.** Vercel Web Analytics custom events through `track(name, data)`. The account is on Vercel Pro, which allows **at most two properties per event**, and values must be strings, numbers, booleans or null. When there are several games, put the game id in the event properties and drop a less useful one to stay within two. Keep the README's event table up to date.
@@ -116,10 +125,10 @@ Useful places:
 
 - **Spelling:** Australian / British English in copy, docs and commit messages.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:` …), committed to `main` and pushed straight away, unless the owner asks to preview first. When he does, show the change and wait for approval before pushing.
-- **Test before pushing:** `npm run build` and `npm test`, then the Playwright scripts against `npm run preview` at desktop and phone sizes, checking for errors and looking at screenshots of anything visual.
+- **Test before pushing:** `npm run build` and `npm test`, then `tests/flow.cjs` and `tests/pages.cjs` against `npm run preview`, checking for errors and looking at screenshots of anything visual.
 - **Keep the README current** with controls, games and the analytics event list.
 
 ## Open questions
 
-- The site address for the console. Then set absolute share-tag URLs and a canonical link in `index.html`.
+- The site address for the console. Then set `site` in `astro.config.mjs`, absolute share-image URLs and a canonical link in `ConsoleLayout.astro`.
 - Which games join next.
