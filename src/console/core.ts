@@ -612,7 +612,7 @@ addEventListener('pointercancel', () => { tapHeld = false; });
 cv.addEventListener('pointerdown', e => {
   const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * LW, y = (e.clientY - r.top) / r.height * LH;
   if (S.mode === 'menu') { e.preventDefault(); ensureAudio(); menuTap(x, y); return; }
-  if (game.id === 'dino' && (S.mode === 'play' || S.mode === 'ready')) { e.preventDefault(); tapQueued = true; tapHeld = true; return; }   // tap the screen to jump
+  if (game.tap && (S.mode === 'play' || S.mode === 'ready')) { e.preventDefault(); tapQueued = true; tapHeld = true; return; }   // games that take taps (jump, fire)
   if (S.mode !== 'entry' && !(S.mode === 'over' && S.showBoard)) return;
   e.preventDefault(); ensureAudio();
   if (S.mode === 'over') { if (S.overT > 0.8) startGame(); return; }

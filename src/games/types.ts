@@ -130,6 +130,8 @@ export interface GameDisk {
   blurb: string;
   /** Verb for "PRESS FIRE TO …" on the high-score table. */
   verb: string;
+  /** Taps on the screen count as a press (`tapQueued` / `tapHeld`) while playing, e.g. to jump or fire. */
+  tap?: boolean;
   /** I18N keys for the FIRE and BOOST labels, and the game-over card's title and button. */
   fireKey: string; boostKey: string; overKey: string; againKey: string;
   /** Operating Instructions, and the strings they (and the labels above) use. */

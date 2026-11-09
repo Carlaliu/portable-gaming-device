@@ -6,7 +6,7 @@ Notes for anyone (human or agent) working in this repo. Read this before changin
 
 **Game Guy 3000 Deluxe** (Game Guy for short) is a browser game console: one old CRT monitor that boots, shows a game loader, and runs several games. It starts as a copy of [Tunnel Raider](https://github.com/wiiiimm/tunnel-raider), which is still its own repo and site (`tunnel-raider.wiiiimm.codes`); changes made here do not flow back to it.
 
-Requirements 1 to 8 below are built: the console boots into a disk menu with two games, Tunnel Raider and Dino Run, and each game has its own page. The SELECT button is built but **hidden for now** (owner's call: with the menu one RESET away it duplicates RESET). The <kbd>G</kbd> key still does SELECT.
+Requirements 1 to 9 below are built: the console boots into a disk menu with three games, Tunnel Raider, Dino Run and Invader Force, and each game has its own page. The SELECT button is built but **hidden for now** (owner's call: with the menu one RESET away it duplicates RESET). The <kbd>G</kbd> key still does SELECT.
 
 ## Requirements (from the owner)
 
@@ -64,6 +64,12 @@ Requirements 1 to 8 below are built: the console boots into a disk menu with two
 - The loader's second game: an original endless desert runner in the spirit of Google Chrome's offline dinosaur game. Jump cacti and boulders, duck pterosaurs. The dinosaur, obstacles, art, sound and code are original; never copy Chrome's sprites.
 - It has its own top-ten table and name entry, like Tunnel Raider.
 
+### 9. Invader Force
+
+- The third disk: a fixed-screen alien shooter that plays like Taito's Space Invaders (1978). A five-row formation marches, drops a row at each edge and speeds up as it thins. One shot in the air at a time. Crumbling walls, a mystery saucer, extra cannon every 1,500, and waves that start lower each time.
+- Original aliens (jelly, beetle, drone), cannon, saucer, sounds and code. Never reproduce Taito's invader sprites, the 👾 emoji's artwork, or any open-source remake's code or assets.
+- BOOST is a short SHIELD that blocks bombs, then recharges; taps on the screen fire (`tap: true` on the disk).
+
 ## Stack (decided)
 
 **Astro + React components + a plain TypeScript console engine on Canvas 2D.** No game engine: the picture comes from the console's own four-colour quantiser and phosphor pass, which an engine's renderer would fight.
@@ -95,7 +101,7 @@ Requirements 1 to 8 below are built: the console boots into a disk menu with two
 | `src/console/pwa.ts` | Install button, offline-ready and update prompts |
 | `src/games/types.ts` | The plug-in contract: `GameDisk`, `GameRuntime`, `ConsoleAPI` |
 | `src/games/registry.ts` | Finds `*/disk.ts` (eager) and `*/game.ts` (lazy) |
-| `src/games/tunnel-raider/`, `src/games/dino-run/` | The two games (`disk.ts`, `game.ts`, plus helpers) |
+| `src/games/tunnel-raider/`, `dino-run/`, `invader-force/` | The three games (`disk.ts`, `game.ts`, plus helpers) |
 | `public/` | Icons, favicon, share images (`og-image.png`, `og-<slug>.png` per game) |
 | `tools/share-images/` | `make.cjs` captures the console and renders the share images and `docs/screens/`; `share.css` is their layout |
 
@@ -134,4 +140,4 @@ Useful places:
 ## Open questions
 
 - The site address for the console. Then set `site` in `astro.config.mjs`, absolute share-image URLs and a canonical link in `ConsoleLayout.astro`.
-- Which games join next.
+- Which games join after Invader Force.
