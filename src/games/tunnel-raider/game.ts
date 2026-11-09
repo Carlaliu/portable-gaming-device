@@ -80,6 +80,7 @@ export function genLevel(L){
   api.S.spawned = 0; api.S.spawnT = 1.2;
   api.S.sun = { active: false, used: false, x: api.W - 2, y: 1 };
   api.S.bonusT = 0; api.S.bonusChain = 0;
+  api.S.stageT = 0; api.S.allDug = false; api.S.dugMsgT = 0;   // the stage clock, and the dig-it-all 1UP (once a level)
   resetPlayer();
   makeDirt();
 }
@@ -137,8 +138,18 @@ export function tryMove(d){
   }
   const digging = !api.S.dug[api.idx(cx, cy)];
   api.S.dug[api.idx(cx, cy)] = 1;
+  if (digging) checkAllDug();
   p.speed = (digging ? CART_DIG : CART_RUN) * pace();
   p.tx = nx; p.ty = ny; p.t = 0; p.moving = true; p.mdx = d.dx; p.mdy = d.dy; p.collected = false;
+}
+/* dig out every block of earth on a level (a sack's own block excepted) and win a spare cart */
+export function checkAllDug(){
+  if (api.S.allDug) return;
+  const n = api.W * api.H;
+  for (let i = 0; i < n; i++) if (!api.S.dug[i] && !restingBagAt(i % api.W, (i / api.W) | 0)) return;
+  api.S.allDug = true; api.S.lives++; api.S.dugMsgT = 2.4; sfx.life();
+  const pp = ppos(api.S.player); api.S.pops.push({ x: pp.x, y: pp.y - 10, text: '1UP', life: 1.4 });
+  api.track('all_dug', { level: api.S.level, secs: Math.round(api.S.stageT) });
 }
 export function collectGem(x, y){
   const i = api.idx(x, y); if (!api.S.em[i]) return;
@@ -397,6 +408,8 @@ export function update(dt){
   if (api.S.mode === 'dying') { api.S.player.deadT += dt; updateBags(dt); if ((api.S.modeT -= dt) <= 0) afterDeath(); return; }
   if (api.S.mode === 'clear') { if ((api.S.modeT -= dt) <= 0) { api.S.level++; genLevel(api.S.level); api.S.mode = 'ready'; api.S.modeT = 1.4; api.saveBest(); } return; }
   if (api.S.mode !== 'play') return;
+  api.S.stageT += dt;
+  if (api.S.dugMsgT > 0) api.S.dugMsgT -= dt;
   if ((api.S.distT -= dt) <= 0) { computeDist(); api.S.distT = 0.12; }
   updatePlayer(dt);
   updateBags(dt); if (api.S.mode !== 'play') return;
@@ -409,7 +422,7 @@ export function update(dt){
     if ((api.S.spawnT -= dt) <= 0) { spawnMonster(); api.S.spawnT = Math.max(1.6, 6 - 0.45 * api.S.level); /* early levels: grubs arrive well apart */ }
   }
   if (api.S.spawned >= api.S.total && !api.S.sun.used && !api.S.sun.active && api.S.monsters.length) api.S.sun.active = true;
-  if (api.S.emLeft <= 0 || (api.S.spawned >= api.S.total && api.S.monsters.length === 0)) { api.S.mode = 'clear'; api.S.modeT = 2.2; api.S.bonusT = 0; sfx.clear(); api.track('level_cleared', { level: api.S.level, how: api.S.emLeft <= 0 ? 'emeralds' : 'grubs' }); }
+  if (api.S.emLeft <= 0 || (api.S.spawned >= api.S.total && api.S.monsters.length === 0)) { api.S.mode = 'clear'; api.S.modeT = 2.2; api.S.bonusT = 0; sfx.clear(); api.track('level_cleared', { level: api.S.level, secs: Math.round(api.S.stageT) }); }
 }
 export function drawTunnels(){
   api.g.fillStyle = api.col('core');
@@ -531,6 +544,11 @@ export function drawSparks(){
 }
 
 /* api.HUD row and banners are drawn in screen pixels at the top of the buffer */
+/** m:ss.mmm (or fewer decimals) */
+export function stageClock(t: number, dp: number){
+  const f = 10 ** dp, u = Math.floor(t * f), m = Math.floor(u / (60 * f)), s = (u - m * 60 * f) / f;
+  return m + ':' + s.toFixed(dp).padStart(dp ? dp + 3 : 2, '0');
+}
 export function drawHud(){
   api.g.fillStyle = api.col('bg'); api.g.fillRect(0, 0, api.LW, api.HUD);
   api.txt(String(api.S.score).padStart(6, '0'), 6, 6, 'text');
@@ -547,7 +565,16 @@ export function drawHud(){
   // tiny F and B tags for the spark (fire) and boost meters
   const GLYPH = { F: ['###', '#..', '##.', '#..', '#..'], B: ['##.', '#.#', '##.', '#.#', '##.'] };
   for (const [ch, gy] of [['F', 5], ['B', 11]]) GLYPH[ch].forEach((row, r) => { for (let c = 0; c < 3; c++) if (row[c] === '#') { api.g.fillStyle = api.col('hud'); api.g.fillRect(api.LW - 62 + c, gy + r, 1, 1); } });
-  api.txt('LEVEL ' + api.S.level, api.LW - 69, 6, 'hud', 'right');
+  // the level, and the stage clock ticking beside it: as much of both as fits between the hearts and the meters
+  api.g.font = '8px Silkscreen, "Courier New", monospace';
+  const left = hx0 + shown * 10 + (api.S.lives > maxH ? 18 : 0) + 6, right = api.LW - 69;
+  const fits = (a: string, b: string) => api.g.measureText(a).width + 6 + api.g.measureText(b).width <= right - left;
+  let lv = 'LEVEL ' + api.S.level, tm = stageClock(api.S.stageT, 3);
+  if (!fits(lv, tm)) lv = 'L' + api.S.level;
+  if (!fits(lv, tm)) tm = stageClock(api.S.stageT, 1);
+  if (!fits(lv, tm)) tm = stageClock(api.S.stageT, 0);
+  api.txt(lv, right, 6, 'hud', 'right');
+  if (fits(lv, tm)) api.txt(tm, right - api.g.measureText(lv).width - 6, 6, api.S.mode === 'play' ? 'text' : 'textDim', 'right');
   api.g.fillStyle = api.col('hud'); api.g.fillRect(api.LW - 56, 4, 50, 1); api.g.fillRect(api.LW - 56, 15, 50, 1); api.g.fillRect(api.LW - 56, 4, 1, 12); api.g.fillRect(api.LW - 7, 4, 1, 12);
   api.g.fillStyle = api.col(api.S.charge >= 1 ? 'text' : 'textDim'); api.g.fillRect(api.LW - 54, 6, Math.round(46 * api.S.charge), 3);
   const bl = api.S.boostT > 0 ? 1 : (api.S.boost || 0);
@@ -572,13 +599,18 @@ export function draw(){
   if (api.S.bonusT > 0 && Math.floor(api.S.time * 4) % 2) { api.g.fillStyle = api.col('textDim'); api.g.fillRect(0, api.LH - 2, api.LW, 2); api.g.fillRect(0, api.HUD, api.LW, 2); }
   drawHud();
   if (api.S.mode === 'ready') api.banner('LEVEL ' + api.S.level, `${api.S.emLeft} EMERALDS  ·  ${api.S.total} GRUBS`);
-  if (api.S.mode === 'clear') api.banner('LEVEL CLEARED');
+  if (api.S.mode === 'clear') api.banner('LEVEL CLEARED', 'TIME ' + stageClock(api.S.stageT, 3) + (api.S.allDug ? '  ·  ALL DUG +1UP' : ''));
+  else if (api.S.dugMsgT > 0 && api.S.mode === 'play' && Math.floor(api.S.dugMsgT * 6) % 2) api.txt('ALL EARTH DUG  ·  +1UP', api.LW / 2, api.HUD + 4, 'text', 'center');
 }
 
 
 const create: CreateGame = a => {
   api = a;
   dirtCanvas = document.createElement('canvas');
-  return { start: () => genLevel(1), update, draw, onPalette: makeDirt, debug: { kill: (c?: string) => killPlayer(c) } };
+  return { start: () => genLevel(1), update, draw, onPalette: makeDirt, debug: {
+    kill: (c?: string) => killPlayer(c),
+    // dig out every block but the one left of the cart, for the all-dug test
+    nearlyDug: () => { const pc = pcell(api.S.player); api.S.bags = []; api.S.dug.fill(1); api.S.dug[api.idx(wrapX(pc.x - 1), pc.y)] = 0; makeDirt(); },
+  } };
 };
 export default create;

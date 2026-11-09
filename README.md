@@ -16,7 +16,7 @@ A 1983-style home console in the browser, on an old phosphor monitor. Switch it 
 
 | # | Game | File | Load time | What it is |
 | --- | --- | --- | --- | --- |
-| 1 | **Tunnel Raider** | `TUNNEL.EXE` | 4.4 s | Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level. A tribute to Windmill Software's *Digger* (1983). |
+| 1 | **Tunnel Raider** | `TUNNEL.EXE` | 4.4 s | Dig for emeralds, drop sacks of gold on the grubs and outwit smarter monsters every level. A stage clock ticks on the top bar, and digging out every block of earth on a level wins a spare cart. A tribute to Windmill Software's *Digger* (1983). |
 | 2 | **Dino Run** | `DINORUN.COM` | 1.8 s | Jump the cacti and boulders, duck the pterosaurs, run as far as you can. A tribute to the offline dinosaur game in Google Chrome (2014). |
 | 3 | **Invader Force** | `INVFORCE.EXE` | 3.1 s | Hold the line against a marching alien formation: one shot at a time, walls that crumble, a mystery saucer, and a short shield on BOOST. A tribute to Taito's *Space Invaders* (1978). |
 
@@ -186,7 +186,8 @@ It switches the set on, captures the menu, each game's loading screen and some p
 | `high_score` | `game`, `rank` | A name goes on a game's table |
 | `select` | `game`, `level` | SELECT is pressed (`game` is `menu` from the menu) |
 | `reset` | `game`, `mode` | RESET is pressed |
-| `level_cleared` | `level`, `how` | Tunnel Raider: a level ends by `emeralds` or `grubs` |
+| `level_cleared` | `level`, `secs` | Tunnel Raider: a level ends; `secs` is its stage time |
+| `all_dug` | `level`, `secs` | Tunnel Raider: every block of earth dug out (+1 cart) |
 | `sunstone` | `level` | Tunnel Raider: the sunstone is picked up |
 | `life_lost` | `level`, `cause` | Tunnel Raider: a cart is lost to a `sack`, `grub`, `borer` or `rockjaw` |
 | `theme` | `theme`, `via` | The phosphor changes by `dial` or `key` |

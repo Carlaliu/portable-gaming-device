@@ -715,7 +715,8 @@ export function tickAge(dt){
       age.tearLeft = 0.06 + Math.random() * 0.14; age.tearY = (Math.random() * LH) | 0;
       age.tearH = 4 + ((Math.random() * 26) | 0); age.tearDx = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 7);
     } else age.dipLeft = 0.08 + Math.random() * 0.12;
-    age.next = 4 + Math.random() * 11;
+    // every 3 to 10 s, and now and then a quick second one, as a tired tube does
+    age.next = Math.random() < 0.18 ? 0.35 + Math.random() * 0.5 : 3 + Math.random() * 7;
   }
 }
 export function drawOff(w, h){

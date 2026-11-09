@@ -39,7 +39,7 @@ const MANUAL: GameDisk['manual'] = [
   { h: 'howH', p: 'howNote' },
   { h: 'secScore', list: [
     { k: 'r1', v: '25', lit: true }, { k: 'r2', v: '+250', lit: true }, { k: 'r3', v: '500', lit: true }, { k: 'r4', v: '250', lit: true },
-    { k: 'r5', v: '500', lit: true }, { k: 'r6', v: '1,000', lit: true }, { k: 'r7', v: '200 · 400 · 800 · 1,600', lit: true }, { k: 'r8', v: 'r8v' },
+    { k: 'r5', v: '500', lit: true }, { k: 'r6', v: '1,000', lit: true }, { k: 'r7', v: '200 · 400 · 800 · 1,600', lit: true }, { k: 'r8', v: 'r8v' }, { k: 'r9', v: 'r9v' },
   ] },
   { h: 'ctlH', keys: true, list: [
     { k: 'k1', v: 'k1v' }, { k: 'k2', v: 'k2v' }, { k: 'k9', v: 'k9v' }, { k: 'k3', v: 'k3v' }, { k: 'k7', v: '<kbd>Enter</kbd>', lit: true }, { k: 'c3', v: 'c3v' },
