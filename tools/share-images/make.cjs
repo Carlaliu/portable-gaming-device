@@ -29,6 +29,9 @@ const IMAGES = [
   { out: 'og-invader-force.png', tv: 'play-invader.png', h1: 'Invader Force', sub: '<small>on the Game Guy 3000 Deluxe</small>',
     tag: 'Hold the line against the marching formation. One shot at a time: make it count.',
     disks: disk('c3', 'Invader Force', 'INVFORCE.EXE', 40, -4, 2) + disk('c4', 'Tunnel Raider', 'TUNNEL.EXE', 190, 7, 1) },
+  { out: 'og-i-invade.png', tv: 'play-iinvade.png', h1: 'I Invade', sub: '<small>on the Game Guy 3000 Deluxe</small>',
+    tag: 'Be the invaders for once. Steer the fleet, bomb the tanks, call in the UFO.',
+    disks: disk('c1', 'I Invade', 'IINVADE.EXE', 40, -4, 2) + disk('c3', 'Invader Force', 'INVFORCE.EXE', 190, 7, 1) },
   { out: 'og-dino-run.png', tv: 'play-dino.png', h1: 'Dino Run', sub: '<small>on the Game Guy 3000 Deluxe</small>',
     tag: 'Jump the cacti, duck the pterosaurs, run as far as the desert goes.',
     disks: disk('c2', 'Dino Run', 'DINORUN.COM · 9K', 40, -4, 2) + disk('c4', 'Tunnel Raider', 'TUNNEL.EXE', 190, 7, 1) },
@@ -87,6 +90,23 @@ const IMAGES = [
   await p.waitForTimeout(7000);
   await until(() => { const F = __gg.runtime.debug.state(); return __gg.S.mode === 'play' && F.shot && F.shot.y < __gg.LH - 60 && F.bombs.length > 0; }, 20000).catch(() => {});
   await p.evaluate(() => { __gg.S.mode = 'paused'; }); await p.waitForTimeout(250); await shot('play-invader.png');
+  // I Invade: its loading screen, then an autopilot steering the bomb bay over a tank, caught mid-UFO run
+  await p.keyboard.press('KeyG'); await until(() => __gg.S.mode === 'menu');
+  await p.evaluate(() => { __gg.loadGame(3); __gg.S.loadLen = 4.2; }); await until(() => __gg.S.loadT > 2.6); await shot('load-iinvade.png');
+  await until(() => __gg.S.mode === 'play');
+  await p.evaluate(() => { setInterval(() => {
+    const F = __gg.runtime.debug.state(), S = __gg.S; if (S.mode !== 'play') return;
+    const k = (t, c) => dispatchEvent(new KeyboardEvent(t, { code: c, key: c }));
+    const al = F.aliens.filter(a => a.alive), tk = F.tanks.find(t => !t.out); if (!al.length || !tk) return;
+    const cs = al.map(a => a.c), mid = F.ox + (Math.min(...cs) + Math.max(...cs)) * 8 + 5;
+    k('keyup', 'ArrowLeft'); k('keyup', 'ArrowRight');
+    if (tk.x + 6 < mid - 3) k('keydown', 'ArrowLeft'); else if (tk.x + 6 > mid + 3) k('keydown', 'ArrowRight');
+    else { k('keydown', 'Space'); k('keyup', 'Space'); }
+  }, 30); });
+  await p.waitForTimeout(4000);
+  await p.keyboard.press('Shift');
+  await until(() => { const F = __gg.runtime.debug.state(); return __gg.S.mode === 'play' && F.ufo && F.ufo.x > __gg.LW * 0.35 && F.ufo.x < __gg.LW * 0.65; }, 20000).catch(() => {});
+  await p.evaluate(() => { __gg.S.mode = 'paused'; }); await p.waitForTimeout(250); await shot('play-iinvade.png');
   /* ---- 2. lay out and render the share images ---- */
   const r = await (await b.newContext({ viewport: { width: 1200, height: 630 } })).newPage();
   for (const img of IMAGES) {
@@ -99,7 +119,7 @@ const IMAGES = [
   /* ---- 3. README screenshots, 720 px wide ---- */
   fs.mkdirSync(SCREENS, { recursive: true });
   const s = await (await b.newContext({ viewport: { width: 1280, height: 860 } })).newPage();
-  for (const n of ['menu', 'load-tunnel', 'play-tunnel', 'load-dino', 'play-dino', 'load-invader', 'play-invader']) {
+  for (const n of ['menu', 'load-tunnel', 'play-tunnel', 'load-dino', 'play-dino', 'load-invader', 'play-invader', 'load-iinvade', 'play-iinvade']) {
     const html = path.join(TMP, n + '.html');
     fs.writeFileSync(html, `<body style="margin:0;background:transparent"><img src="${n}.png" style="width:720px;display:block"></body>`);
     await s.goto('file://' + html); await s.waitForTimeout(150);

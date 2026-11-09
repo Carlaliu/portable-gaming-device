@@ -147,27 +147,31 @@ function floppy(x: number, y: number, on: boolean){
 }
 export function drawMenu(){
   const t = S.menuT, n = GAMES.length;
-  const rowH = 36, bw = Math.min(LW - 16, 300), x0 = Math.round(LW / 2 - bw / 2);
-  const block = 64 + n * (rowH + 6) + 36, top = Math.max(8, Math.round((LH - block) / 2));
+  // rows shrink (and drop their second line) when the disks don't all fit on a short tube
+  const rowH = Math.max(18, Math.min(36, Math.floor((LH - 16 - 64 - 36) / n) - 6)), tall = rowH >= 30, gap = tall ? 6 : 3;
+  const bw = Math.min(LW - 16, 300), x0 = Math.round(LW / 2 - bw / 2);
+  const block = 64 + n * (rowH + gap) + 36, top = Math.max(8, Math.round((LH - block) / 2));
   txt('GAME GUY 3000', LW / 2, top, 'text', 'center', 16);
   txt('D E L U X E', LW / 2, top + 20, 'gold', 'center');
   g.fillStyle = col('hud'); for (let x = x0; x < x0 + bw; x += 4) g.fillRect(x, top + 34, 2, 1);
   txt('A:\\> SELECT A DISK', x0, top + 42, 'hud');
   menuRects = [];
   GAMES.forEach((d, i) => {
-    const y = top + 60 + i * (rowH + 6), on = i === S.menuSel;
+    const y = top + 60 + i * (rowH + gap), on = i === S.menuSel, ty = tall ? y + 7 : Math.round(y + rowH / 2 - 4);
     menuRects.push({ x: x0, y, w: bw, h: rowH, i });
     g.fillStyle = col(on ? 'text' : 'textDim');
     g.fillRect(x0, y, bw, 1); g.fillRect(x0, y + rowH - 1, bw, 1); g.fillRect(x0, y, 1, rowH); g.fillRect(x0 + bw - 1, y, 1, rowH);
-    if (on && Math.floor(t * 3) % 2 === 0) txt('>', x0 + 5, y + 14, 'text');
-    floppy(x0 + 14, y + 10, on);
-    txt(`${i + 1} ${d.title}`, x0 + 36, y + 7, on ? 'text' : 'hud');
-    txt(d.blurb, x0 + 36, y + 20, 'textDim');
+    if (on && Math.floor(t * 3) % 2 === 0) txt('>', x0 + 5, tall ? y + 14 : ty, 'text');
+    if (tall) floppy(x0 + 14, y + 10, on);
+    txt(`${i + 1} ${d.title}`, x0 + (tall ? 36 : 16), ty, on ? 'text' : 'hud');
     const hi = readBest(d.id);
-    txt('HI ' + String(hi).padStart(6, '0'), x0 + bw - 6, y + 7, on ? 'gold' : 'hud', 'right');
-    txt(`${Math.round(d.size / 1024)}K`, x0 + bw - 6, y + 20, 'textDim', 'right');
+    txt('HI ' + String(hi).padStart(6, '0'), x0 + bw - 6, ty, on ? 'gold' : 'hud', 'right');
+    if (tall) {
+      txt(d.blurb, x0 + 36, y + 20, 'textDim');
+      txt(`${Math.round(d.size / 1024)}K`, x0 + bw - 6, y + 20, 'textDim', 'right');
+    }
   });
-  const by = top + 60 + n * (rowH + 6) + 6;
+  const by = top + 60 + n * (rowH + gap) + 6;
   if (Math.floor(t * 2) % 2 === 0) txt('STICK TO CHOOSE · FIRE TO LOAD', LW / 2, by, 'hud', 'center');
   if (S.diskError > 0) { S.diskError -= 1 / 60; txt('DISK ERROR · CONNECT AND TRY AGAIN', LW / 2, by + 14, 'gold', 'center'); }
   else txt(`DRIVE A: ${n} DISKS`, LW / 2, by + 14, 'textDim', 'center');
