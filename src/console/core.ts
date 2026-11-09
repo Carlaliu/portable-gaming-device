@@ -61,6 +61,9 @@ export const MODES = {
               bezel:['#43473f','#2c2f2a','#1d1f1b','#8f978a','#1a120c'] },
   greenP39: { name:'LONG GREEN P39', pal:['#120c08','#0b4416','#33e05a','#c6ffd0'], roles:MONO_ROLES, phos:3, phos2:2, half:0.17, bloom:0.44, mask:false,
               bezel:['#3a3f3a','#252925','#171a17','#86907f','#180f0a'] },
+  /* the radar tube: a fast blue-white flash where the beam writes, then a long yellow-green afterglow. sweep: the beam is visible, top to bottom */
+  radarP7:  { name:'RADAR P7', pal:['#0b0d0b','#3d5a0e','#a9d22c','#e4f1ff'], roles:MONO_ROLES, phos:2, phos2:3, half:0.32, bloom:0.46, mask:false, sweep:2.4,
+              bezel:['#3b3f40','#26292a','#181a1b','#8c949a','#0e100f'] },
   amberP3:  { name:'AMBER P3', pal:['#170d07','#6b3900','#de8c12','#ffd890'], roles:MONO_ROLES, phos:3, phos2:2, half:0.065, bloom:0.4, mask:false,
               bezel:['#403a33','#2a2622','#1b1815','#9a8f80','#1c120b'] },
   whiteP4:  { name:'PAPER WHITE P4', pal:['#15100c','#3a404e','#9aa3b6','#eef2ff'], roles:MONO_ROLES, phos:3, phos2:2, half:0.02, bloom:0.28, mask:false,
@@ -94,9 +97,9 @@ export function setMode(k){
   if (ac && !muted && (typeof tvOn === 'undefined' || tvOn)) { tone(58, 0.9, 0.04, 14); tone(15000, 0.4, 0.006, 0); }   // degauss "boinng" and flyback whine
   if (runtime && runtime.onPalette) runtime.onPalette();
 }
-/* the phosphor dial: six detents, turned by dragging, clicking (next), scrolling, arrow keys or the labels */
-export const SHORT = { greenP1:'GREEN', greenP39:'P39', amberP3:'AMBER', whiteP4:'WHITE', cga1:'CGA 1', cga0:'CGA 0' };
-export const ANG = [-120, -72, -24, 24, 72, 120];
+/* the phosphor dial: seven detents, turned by dragging, clicking (next), scrolling, arrow keys or the labels */
+export const SHORT = { greenP1:'GREEN', greenP39:'P39', radarP7:'P7', amberP3:'AMBER', whiteP4:'WHITE', cga1:'CGA 1', cga0:'CGA 0' };
+export const ANG = [-135, -90, -45, 0, 45, 90, 135];
 export function updateDial(i){
   const cap = $('dialCap'), dial = $('dial'); if (!cap) return;
   cap.style.transform = `rotate(${ANG[i]}deg)`;
@@ -122,7 +125,7 @@ export function turnTo(i){
     const t = document.createElement('span'); t.className = 'tk'; t.style.transform = `rotate(${ANG[i]}deg) translateY(-48px)`; wrap.appendChild(t);
     const b = document.createElement('button'); b.type = 'button'; b.className = 'dl'; b.textContent = SHORT[k];
     b.setAttribute('aria-label', MODES[k].name);
-    b.style.left = (50 + 44 * Math.sin(a)) + '%'; b.style.top = (50 - 44 * Math.cos(a)) + '%';
+    b.style.left = (50 + 50 * Math.sin(a)) + '%'; b.style.top = (50 - 44 * Math.cos(a)) + '%';   // a little wider at the sides, so the side labels clear the knob
     b.addEventListener('click', () => turnTo(i));
     wrap.appendChild(b);
   });
@@ -857,9 +860,12 @@ export function present(){
   if (M.mask && mask) { ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.28; ctx.drawImage(mask, 0, 0, w, h); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
   if (scan) ctx.drawImage(scan, 0, 0);
   if (!reduceMotion) {
-    const by = ((S.time * 0.09) % 1.3 - 0.15) * h, gr = ctx.createLinearGradient(0, by - h * 0.08, 0, by + h * 0.08);
-    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.035)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    // the rolling refresh band every tube shows: a soft bright bar with a thin line through it, every few seconds
+    const by = ((S.time * 0.19) % 1.3 - 0.15) * h, gr = ctx.createLinearGradient(0, by - h * 0.08, 0, by + h * 0.08);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.08)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = gr; ctx.fillRect(0, by - h * 0.08, w, h * 0.16);
+    ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(0, by - h * 0.003, w, Math.max(1, h * 0.006));
+    if (M.sweep) drawSweep(w, h);
     ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.03})`; ctx.fillRect(0, 0, w, h);
   }
   drawAged(w, h);
@@ -868,6 +874,26 @@ export function present(){
   }
   if (fx && !reduceMotion && age.dipLeft > 0) dim = Math.max(dim, 0.28);   // brown-out
   if (dim > 0) { ctx.fillStyle = `rgba(0,0,0,${dim * 0.85})`; ctx.fillRect(0, 0, w, h); }
+}
+
+/* the P7 radar sweep: a bright beam writes down the tube; just behind it the picture flashes blue-white,
+   and the further behind it falls, the more it fades into the long yellow-green afterglow */
+function drawSweep(w, h){
+  const k = (S.time / M.sweep) % 1, y = k * h;
+  // the afterglow: darker the longer since the beam passed (above the beam it's this sweep, below it the last one)
+  const fade = ctx.createLinearGradient(0, 0, 0, h), a = n => `rgba(0,0,0,${(0.5 * n).toFixed(3)})`;
+  const ageAt = yy => (yy <= y ? (y - yy) / h : (y + h - yy) / h);
+  for (let i = 0; i <= 8; i++) fade.addColorStop(i / 8, a(ageAt(i / 8 * h)));
+  ctx.fillStyle = fade; ctx.fillRect(0, 0, w, h);
+  if (y > 0) { const f2 = ctx.createLinearGradient(0, y - 1, 0, y + 1); f2.addColorStop(0, a(0)); f2.addColorStop(1, a(1)); ctx.fillStyle = f2; ctx.fillRect(0, y - 1, w, 2); }
+  // the blue-white flash trailing the beam, and the beam itself
+  ctx.globalCompositeOperation = 'lighter';
+  const tail = h * 0.14, fl = ctx.createLinearGradient(0, y - tail, 0, y);
+  fl.addColorStop(0, 'rgba(150,190,255,0)'); fl.addColorStop(1, 'rgba(170,205,255,.22)');
+  ctx.fillStyle = fl; ctx.fillRect(0, y - tail, w, tail);
+  ctx.shadowColor = '#cfe2ff'; ctx.shadowBlur = h * 0.02; ctx.fillStyle = 'rgba(225,238,255,.75)';
+  ctx.fillRect(0, y - Math.max(1, h * 0.002), w, Math.max(2, h * 0.004));
+  ctx.shadowBlur = 0; ctx.globalCompositeOperation = 'source-over';
 }
 
 /* ---------- loop ---------- */

@@ -34,7 +34,7 @@ Each game also has its own page that boots straight into its disk: `/tunnel-raid
 - **<kbd>G</kbd>** warm-boots back to the disk menu from any game. (A SELECT key for this is built but hidden on the set for now.)
 - **RESET** (wine-red key) restarts the whole console from the BIOS.
 - **The phosphor dial and switches:**
-  - **Dial:** green P1, long-afterglow green P39, amber P3, paper white P4 and the two CGA palettes.
+  - **Dial:** green P1, long-afterglow green P39, radar P7 (a visible beam sweeping down the tube), amber P3, paper white P4 and the two CGA palettes.
   - **Switches:** SOUND, GLOW (all the tube effects), HOLD (pause) and FULL (full screen).
 - **FIRE and BOOST** change with the game: FIRE and BOOST in Tunnel Raider, JUMP and DUCK in Dino Run, FIRE and SHIELD in Invader Force. In Dino Run and Invader Force a tap on the screen works as JUMP or FIRE.
 - **Instructions:** the printed leaflet under the set shows the console's instructions while the menu is up and the loaded game's while you play.
