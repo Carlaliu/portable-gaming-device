@@ -6,7 +6,7 @@ Notes for anyone (human or agent) working in this repo. Read this before changin
 
 **Game Guy 3000 Deluxe** (Game Guy for short) is a browser game console: one old CRT monitor that boots, shows a game loader, and runs several games. It starts as a copy of [Tunnel Raider](https://github.com/wiiiimm/tunnel-raider), which is still its own repo and site (`tunnel-raider.wiiiimm.codes`); changes made here do not flow back to it.
 
-Requirements 1 to 7 below are built: the console boots into a disk menu with two games, Tunnel Raider and Dino Run.
+Requirements 1 to 8 below are built: the console boots into a disk menu with two games, Tunnel Raider and Dino Run. The SELECT button is built but **hidden for now** (owner's call: with the menu one RESET away it duplicates RESET). The <kbd>G</kbd> key still does SELECT.
 
 ## Requirements (from the owner)
 
@@ -57,6 +57,7 @@ Requirements 1 to 7 below are built: the console boots into a disk menu with two
 - It needs a place in every layout (`desk`, `console`, tall console, `phone-portrait`, `tablet-portrait`), sitting with RESET beside POWER.
 - **RESET vs SELECT:** RESET reboots the whole console (BIOS, then the loader); SELECT just swaps the game, through the loader.
 - Add a keyboard shortcut for it, and an analytics event (for example `select` with the game left and its level).
+- **Status:** hidden. The button is in `index.html` with `hidden` on its `.sel-grp`; remove that attribute to bring it back. The nameplate on an upright phone shows the full name while SELECT is hidden; with SELECT back it may need shortening to GAME GUY again (`.np-rest`).
 
 ### 8. Dino Run, with its own high-score table
 

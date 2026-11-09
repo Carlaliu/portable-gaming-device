@@ -18,7 +18,7 @@ for (const [tag, opts] of [['desk', { viewport: { width: 1280, height: 860 } }],
   const tl = (Date.now() - t0) / 1000;
   await p.waitForTimeout(1600); await p.screenshot({ path: `${out}/${tag}-tunnel.png` });
   // SELECT back to the menu, pick Dino Run
-  await p.click('#selectBtn'); await p.waitForTimeout(400);
+  await p.keyboard.press('g'); await p.waitForTimeout(400);   // SELECT's key (the button is hidden for now)
   const afterSel = await mode(p);
   await p.waitForFunction(() => __gg.S.mode === 'menu', null, { timeout: 6000 });
   if (tag === 'desk') { await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); } else { await p.evaluate(() => __gg.loadGame(1)); }

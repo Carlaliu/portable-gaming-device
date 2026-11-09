@@ -20,7 +20,7 @@ The characters, art, sound and code in both are original.
   - **Choose a game:** stick, arrow keys or <kbd>1</kbd>–<kbd>9</kbd>.
   - **Load it:** FIRE, <kbd>Space</kbd>, <kbd>Enter</kbd> or a tap on the disk.
 - **Loading:** every disk shows a loading screen themed to its game and plays the drive (motor, head recalibrating, track steps, head parking) for exactly as long as it takes to read. Load times differ per game and never exceed 5 seconds.
-- **SELECT** (graphite key, or <kbd>G</kbd>) warm-boots back to the disk menu from any game.
+- **<kbd>G</kbd>** warm-boots back to the disk menu from any game. (A SELECT key for this is built but hidden on the set for now.)
 - **RESET** (wine-red key) restarts the whole console from the BIOS.
 - **The phosphor dial and switches:**
   - **Dial:** green P1, long-afterglow green P39, amber P3, paper white P4 and the two CGA palettes.

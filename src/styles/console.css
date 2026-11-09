@@ -467,5 +467,7 @@ h1 .h-dx{color:#cfc3a3}
 [data-layout="console"] .powerrock{width:72px}
 /* the nameplate: centred over two lines on the set; just GAME GUY on an upright phone, where SELECT needs the room */
 .nameplate b{text-align:center}
-[data-layout="phone-portrait"] .np-rest{display:none}
 .nameplate b .np-rest{font:inherit;letter-spacing:inherit;white-space:normal}
+/* SELECT is hidden for now (it does what RESET does until there's more to choose from) */
+.sel-grp[hidden]{display:none!important}
+[data-layout="phone-portrait"] .nameplate b .np-rest{display:inline}
