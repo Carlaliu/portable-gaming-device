@@ -1,5 +1,6 @@
 // Console flow: boot → disk menu → load each game → play → game over → SELECT back to the menu,
-// plus Invader Force's weapon capsules, speed boost and blasts, and I Invade's button pad and weapons.
+// plus Invader Force's weapon capsules, speed boost and blasts, I Invade's button pad and weapons,
+// and Bricks' Enter serve, bowed bat and falling capsules.
 // Then every disk on the menu (future games included): choose it with the menu's keys or a tap,
 // play, HOLD when the tab is hidden, game over, name entry or the table, G back to the menu.
 const { chromium, devices } = require('playwright');
@@ -14,12 +15,29 @@ async function backToMenu(p){
   if (await mode(p) !== 'menu') await p.keyboard.press('g');
   await p.waitForFunction(() => __gg.S.mode === 'menu' && globalThis.__ggBus.get().manual === 'console' && document.querySelector('#manH')?.textContent === 'Operating Instructions', null, { timeout: 8000 });
 }
-// the row's place on the tube, in the same units drawMenu uses, so a tap lands on that disk
+// the row's place on the tube, in the same units drawMenu uses, so a tap lands on that disk.
+// menuRows is nested because this function is sent to the page: keep it in step with src/console/menu-layout.ts
 function diskRow(i){
+  function menuRows(n, lh){
+    const frame = (rowH, gap, minTop) => {
+      const block = 64 + n * (rowH + gap) + 36;
+      const top = Math.max(minTop, Math.round((lh - block) / 2));
+      return { top, bottom: top + 88 + n * (rowH + gap) };
+    };
+    let rowH = Math.max(18, Math.min(36, Math.floor((lh - 16 - 64 - 36) / n) - 6));
+    let gap = rowH >= 30 ? 6 : 3;
+    const first = frame(rowH, gap, 8);
+    if (first.bottom <= lh - 1) return { rowH, gap, top: first.top };
+    gap = 2;
+    for (let rh = Math.min(rowH, 22); rh >= 12; rh--) {
+      const next = frame(rh, gap, 4);
+      if (next.bottom <= lh - 1) return { rowH: rh, gap, top: next.top };
+    }
+    return { rowH: 12, gap: 2, top: 4 };
+  }
   const LW = __gg.LW, LH = __gg.LH, n = __gg.DISKS.length;
-  const rowH = Math.max(18, Math.min(36, Math.floor((LH - 16 - 64 - 36) / n) - 6)), gap = rowH >= 30 ? 6 : 3;
+  const { rowH, gap, top } = menuRows(n, LH);
   const bw = Math.min(LW - 16, 300), x0 = Math.round(LW / 2 - bw / 2);
-  const block = 64 + n * (rowH + gap) + 36, top = Math.max(8, Math.round((LH - block) / 2));
   const y = top + 60 + i * (rowH + gap);
   return { x: (x0 + bw / 2) / LW, y: (y + rowH / 2) / LH };
 }
@@ -69,7 +87,59 @@ async function playEveryDisk(p, tag){
     if (!await chooseDisk(p, tag, i)) { console.log(tag, 'disk', id, { pick: 'missed' }); continue; }
     await p.waitForFunction(id => (__gg.S.mode === 'load' || __gg.S.mode === 'ready' || __gg.S.mode === 'play') && __gg.game && __gg.game.id === id, id, { timeout: 4000 });
     await p.waitForFunction(id => __gg.S.mode === 'play' && __gg.game && __gg.game.id === id && globalThis.__ggBus.get().manual === id && (document.querySelector('#manH')?.textContent || '') !== 'Operating Instructions', id, { timeout: 12000 });
-    await p.keyboard.press('Space'); await p.waitForTimeout(200);
+    // Bricks does not auto-serve. Enter is what the instructions promise, and it is the first key that moves the ember.
+    if (id === 'bricks') {
+      const before = await p.evaluate(() => { const s = __gg.runtime.debug.state(); return { served: s.served, vx: s.vx, vy: s.vy, mode: __gg.S.mode }; });
+      await p.keyboard.press('Enter');
+      await p.waitForTimeout(60);
+      const after = await p.evaluate(() => { const s = __gg.runtime.debug.state(); return { served: s.served, vx: s.vx, vy: s.vy }; });
+      const serveOk = before.mode === 'play' && before.served === false && before.vx === 0 && before.vy === 0 && after.served === true && (after.vx !== 0 || after.vy !== 0);
+      if (!serveOk) errs.push(tag + ' bricks enter serve: ' + JSON.stringify({ before, after }));
+      console.log(tag, 'bricks enter serve', { before, after });
+      const base = await p.evaluate(() => { const s = __gg.runtime.debug.state(); return { bw: s.bw, px: s.px }; });
+      await p.keyboard.down('ArrowUp');
+      const bowed = await p.waitForFunction(() => __gg.runtime.debug.state().bend > 0.7, null, { timeout: 1500 }).then(() => true, () => false);
+      const up = await p.evaluate(() => { const s = __gg.runtime.debug.state(); return { bend: s.bend, px: s.px }; });
+      await p.keyboard.up('ArrowUp');
+      await p.keyboard.down('ArrowDown');
+      const flipped = await p.waitForFunction(() => __gg.runtime.debug.state().bend < -0.7, null, { timeout: 1500 }).then(() => true, () => false);
+      await p.keyboard.up('ArrowDown');
+      const eased = await p.waitForFunction(() => Math.abs(__gg.runtime.debug.state().bend) < 0.2, null, { timeout: 1500 }).then(() => true, () => false);
+      const bowOk = bowed && flipped && eased && up.bend > 0.7 && Math.abs(up.px - base.px) < 2;
+      if (!bowOk) errs.push(tag + ' bricks bow: ' + JSON.stringify({ base, up, bowed, flipped, eased }));
+      console.log(tag, 'bricks bow', { base, up, bowed, flipped, eased });
+      const caught = await p.evaluate(async () => {
+        const dbg = __gg.runtime.debug;
+        const baseW = dbg.state().bw;
+        const take = (kind) => new Promise(resolve => {
+          dbg.drop(kind);
+          const t0 = performance.now();
+          const step = () => {
+            const s = dbg.state();
+            if (s.size === kind || s.pace === kind || (kind === 'sear' && s.sear === 3) || performance.now() - t0 > 1500) resolve(s);
+            else requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        });
+        const wide = await take('broad');
+        const slim = await take('slim');
+        const fast = await take('flare');
+        const slow = await take('damp');
+        const sear = await take('sear');
+        return { baseW, wide, slim, fast, slow, sear, boost: document.querySelector('#boostBtn')?.getAttribute('aria-disabled'), leaflet: document.querySelector('#manual')?.textContent || '' };
+      });
+      const dropOk = caught.wide.size === 'broad' && caught.wide.bw === Math.round(caught.baseW * 1.5)
+        && caught.slim.size === 'slim' && caught.slim.bw === Math.round(base.bw * 0.6)
+        && caught.fast.pace === 'flare' && caught.slow.pace === 'damp' && caught.slow.size === 'slim'
+        && caught.sear.sear === 3 && caught.boost === 'true'
+        && caught.leaflet.includes('Broad') && /bow/i.test(caught.leaflet);
+      if (!dropOk) errs.push(tag + ' bricks drops: ' + JSON.stringify({
+        base: base.bw, wide: { size: caught.wide.size, bw: caught.wide.bw }, slim: { size: caught.slim.size, bw: caught.slim.bw },
+        pace: [caught.fast.pace, caught.slow.pace], sear: caught.sear.sear, boost: caught.boost,
+      }));
+      console.log(tag, 'bricks drops', { wide: caught.wide.bw, slim: caught.slim.bw, pace: caught.slow.pace, sear: caught.sear.sear, boost: caught.boost });
+    } else await p.keyboard.press('Space');
+    await p.waitForTimeout(200);
     // hiding the tab mid-game switches HOLD on (LED lit), and it stays on when the tab comes back until the player resumes
     const hold = await holdOnHide(p);
     if (!hold.ok) errs.push(tag + ' disk ' + id + ' hold on hide: ' + JSON.stringify(hold));
