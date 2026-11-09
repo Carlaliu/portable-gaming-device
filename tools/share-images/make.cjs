@@ -21,8 +21,8 @@ const page = ({ tv, h1, sub = '', tag, disks }) => `<!doctype html><html><head><
 <div class="foot">Plays in your browser · offline · <span>EN</span> · 繁中 · 简中</div></body></html>`;
 
 const IMAGES = [
-  { out: 'og-image.png', tv: 'menu.png', h1: 'Game Guy<br>3000 Deluxe', tag: 'A 1983 home console in your browser. Switch it on, pick a disk, play.',
-    disks: disk('c1', 'Tunnel Raider', 'TUNNEL.EXE', 0, -7, 1) + disk('c2', 'Dino Run', 'DINORUN.COM', 148, 2, 2) + disk('c3', 'Next disk…', 'DISK 3', 298, 8, 3) },
+  { out: 'og-image.png', tv: 'play-tunnel.png', h1: 'Game Guy<br>3000 Deluxe', tag: 'A 1983 home console in your browser. Switch it on, pick a disk, play.',
+    disks: disk('c1', 'Tunnel Raider', 'TUNNEL.EXE', 0, -7, 1) + disk('c2', 'Dino Run', 'DINORUN.COM', 148, 2, 2) + disk('c3', 'Invader Force', 'INVFORCE.EXE', 298, 8, 3) },
   { out: 'og-tunnel-raider.png', tv: 'play-tunnel.png', h1: 'Tunnel Raider', sub: '<small>on the Game Guy 3000 Deluxe</small>',
     tag: 'Dig for emeralds, drop gold on the grubs, outwit smarter monsters every level.',
     disks: disk('c1', 'Tunnel Raider', 'TUNNEL.EXE · 46K', 40, -4, 2) + disk('c4', 'Dino Run', 'DINORUN.COM', 190, 7, 1) },
