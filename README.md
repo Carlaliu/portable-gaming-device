@@ -126,59 +126,25 @@ public/                    icons, favicon, share image
 
 ### Adding a game
 
-Make a folder in `src/games/` with two files. Nothing else needs editing: the disk menu, its page (`/<slug>`), its instructions, its high-score table and the offline cache all pick it up.
+Make a folder in `src/games/` with a `disk.ts` (the label, loading screen and instructions) and a `game.ts` (the game, default export `create(api)`). Nothing else needs editing: the disk menu, its page (`/<slug>`), its instructions, its high-score table and the offline cache all pick it up.
 
-`disk.ts` is the label. It's small and loaded up front, so the menu and the loading screen can show while the game is fetched:
-
-```ts
-import type { ConsoleAPI, GameDisk } from '../types';
-
-export const disk: GameDisk = {
-  id: 'pong', order: 3, slug: 'paddle-ball', genre: 'BAT+BALL', players: 2,   // the launcher's details line
-  page: { title: 'Paddle Ball', description: 'Bat the blip past the other paddle.' },
-  title: 'PADDLE BALL', nameKey: 'pbName', file: 'PADDLE.COM', size: 6144, loadSecs: 1.2,
-  steps: [[0, 0], [0.3, 0.4], [0.5, 0.45], [1, 1]],
-  blurb: 'BAT · BOUNCE · WIN', verb: 'PLAY', overKey: 'over', againKey: 'again',
-  buttons: { fire: { label: 'spark' }, boost: { label: 'boost', enabled: false } },   // no BOOST in this game: it stays dark
-  manual: [{ h: 'howH', p: 'pbHow' }],
-  strings: { en: { pbName: 'Paddle Ball', pbHow: '…' }, 'zh-hant': { … }, 'zh-hans': { … } },
-  drawLoad(api: ConsoleAPI, p: number, t: number){ api.txt('PADDLE BALL', api.LW / 2, 40, 'text', 'center', 16); api.diskInfo(80, p, t, disk); },
-};
-```
-
-`game.ts` is the game. It's downloaded while the drive reads the disk, and gets everything from the `api` it's handed:
-
-```ts
-import type { CreateGame } from '../types';
-
-const create: CreateGame = api => ({
-  start(){ api.fitGrid(); api.S.score = 0; },
-  update(dt){ if (api.S.mode === 'ready' && (api.S.modeT -= dt) <= 0) api.S.mode = 'play'; /* … */ },
-  draw(){ api.g.fillStyle = api.col('text'); /* … */ },
-});
-export default create;
-```
-
-Rules (the unit tests check them):
-- **No console imports:** a game never imports from `src/console`; everything comes through `ConsoleAPI`.
-- **No side effects:** loading a game's modules must not do anything (no canvases or listeners at the top level); do that in `create()`.
-- **Loads within 5 seconds:** `loadSecs` is 5 or less, and different from every other game's.
-- **Launcher details:** `genre` is upper case and at most 8 characters, and `players` is a whole number. A launcher cover (`cover.ts`) is optional but expected: make it with `make.cjs --covers`.
-- **Three languages:** the name and instructions come in `en`, `zh-hant` and `zh-hans`.
-- **Original work:** characters, art and sound are your own, even for a tribute.
+**[Making a game disk](src/games/README.md)** has the rest: every file a game needs in its folder and outside it, the artwork and images (sprites, loading screen, share image, screenshots and the launcher cover), the strings in three languages, the tests, the plug-in rules and a minimal example.
 
 ### Share images and screenshots
 
 The share images (`public/og-image.png`, plus `public/og-<slug>.png` for each game's page) and the screenshots above (`docs/screens/`) are made from the real console by one script:
 
 ```sh
-npm run build && npm run preview &
-NODE_PATH=$(npm root -g) node tools/share-images/make.cjs
+# each step runs only if the one before it worked, so a failed build never captures a stale dist/
+npm run build &&
+  { npm run preview & } &&   # serves http://localhost:4173
+  until curl -sf http://localhost:4173 >/dev/null; do sleep 1; done &&   # wait for it to listen
+  NODE_PATH=$(npm root -g) node tools/share-images/make.cjs
 ```
 
 It switches the set on, captures the menu, each game's loading screen and some play (Dino Run on autopilot, caught mid-jump). It then lays each capture out beside the name and a fan of floppy disks (`tools/share-images/share.css`) at 1200 × 630.
 
-- **Launcher covers:** add `--covers` to also write each game's cover for the disk launcher (`src/games/<folder>/cover.ts`) from the same moment as its play capture, or `--covers-only` to write just the covers. Add `--previews` for each game's flipbook preview too (it captures the covers as well) (`preview.ts`: the cover's frame and seven more over 2 s), which the launcher plays after 0.8 s on a disk. Covers are read from the low-res buffer before the CRT pass and stored as palette indices, so the launcher can paint them in any phosphor.
+- **Launcher covers:** add `--covers` to also write each game's cover for the disk launcher (`src/games/<folder>/cover.ts`) from the same moment as its play capture, or `--covers-only` to write just the covers. Add `--previews` for each game's flipbook preview too (`preview.ts`: the cover's frame and seven more over 2 s), which the launcher plays after 0.8 s on a disk. It writes the covers as well, and a preview must start on its cover (`covers.test.ts`), so use `--previews` rather than `--covers` whenever a game that has a preview changes. Covers are read from the low-res buffer before the CRT pass and stored as palette indices, so the launcher can paint them in any phosphor.
 - **A new game:** add an entry to `IMAGES` in the script, and a `play(…)` capture for its cover.
 - **The test that checks it:** the unit tests fail if a game's page has no share image.
 - **Kept out of the offline cache:** share images are only for link previews, so players never download them.

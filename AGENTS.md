@@ -34,7 +34,7 @@ Requirements 1 to 11 below are built: the console boots into a disk menu with fi
 
 - Switching the set on (POWER) or pressing RESET runs the cold boot (BIOS memory test, POST beep, floppy drive) and then lands in a **game loader interface**, not straight into a game.
 - The loader is the console's home screen. It lists the games and lets the player pick one to load.
-- **The launcher (GAM-32, owner's pick: concept B, the cover carousel):** the front disk's cover large in the middle with its label strip (title, file and size) and details lines under it, neighbours either side (smaller and dimmer), a numbered tick strip and an `nn/NN` counter. Tiers by tube shape: wide (two neighbours a side, three details lines), portrait (tall front cover, one neighbour a side cropped at the edges), short (one neighbour a side, one details line, plain ticks). Moves are hard cuts with a tick and a two-step drive seek. A tap on a side cover or tick brings that disk to the front; a tap on the front cover loads it. Covers come from `drawCover`, `cover.ts` (captured), or a floppy label; after 0.8 s on a disk (never with reduced motion) the cover gives way to `drawPreview` or the `preview.ts` flipbook (owner's call pending: flipbooks first). Design and build specs are Linear documents on GAM-32.
+- **The launcher (GAM-32, owner's pick: concept B, the cover carousel):** the front disk's cover large in the middle with its label strip (title, file and size) and details lines under it, neighbours either side (smaller and dimmer), a numbered tick strip and an `nn/NN` counter. Tiers by tube shape: wide (two neighbours a side, three details lines), portrait (tall front cover, one neighbour a side cropped at the edges), short (one neighbour a side, one details line, plain ticks). Moves are hard cuts with a tick and a two-step drive seek. A tap on a side cover or tick brings that disk to the front; a tap on the front cover loads it. Covers come from `drawCover`, `cover.ts` (captured), or a floppy label; after 0.8 s on a disk (never with reduced motion) the cover gives way to `drawPreview` or the `preview.ts` flipbook (owner's call pending: flipbooks first). The [Launcher design spec](https://linear.app/stealth-company/document/launcher-design-spec-gam-32-06221211fc3a) and [Web launcher build spec](https://linear.app/stealth-company/document/web-launcher-build-spec-gam-32-88a4c25140c8) are Linear documents on GAM-32.
 - **The launcher changes only the tube.** The console's physical controls, their layout and their labels stay as they are: FIRE reads SELECT and loads, BOOST stays dark. The old list stays behind `?menu=list` until GAM-52 removes it.
 - It must work with every existing control: joystick, arrow keys and WASD, FIRE / <kbd>Space</kbd> / <kbd>Enter</kbd>, and tapping the screen.
 
@@ -145,7 +145,8 @@ Requirements 1 to 11 below are built: the console boots into a disk menu with fi
 | `src/console/pwa.ts` | Install button, offline-ready and update prompts |
 | `src/games/types.ts` | The plug-in contract: `GameDisk`, `GameRuntime`, `ConsoleAPI` |
 | `src/games/registry.ts` | Finds `*/disk.ts` (eager) and `*/game.ts` (lazy) |
-| `src/games/tunnel-raider/`, `dino-run/`, `invader-force/`, `i-invade/`, `bricks/` | The five games (`disk.ts`, `game.ts`, plus helpers) |
+| `src/games/tunnel-raider/`, `dino-run/`, `invader-force/`, `i-invade/`, `bricks/` | The five games; what each folder holds is under [Game folders](#game-folders) |
+| `src/games/README.md` | Making a game disk: every file, the artwork and images, and the steps for a new one |
 | `src/kit/play/` | The game kit's play layer: gameplay building blocks games import (`sprite`, `fx`, `walls`, `score`, `hud`, `round`, `pickups`, `collide`, `maths`, `jingles`, `controls`). Strict TypeScript (`tsconfig.kit.json`), tested in `tests/unit/kit/` against a fake `ConsoleAPI` |
 | `src/kit/platform/` | Console services as DOM-free rules the core wires to the page. `haptics.ts` (GAM-5) is the first: named buzz patterns, the SOUND-off rule and which buzz wins, with the core supplying the vibrate call; button slots, gamepad and pause are to follow. See the [Shared game kit spec](https://linear.app/stealth-company/document/shared-game-kit-spec-338041de484b) |
 | `public/` | Icons, favicon, share images (`og-image.png`, `og-<slug>.png` per game) |
@@ -171,6 +172,29 @@ Useful places:
   - **Disks stay light:** a `disk.ts` may import `kit/play/sprite` for its loading screen, but not the rest of the kit.
   - **Browser check:** a new game must be covered by the generic every-disk play-through in `tests/flow.cjs` (boot, load, play, game over, name entry or the table, G back to the menu, at the same three sizes). Any game-specific behaviour (weapons, scoring quirks) needs its own check in that file too.
 
+## Game folders
+
+Every game is one folder, `src/games/<folder>/`, plus a few files outside it. [`src/games/README.md`](src/games/README.md) explains each one, the artwork and images, and the steps for a new disk; keep the two in step. **Required** fails the build or the unit tests without it; **expected** is what every game has and review will ask for; **generated** comes from a tool and is never edited by hand.
+
+| File | Status | What it holds |
+| --- | --- | --- |
+| `src/games/<folder>/disk.ts` | required | `disk: GameDisk`: id, order, slug, `genre`, `players`, page title and description, title, file and size, `loadSecs` (≤ 5, unique) and `steps`, blurb, verb, `tap`, `controls`, `buttons`, game-over keys, `manual`, `strings`, `drawLoad`. Loaded up front, so it stays light (only `strings.ts`, `art.ts` and `kit/play/sprite`). |
+| `src/games/<folder>/game.ts` | required | Default export `create(api)` → `{ start, update, draw, onPalette?, debug? }`. Fetched while the drive reads. |
+| `src/games/<folder>/strings.ts` | expected | `strings: Strings` in `en`, `zh-hant`, `zh-hans`: the name, instructions, button labels and game-over words. Keys carry a game prefix (`dHow`); the table is shared and a test fails on clashing keys. |
+| `src/games/<folder>/art.ts` | expected | Original sprites and drawing helpers, drawn only through colour roles (`api.col(role)`). Used by both the loading screen and the game, so no game state. |
+| `src/games/<folder>/rules.ts` and similar | as needed | Pure rules (generation, weapons, scoring) with no canvas or `api`, unit-tested in `tests/unit/`. |
+| `src/games/<folder>/cover.ts` | required, generated | The launcher cover: 128 × 96, one palette index (0 to 3) per pixel, base64. Written by `make.cjs --covers` (or `--previews`, which also refreshes `preview.ts`) from the game's `play(…)` capture; `covers.test.ts` fails without it. A disk may also draw its own with `drawCover`. |
+| `src/games/<folder>/preview.ts` | optional, generated | A flipbook preview in the same format (`{ w, h, fps, frames }`), for disks without `drawPreview`: the cover's frame and seven more. Written by `make.cjs --previews` (with the cover, since `covers.test.ts` requires the first frame to match it). |
+| `public/og-<slug>.png` | required | Share image for the game's page, 1200 × 630, full colour, made by `tools/share-images/make.cjs`. Never drawn on the tube; kept out of the offline precache. |
+| `docs/screens/load-<short>.png`, `play-<short>.png` | expected | README screenshots, 720 px wide, made by the same script. |
+| `tools/share-images/make.cjs` | edit | An `IMAGES` entry, the capture steps (`shot('load-…')`, and `play('play-…', '<folder>')`, which also makes the cover) and the screenshot names for the game. |
+| `tests/flow.cjs` | edit | Checks for anything game-specific; the generic play-through covers the rest. |
+| `tests/unit/<game>*.test.ts` | as needed | Tests for the rules modules. `disks.test.ts` checks every disk's fields, strings, share image and imports. |
+| `tools/autopilot/<game>.mjs` | optional | A headless bot for tuning difficulty. |
+| `README.md`, `AGENTS.md` | edit | A Games table row and screenshots; a numbered requirement section here. |
+
+Launcher fields on every disk (GAM-32, see the [Web launcher build spec](https://linear.app/stealth-company/document/web-launcher-build-spec-gam-32-88a4c25140c8)): `genre` (upper case, ≤ 8 characters) and `players` (a unit test checks both), optional `year`, and optional `drawCover(api, x, y, w, h, t)` and `drawPreview(api, x, y, w, h, t)`. `cover` and `preview` are attached by the registry; never set them in `disk.ts`. The launcher tries `drawCover`, then `cover.ts`, then the title on a floppy label; for the preview, `drawPreview`, then `preview.ts`, then the cover held still. Covers are data painted with `fillRect` in the theme's colours, never `<img>`, so they work on every phosphor and in the native apps.
+
 ## How the console should keep behaving
 
 - **One monitor, many games.** The CRT set, the phosphor dial, the SOUND / GLOW / HOLD / FULL switches, POWER and RESET belong to the console and work the same in every game.
@@ -181,7 +205,7 @@ Useful places:
 - **Languages.** The page chrome and instructions come in English, Traditional Chinese and Simplified Chinese (`I18N`, chosen by `#en`, `#zh-hant` or `#zh-hans`). On-tube text stays English in the pixel font.
 - **High scores.** Local only, per device, one table per game (`gg-board-<id>`).
 - **Keyboard focus.** After a pointer click or tap on the set's buttons, the console drops focus (`blur`), so Space and Enter go to the game instead of pressing the button again (it used to switch the set off mid-jump). Keep that for any new button on the set.
-- **Share images and covers.** Every game page needs `public/og-<slug>.png` (a unit test checks). Re-run `tools/share-images/make.cjs` after visible changes to the set, the menu or a game, and add new games to its `IMAGES` list. Run it with `--covers` when a game's look changes, so its launcher cover follows; a new game adds its `play(…)` capture there too. Every disk also declares `genre` (upper case, at most 8 characters) and `players` for the launcher. Share images stay out of the offline precache.
+- **Share images and covers.** Every game page needs `public/og-<slug>.png` (a unit test checks). Re-run `tools/share-images/make.cjs` after visible changes to the set, the menu or a game, and add new games to its `IMAGES` list. Run it with `--previews` when a game's look changes, so its launcher cover and flipbook follow together; a new game adds its `play(…)` capture there too. Every disk also declares `genre` (upper case, at most 8 characters) and `players` for the launcher. Share images stay out of the offline precache.
 - **Analytics.** Vercel Web Analytics custom events through `track(name, data)`. The account is on Vercel Pro, which allows **at most two properties per event**, and values must be strings, numbers, booleans or null. When there are several games, put the game id in the event properties and drop a less useful one to stay within two. Keep the README's event table up to date.
 
 ## Working conventions
