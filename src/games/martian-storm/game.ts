@@ -4,11 +4,11 @@ import type { Fx, Round, Score } from '../../kit/play';
 import { drawHud, makeFx, makeRound, makeScore, overlaps, play } from '../../kit/play';
 import {
   BARB_H, BARB_W, SKIFF_H, SKIFF_MINI, SKIFF_W, SLAB_H, SLAB_W, SPORE_H, SPORE_W,
-  TOKEN_H, TOKEN_W, drawBarb, drawSkiff, drawSlab, drawSpore, drawToken,
+  TOKEN_H, TOKEN_W, drawBarb, drawPellet, drawSkiff, drawSlab, drawSpore, drawToken,
 } from './art';
 import {
   CLEAR_SECS, FLIGHT_TRIES, LEG_CLOCK, MAX_CRAFT, SHOT_COOLDOWN, SLAB_WAIT, TUCK_CAP, TUCK_SECS, TUCKS_START, TWIN_GAP,
-  beatFits, beatSchedule, clampSkiff, flightOffsets, flightVelocity, grantToken, insetBox, landingBonus,
+  beatFits, beatSchedule, clampSkiff, flightOffsets, flightVelocity, grantToken, insetBox, landingBonus, touchBox,
   offerToken, onSporeGone, pelletSpeed, scrollSpeed, shotMeetsSlab, shotsThisPress, skiffVelocity, spendTuck, tokenPhase,
 } from './rules';
 import type { Beat, FlightShape, FlightState, TokenPhase } from './rules';
@@ -64,6 +64,8 @@ let done = false;
 let side: 0 | 1 = 0;
 let landFrom = { x: 0, y: 0 };
 let legRng: () => number = () => 0;
+/** Set only by debug.untouchable, so a capture can run on without losing the skiff. */
+let untouchable = false;
 
 const CLEAR_JINGLE = { notes: [392, 523, 659], dur: 0.09, vol: 0.045, gap: 0.1 };
 const EXTRA_JINGLE = { notes: [523, 659, 784, 1046], dur: 0.08, vol: 0.045, gap: 0.08 };
@@ -90,7 +92,8 @@ function makeDust(rng: () => number) {
       y: api.HUD + rng() * span,
       w: dash ? 4 + Math.floor(rng() * 6) : 3,
       h: dash ? 1 : 2,
-      role: i % 2 === 0 ? 'dirt' : 'textDim',
+      // dim, so the dust never reads as a shot or a spore
+      role: 'dirt',
     });
   }
   dust = motes;
@@ -290,7 +293,7 @@ function strike(craft: Craft) {
 }
 
 function hurt() {
-  if (api.S.mode !== 'play' || settled) return;
+  if (api.S.mode !== 'play' || settled || untouchable) return;
   api.tone(440, 0.25, 0.05, -400);
   api.track('life_lost', { game: 'martian-storm', level: api.S.level });
   tuckLeft = 0;
@@ -403,7 +406,7 @@ function combat(dt: number) {
     for (const craft of enemies) {
       if (!craft.alive || craft.leaving) continue;
       const s = sizeOf(craft.kind);
-      if (overlaps(me, insetBox(craft.x, craft.y, s.w, s.h))) { hurt(); break; }
+      if (overlaps(me, touchBox(craft.x, craft.y, s.w, s.h))) { hurt(); break; }
     }
   }
   if (open()) {
@@ -450,10 +453,9 @@ function draw() {
     if (!craft.alive) continue;
     if (craft.kind === 'spore') drawSpore(api, craft.x, craft.y);
     else if (craft.kind === 'barb') drawBarb(api, craft.x, craft.y);
-    else drawSlab(api, craft.x, craft.y);
+    else drawSlab(api, craft.x, craft.y, craft.hits);
   }
-  g.fillStyle = api.col('textDim');
-  for (const pellet of pellets) g.fillRect(Math.round(pellet.x), Math.round(pellet.y), 2, 2);
+  for (const pellet of pellets) drawPellet(api, pellet.x, pellet.y, S.time);
   if (token) drawToken(api, token.x, token.y, tokenPhase(token.age));
   g.fillStyle = api.col('spark');
   for (const shot of shots) g.fillRect(Math.round(shot.x), Math.round(shot.y), 2, 4);
@@ -542,7 +544,13 @@ const create: CreateGame = a => {
   return {
     start, update, draw,
     debug: {
-      state: () => ({ x, y, vx, vy, tucks, twin, leg: a.S.level, lives: a.S.lives, shots: shots.length }),
+      state: () => ({
+        x, y, vx, vy, tucks, twin, leg: a.S.level, lives: a.S.lives, shots: shots.length,
+        /** craft wholly on screen below the HUD, so a capture can wait for something to look at */
+        craft: enemies.filter(e => e.alive && e.y > a.HUD + 4).length,
+      }),
+      /** Keep the skiff from being hit, for the share capture's flipbook. */
+      untouchable: (on: boolean) => { untouchable = on; },
       /** Hang an enemy pellet on the skiff so the next frame can overlap it. */
       pellet: () => { pellets.push({ x: x + SKIFF_W / 2 - 1, y: y + SKIFF_H / 2 - 1, vx: 0, vy: 8 }); },
     },
