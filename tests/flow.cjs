@@ -64,6 +64,25 @@ async function holdOnHide(p){
   const held = s => s.mode === 'paused' && s.led === 'true' && s.overlay;
   return { ok: held(hidden) && held(back) && resumed.mode === was && resumed.led === 'false' && sound.cut && sound.fresh, was, hidden, back, resumed, sound };
 }
+// Count columns observed during the sweep, rather than only shots that survive to one snapshot.
+async function clusterSweep(p){
+  const probe = await p.evaluateHandle(() => ({
+    result: new Promise((resolve, reject) => {
+      const seen = new Set(), end = __gg.S.time + 0.65, deadline = performance.now() + 5000;
+      function sample(){
+        for (const b of __gg.runtime.debug.state().bombs) if (b.k === 'cluster') seen.add(b.x);
+        if (__gg.S.time >= end) { resolve([...seen]); return; }
+        if (performance.now() >= deadline) { reject(new Error('Cluster sweep did not advance 0.65 simulation seconds')); return; }
+        requestAnimationFrame(sample);
+      }
+      sample();
+    }),
+  }));
+  try {
+    await p.keyboard.press('a');
+    return await probe.evaluate(p => p.result);
+  } finally { await probe.dispose(); }
+}
 // one pass per disk: boot is already done; choose it on the menu, play, qualify for the table, then G home
 async function playEveryDisk(p, tag){
   await backToMenu(p);
@@ -150,6 +169,8 @@ async function playEveryDisk(p, tag){
       if (!steerOk) errs.push(tag + ' bricks stick: ' + JSON.stringify({ steer, keyed }));
       console.log(tag, 'bricks stick', { stick: Math.round(steer.stick.speed), bow: steer.bow, key: Math.round(keyed.speed) });
       const caught = await p.evaluate(async () => {
+        // Keep capsule observations independent of an ember missing or spending Sear on the wall.
+        __gg.runtime.start(); __gg.S.mode = 'play'; __gg.S.modeT = 0;
         const dbg = __gg.runtime.debug;
         const baseW = dbg.state().bw;
         const take = (kind) => new Promise(resolve => {
@@ -293,6 +314,7 @@ for (const [tag, opts] of [['desk', { viewport: { width: 1280, height: 860 } }],
   await p.keyboard.press('g'); await p.waitForFunction(() => __gg.S.mode === 'menu', null, { timeout: 6000 });
   await p.evaluate(() => __gg.loadGame(__gg.DISKS.findIndex(d => d.id === 'invader')));
   await p.waitForFunction(() => __gg.S.mode === 'play', null, { timeout: 10000 });
+  await p.evaluate(() => { __gg.S.boostT = 60; });   // isolate weapon checks from unrelated enemy fire
   const leaflet = await p.evaluate(() => document.querySelector('#manual')?.textContent || '');
   const dbg = () => p.evaluate(() => { const F = __gg.runtime.debug.state(); return { weapon: F.weapon, speed: F.speed, shots: F.shots.length, beam: !!F.beam, capsules: F.capsules.length, blasts: F.blasts.length, alive: F.aliens.filter(a => a.alive).length }; });
   await p.keyboard.press('Space'); await p.waitForTimeout(150);
@@ -306,11 +328,11 @@ for (const [tag, opts] of [['desk', { viewport: { width: 1280, height: 860 } }],
   await p.evaluate(() => { __gg.runtime.debug.arm('speed'); __gg.runtime.debug.arm('speed'); __gg.runtime.debug.arm('pierce'); }); await p.waitForTimeout(500);
   await p.keyboard.press('Space'); await p.waitForTimeout(60);
   const pierce = await dbg(); await p.screenshot({ path: `${out}/${tag}-invader-pierce.png` });
-  await p.evaluate(() => { const F = __gg.runtime.debug.state(); __gg.S.boostT = 1; __gg.runtime.debug.clash(F.ox + 20, F.oy + 50); __gg.runtime.debug.blast(F.ox + 40, F.oy + 40); }); await p.waitForTimeout(100);
+  await p.evaluate(() => { const F = __gg.runtime.debug.state(); __gg.S.boostT = 60; __gg.runtime.debug.clash(F.ox + 20, F.oy + 50); __gg.runtime.debug.blast(F.ox + 40, F.oy + 40); }); await p.waitForTimeout(100);
   const blasts = await dbg(); await p.screenshot({ path: `${out}/${tag}-invader-blast.png` });
   await p.waitForTimeout(600);
   // Rapid keeps firing while Space is held down (no key repeat needed)
-  await p.evaluate(() => { __gg.runtime.debug.clearWalls(); __gg.S.boostT = 5; __gg.runtime.debug.arm('rapid'); });   // shield up: no walls to hide behind
+  await p.evaluate(() => { __gg.runtime.debug.clearWalls(); __gg.S.boostT = 60; __gg.runtime.debug.arm('rapid'); });   // shield up: no walls to hide behind
   await p.waitForFunction(() => !__gg.runtime.debug.state().shots.length, null, { timeout: 4000 });
   await p.keyboard.down('Space'); await p.waitForTimeout(300);
   const rapid = await dbg(); await p.keyboard.up('Space');
@@ -321,7 +343,7 @@ for (const [tag, opts] of [['desk', { viewport: { width: 1280, height: 860 } }],
   const shotCap = await p.evaluate(() => { const F = __gg.runtime.debug.state(); const near = F.blasts.filter(b => b.r >= 16 && Math.hypot(Math.max(F.px, Math.min(b.x, F.px + 13)) - b.x, Math.max(__gg.runtime.debug.cannonY(), Math.min(b.y, __gg.runtime.debug.cannonY() + 7)) - b.y) <= b.r).length; return { capsules: F.capsules.length, blasts: near, weapon: F.weapon, lives: __gg.S.lives, mode: __gg.S.mode }; });
   await p.screenshot({ path: `${out}/${tag}-invader-shotcap.png` });
   const capOk = shotCap.capsules === 0 && shotCap.blasts >= 1 && shotCap.weapon === 'rapid' && shotCap.lives === livesBefore && shotCap.mode === 'play';
-  await p.evaluate(() => { const F = __gg.runtime.debug.state(), a = F.aliens.filter(q => q.alive).sort((p, q) => q.r - p.r)[0]; F.px = F.ox + a.c * 16 - 1; __gg.runtime.debug.arm('nuke'); }); await p.waitForTimeout(200);   // under a live alien
+  await p.evaluate(() => { const F = __gg.runtime.debug.state(), a = F.aliens.filter(q => q.alive).sort((p, q) => q.r - p.r)[0]; __gg.S.boostT = 60; F.px = F.ox + a.c * 16 - 1; __gg.runtime.debug.arm('nuke'); }); await p.waitForTimeout(200);   // under a live alien
   const label = await p.evaluate(() => document.querySelector('#boostBtn span').textContent);
   await p.keyboard.press('Shift'); await p.waitForTimeout(200);
   const flying = await p.evaluate(() => !!__gg.runtime.debug.state().missile); await p.screenshot({ path: `${out}/${tag}-invader-missile.png` });
@@ -373,9 +395,24 @@ for (const [tag, opts] of [['desk', { viewport: { width: 1280, height: 860 } }],
     const after = await ii(), b = after.bombs[0], bay = k[0] === 'S' ? 'M' : k[0];
     bays[k] = !!b && b.bay === bay && Math.abs(b.x - before.bays[bay].x) <= 4;
     if (k === 'R' && b) {   // a second press on the same bay while its bomb is up does nothing, and the bomb is rising
-      await p.waitForTimeout(450); await p.keyboard.press('c'); await p.waitForTimeout(60);
-      const now = await ii();
-      one = now.bombs.filter(q => q.bay === 'R').length === 1; up = now.bombs.length > 0 && now.bombs[0].y < b.y;
+      const flight = await p.evaluateHandle(() => {
+        const bomb = __gg.runtime.debug.state().bombs.find(q => q.bay === 'R');
+        if (!bomb) throw new Error('Right-bay bomb disappeared before the repeat-press check');
+        // Give the original bomb clearance from walls and tanks while its real bay cooldown expires.
+        bomb.y = __gg.LH - 8;
+        return { bomb, y: bomb.y };
+      });
+      try {
+        await p.waitForFunction(() => __gg.runtime.debug.state().bayCD.R <= 0, null, { timeout: 2000 });
+        await p.keyboard.press('c');
+        const time = await p.evaluate(() => __gg.S.time);
+        await p.waitForFunction(t => __gg.S.time > t, time, { timeout: 2000 });
+        const checked = await flight.evaluate(({ bomb, y }) => {
+          const right = __gg.runtime.debug.state().bombs.filter(q => q.bay === 'R');
+          return { one: right.length === 1 && right[0] === bomb, up: bomb.y < y };
+        });
+        one = checked.one; up = checked.up;
+      } finally { await flight.dispose(); }
     }
   }
   // a tap on a pad key fires its bay and leaves the keyboard where it was (Space still bombs, nothing is focused)
@@ -386,8 +423,8 @@ for (const [tag, opts] of [['desk', { viewport: { width: 1280, height: 860 } }],
   const focus = await p.evaluate(() => document.activeElement?.id || '');
   // the cluster sweep arms a moment into the wave: shots leave several columns, not one bomb from the middle
   await p.waitForFunction(() => __gg.runtime.debug.state().clusterCD <= 0, null, { timeout: 8000 });
-  await clearSky(); await holdFire(); await p.keyboard.press('a'); await p.waitForTimeout(650);
-  const volley = (await ii()).bombs.filter(b => b.k === 'cluster').map(b => b.x);
+  await clearSky(); await holdFire();
+  const volley = await clusterSweep(p);
   const xs = [...new Set(volley)].sort((a, b) => a - b);
   const cluster = xs.length >= 3 && xs[xs.length - 1] - xs[0] >= 16;
   await p.evaluate(() => __gg.runtime.debug.stopCluster());
@@ -415,6 +452,9 @@ for (const [tag, opts] of [['desk', { viewport: { width: 1280, height: 860 } }],
   if (!iiOk) errs.push(tag + ' i invade pad: ' + JSON.stringify({ menuPad, gamePad, overPad, backPad, bays, one, up, tapPad, focus, cluster, volley, geom, meteorsDark, meteorsLit, meteors, landed, phosC }));
   console.log(tag, JSON.stringify({ iinvade: { gamePad, bays, one, up, tapPad, cluster, volley, layout: geom.layout, meteors, landed, phosC, overPad: overPad.pad } }));
   await playEveryDisk(p, tag);
+  await p.context().close();
 }
-console.log(errs.join('\n') || 'no errors'); await b.close();
+console.log(errs.join('\n') || 'no errors');
+if (errs.length) process.exitCode = 1;
+await b.close();
 })();

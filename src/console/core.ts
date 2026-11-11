@@ -1,3 +1,5 @@
+import { MODES, MODE_ORDER, LEGACY } from '../kit/platform/palettes';
+export { CGA_ROLES, MONO_ROLES, MODES, MODE_ORDER, LEGACY } from '../kit/platform/palettes';
 import { track as vaTrack } from '@vercel/analytics';
 import { DISKS, loadGameCode } from "../games/registry";
 import type { Dir, GameDisk, GameRuntime, ConsoleAPI } from "../games/types";
@@ -9,6 +11,16 @@ import { DEFAULTS, scoreKeys, SETTINGS_EVENT } from "./settings";
 import { COVER_W, COVER_H, encodeCover, shrink, cropTo } from "./launcher/cover";
 import { diskInfo, startConsole, drawBoot, updateBoot, enterMenu, updateMenu, drawMenu, menuKey, menuTap, updateLoad, drawLoad, pressSelect, loadGame, launcherTargets } from "./loader";
 import { bindHost } from "./host";
+import { makeScreen2D } from "./screen";
+import { makePixelFont } from "./font";
+import pixelFontURL from "../../tools/fonts/Silkscreen-Regular.ttf?url";
+import { layer, makeStamp } from "./layers";
+// Inputs and audio stay synchronous; only booting waits for the pinned drawing face.
+let powerQueued = false;
+const pixelFont = makePixelFont(pixelFontURL, {
+  ready(){ buildBurn(); if (powerQueued) powerOn(); },
+  failed(){ powerQueued = false; $('powerBtn').setAttribute('aria-checked', 'false'); showOverlay('font'); },
+});
 export let W = 15, H = 10;
 export const C = 32, CELL = 24, HUD = 20, K = CELL / C;   // game units per cell, low-res pixels per cell
 export let LW = W * CELL, LH = H * CELL + HUD;              // low-res frame buffer, like a 1980s graphics mode; resized to fit the screen
@@ -44,6 +56,7 @@ export const dust = document.createElement('canvas'); dust.width = 720; dust.hei
   d.moveTo(hx, hy); d.bezierCurveTo(hx + 20, hy + 30, hx - 15, hy + 50, hx + 12, hy + 80); d.stroke();   // a stray hair on the glass
 })();
 export function buildBurn(){
+  if (pixelFont.state !== 'ready') return;
   // years of the same title screen wore the phosphor: those spots now glow a little less
   burn = document.createElement('canvas'); burn.width = LW; burn.height = LH;
   const b = burn.getContext('2d')!;
@@ -55,40 +68,11 @@ export function buildBurn(){
 }
 
 /* ---------- display modes ---------- */
-export const CGA_ROLES = { bg:0, dirt:2, ds1:0, ds2:1, core:0, spawn:1, gemDark:0, gem:1, gemHi:3, bagDark:0, bag:3, bagBand:2, gold:3, goldDark:2, goldHi:1,
-  cart:3, cartShade:1, window:2, lamp:3, drill:1, drillLine:0, track:2, wheel:3, grub:1, grubBelly:3, borer:2, borerBelly:3, horn:3, eye:3, pupil:0,
-  scared:3, scaredBelly:1, scaredFlash:2, sun:3, sunRay:1, spark:3, sparkTrail:1, text:3, textDim:1, hud:1 };
-export const MONO_ROLES = { bg:0, dirt:1, ds1:0, ds2:2, core:0, spawn:1, gemDark:0, gem:2, gemHi:3, bagDark:0, bag:2, bagBand:1, gold:3, goldDark:1, goldHi:2,
-  cart:3, cartShade:2, window:1, lamp:3, drill:2, drillLine:0, track:1, wheel:2, grub:2, grubBelly:3, borer:3, borerBelly:2, horn:3, eye:3, pupil:0,
-  scared:1, scaredBelly:2, scaredFlash:3, sun:3, sunRay:2, spark:3, sparkTrail:2, text:3, textDim:2, hud:2 };
-/* half: seconds for the phosphor glow to halve after the beam moves on. bezel: highlight, body, shadow, plate ink, unlit glass */
-type PhosphorMode = {
-  name: string; pal: string[]; roles: Record<string, number>;
-  phos: number; phos2: number; half: number; bloom: number; mask: boolean; sweep?: number; bezel: string[];
-};
-export const MODES: Record<string, PhosphorMode> = {
-  greenP1:  { name:'GREEN P1', pal:['#140e09','#0f5a1d','#2fbf4b','#b2ffbd'], roles:MONO_ROLES, phos:3, phos2:2, half:0.045, bloom:0.36, mask:false,
-              bezel:['#43473f','#2c2f2a','#1d1f1b','#8f978a','#1a120c'] },
-  greenP39: { name:'LONG GREEN P39', pal:['#120c08','#0b4416','#33e05a','#c6ffd0'], roles:MONO_ROLES, phos:3, phos2:2, half:0.17, bloom:0.44, mask:false,
-              bezel:['#3a3f3a','#252925','#171a17','#86907f','#180f0a'] },
-  /* the radar tube: a fast blue-white flash where the beam writes, then a long yellow-green afterglow. sweep: the beam is visible, top to bottom */
-  radarP7:  { name:'RADAR P7', pal:['#0b0d0b','#3d5a0e','#a9d22c','#e4f1ff'], roles:MONO_ROLES, phos:2, phos2:3, half:0.32, bloom:0.46, mask:false, sweep:2.4,
-              bezel:['#3b3f40','#26292a','#181a1b','#8c949a','#0e100f'] },
-  amberP3:  { name:'AMBER P3', pal:['#170d07','#6b3900','#de8c12','#ffd890'], roles:MONO_ROLES, phos:3, phos2:2, half:0.065, bloom:0.4, mask:false,
-              bezel:['#403a33','#2a2622','#1b1815','#9a8f80','#1c120b'] },
-  whiteP4:  { name:'PAPER WHITE P4', pal:['#15100c','#3a404e','#9aa3b6','#eef2ff'], roles:MONO_ROLES, phos:3, phos2:2, half:0.02, bloom:0.28, mask:false,
-              bezel:['#e3dcc8','#cfc6b0','#a9a08a','#5a5446','#1b140f'] },
-  cga1:     { name:'CGA COLOUR 1', pal:['#140e0a','#55ffff','#ff55ff','#ffffff'], roles:CGA_ROLES, phos:1, phos2:2, half:0.012, bloom:0.3, mask:true,
-              bezel:['#ddd4bd','#c9bfa6','#a39a82','#574f40','#1a120d'] },
-  cga0:     { name:'CGA COLOUR 0', pal:['#140e0a','#55ff55','#ff5555','#ffff55'], roles:CGA_ROLES, phos:1, phos2:3, half:0.012, bloom:0.3, mask:true,
-              bezel:['#ddd4bd','#c9bfa6','#a39a82','#574f40','#1a120d'] },
-};
-export const MODE_ORDER = Object.keys(MODES);
-export const LEGACY: Record<string, string> = { green:'greenP1', amber:'amberP3', white:'whiteP4' };
 export let modeKey = 'greenP1', fx = true;
 try { let m = localStorage.getItem('eb-mode'); if (m) m = LEGACY[m] || m; if (m && MODES[m]) modeKey = m; fx = localStorage.getItem('eb-fx') !== '0'; } catch (e) {}
 export let M = MODES[modeKey] as (typeof MODES)[keyof typeof MODES], palRGB: number[][] = [];
-export const col = (role: string) => M.pal[M.roles[role]];
+// Older disks name an unmapped role; Canvas kept the previous ink for that assignment.
+export const col = (role: string) => M.pal[M.roles[role]] ?? String(lx.fillStyle);
 document.querySelectorAll('#modes [data-mode]').forEach(b => {
   const el = b as HTMLElement;
   (el.querySelector('.sw4') as HTMLElement).innerHTML = MODES[el.dataset.mode!].pal.map(c => `<i style="background:${c}"></i>`).join('');
@@ -436,7 +420,7 @@ export const overlay = $('overlay');
 /* ---------- languages: English (default) and Traditional Chinese, carried in the link as #en / #zh-hant ---------- */
 import { I18N, LANGS, LANG_ALIAS, hashLang, kb } from './i18n';
 export { I18N, LANGS, LANG_ALIAS, hashLang, kb };
-export let lang = 'en', ovKind: 'title' | 'paused' | 'over' = 'title', ovVars: any = {};
+export let lang = 'en', ovKind: 'title' | 'paused' | 'over' | 'font' = 'title', ovVars: any = {};
 Btn.setTranslator(k => I18N[lang][k] ?? k);
 /* ---------- instructions: the console's while the menu is up, the loaded game's otherwise (rendered by the React leaflet) ---------- */
 export let manCtx = 'console';
@@ -451,10 +435,10 @@ export function setGame(d: GameDisk | null){
 export function setBoostLabel(key: string | null){ Btn.setButtons({ boost: key ? { label: key } : null }); }
 export function renderOverlay(){
   const T = I18N[lang];
-  const v = { title: ['TUNNEL RAIDER', T.titleText, T.start], paused: [T.paused, T.pausedText, T.resume], over: [T[game.overKey], T.overText(ovVars.n, ovVars.s), T[game.againKey]] }[ovKind];
+  const v = { font: [T.fontError, T.fontErrorText, T.fontRetry], title: ['TUNNEL RAIDER', T.titleText, T.start], paused: [T.paused, T.pausedText, T.resume], over: [T[game.overKey], T.overText(ovVars.n, ovVars.s), T[game.againKey]] }[ovKind];
   $('ovTitle').textContent = v[0]; $('ovText').innerHTML = v[1]; $('ovBtn').innerHTML = '<span class="blink">▶</span> ' + v[2];
 }
-export function showOverlay(kind: 'title' | 'paused' | 'over', vars: any = {}){ ovKind = kind; ovVars = vars; renderOverlay(); overlay.hidden = false; }
+export function showOverlay(kind: 'title' | 'paused' | 'over' | 'font', vars: any = {}){ ovKind = kind; ovVars = vars; renderOverlay(); overlay.hidden = false; }
 export function applyLang(l: string | null | undefined, writeHash: boolean){
   lang = l && LANGS.includes(l) ? l : 'en';
   const htmlLang: Record<string, string> = { en: 'en', 'zh-hant': 'zh-Hant', 'zh-hans': 'zh-Hans' };
@@ -528,7 +512,7 @@ $('fullBtn').addEventListener('click', () => setFull(!full));
 document.querySelectorAll('.rocker').forEach(b => b.addEventListener('pointerdown', () => { ensureAudio(); if (ac) tone(1700, 0.012, 0.05); buzz('tick'); }));   // switch clack
 $('exitFull').addEventListener('click', () => setFull(false));
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && full) setFull(false); });
-$('ovBtn').addEventListener('click', () => { ensureAudio(); if (S.mode === 'paused') togglePause(); else startGame(); });
+$('ovBtn').addEventListener('click', () => { ensureAudio(); if (pixelFont.state === 'failed') powerOn(); else if (S.mode === 'paused') togglePause(); else startGame(); });
 $('pauseBtn').addEventListener('click', () => togglePause());
 $('muteBtn').addEventListener('click', () => toggleMute());
 $('fxBtn').addEventListener('click', () => setFx(!fx));
@@ -588,6 +572,7 @@ export let tvOn = false, offT = 99;   // the set starts switched off
 S.mode = 'off';
 document.documentElement.setAttribute('data-off', ''); document.documentElement.setAttribute('data-fresh', '');
 export function powerOff(){
+  powerQueued = false;
   document.documentElement.setAttribute('data-off', '');
   tvOn = false; offT = 0; S.mode = 'off'; held.length = 0; stickDir = null; Btn.releaseAll();
   overlay.hidden = true; saveBest();
@@ -596,6 +581,12 @@ export function powerOff(){
   if (ac && !muted) { tone(90, 0.09, 0.06, -40); tone(12000, 0.5, 0.008, -11000); }
 }
 export function powerOn(){
+  if (pixelFont.state !== 'ready') {
+    powerQueued = true; $('powerBtn').setAttribute('aria-checked', 'true');
+    if (pixelFont.state === 'failed') { overlay.hidden = true; pixelFont.load(); }
+    return;
+  }
+  powerQueued = false;
   document.documentElement.removeAttribute('data-off');
   tvOn = true; warmT = 0; age.dg = 0; accReset = true;
   $('powerBtn').setAttribute('aria-checked', 'true'); document.documentElement.removeAttribute('data-fresh');
@@ -603,13 +594,13 @@ export function powerOn(){
   track('power_on', { theme: modeKey, layout: layoutName() });
   startConsole('cold');
 }
-export function flipPower(){ ensureAudio(); buzz('tick'); if (ac) { tone(700, 0.03, 0.06, -200); tone(1400, 0.015, 0.05, 0, 0.06); } if (tvOn) powerOff(); else powerOn(); }
+export function flipPower(){ ensureAudio(); buzz('tick'); if (ac) { tone(700, 0.03, 0.06, -200); tone(1400, 0.015, 0.05, 0, 0.06); } if (tvOn || powerQueued) powerOff(); else powerOn(); }
 // tap to toggle, or flick the knob: right for on, left for off
 { let sx: number | null = null, flicked = false;
   $('powerBtn').addEventListener('pointerdown', e => { sx = e.clientX; flicked = false; });
   $('powerBtn').addEventListener('pointerup', e => {
     if (sx === null) return; const dx = e.clientX - sx; sx = null;
-    if (Math.abs(dx) > 12) { flicked = true; if ((dx > 0) !== tvOn) flipPower(); }
+    if (Math.abs(dx) > 12) { flicked = true; if ((dx > 0) !== (tvOn || powerQueued)) flipPower(); }
   });
   $('powerBtn').addEventListener('click', () => { if (flicked) { flicked = false; return; } flipPower(); });
 }
@@ -1049,8 +1040,7 @@ setMode(modeKey); setFx(fx);
 sizeTv();
 fitGrid();
 resize();
-buildBurn();
-if (document.fonts && document.fonts.load) document.fonts.load('16px Silkscreen').then(buildBurn).catch(()=>{});
+pixelFont.load();
 requestAnimationFrame(frame);
 
 /* setters for state the game modules change (an imported binding can't be assigned from outside its module) */
@@ -1081,8 +1071,11 @@ function captureCover(){
 }
 
 /* ---------- the API games get (see src/games/types.ts): live getters over the console's state ---------- */
+const screen = makeScreen2D(g, () => M);
+const stamp = makeStamp(g, () => palRGB);
 export const api: ConsoleAPI = {
-  get g(){ return g; }, get LW(){ return LW; }, get LH(){ return LH; }, get HUD(){ return HUD; },
+  layer, stamp,
+  get g(){ return screen; }, get LW(){ return LW; }, get LH(){ return LH; }, get HUD(){ return HUD; },
   get W(){ return W; }, get H(){ return H; }, get C(){ return C; }, get K(){ return K; },
   fitGrid, col, get palRGB(){ return palRGB; }, get palette(){ return M; },
   txt, banner, rr, poly, circ, idx, inb, DIRS,
