@@ -5,6 +5,7 @@
 // Targets (GAM-24): idle is repelled in about 90 s and never lands; spam clears the early waves, then thins out;
 // timing clears wave 1 in about 20 to 40 s and is repelled around wave 5 to 8.
 import { rolldown } from 'rolldown';
+import { decodeSave, encodeSave } from '../../src/console/program/save-json.mjs';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -25,10 +26,17 @@ function play(bot, layout){
   const [LW, LH] = SIZES[layout];
   const S = { mode: 'ready', modeT: 1.2, time: 0, score: 0, level: 1, lives: 3, nextLife: 0 };
   const btn = {}, B = id => (btn[id] ??= { label: id, enabled: true, queued: false, held: false });
-  let finished = false;
+  let finished = false, saved = null, frames = 0;
   const noop = () => {}, g = new Proxy({}, { get: () => noop, set: () => true });
   const api = {
     g, LW, LH, HUD, S, best: 0, col: r => r, txt: noop, banner: noop, tone: noop, buzz: noop, fitGrid: noop, track: noop, saveBest: noop,
+    loadSave() { try { return decodeSave(saved); } catch (_) { return null; } },
+    saveProgress(data) {
+      try { const text = encodeSave(data); if (text === null) return false; saved = text; return true; }
+      catch (_) { return false; }
+    },
+    clearSave() { saved = null; },
+    now() { return 1700000000 + frames * DT; },
     finishGame: () => { finished = true; }, held: [], stickDir: null, tapQueued: false, tapHeld: false, tapX: 0, clearTap: noop,
     button: B, clearButton: id => { B(id).queued = false; },
     setButtons: p => { for (const k in p) if (p[k]) Object.assign(B(k), p[k]); },
@@ -40,7 +48,7 @@ function play(bot, layout){
   const prev = new Map(), waves = [];
   let wave = 1, waveT = 0, logged = false;
   while (!finished && S.time < LIMIT) {
-    S.time += DT; waveT += DT;
+    S.time += DT; frames += 1; waveT += DT;
     const F = rt.debug.state();
     if (S.mode === 'play' && bot !== 'idle' && F.bays) {
       for (const [k, id] of [['L', 'pad1'], ['M', 'pad2'], ['R', 'pad3']]) {

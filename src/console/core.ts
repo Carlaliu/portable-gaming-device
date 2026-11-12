@@ -12,6 +12,7 @@ import { COVER_W, COVER_H, encodeCover, shrink, cropTo } from "./launcher/cover"
 import { diskInfo, startConsole, drawBoot, updateBoot, updateMenu, drawMenu, menuKey, menuTap, updateLoad, drawLoad, pressSelect, loadGame, launcherTargets } from "./program/loader";
 import { bindHost } from "./program/host";
 import { scores, loadScores, saveBest, qualifies, forgetScores } from "./program/scores";
+import { loadSave, saveProgress, clearSave, now as unixNow } from "./program/progress";
 import { NKEYS, keyRects, startEntry, enterOver, entryKey, entryTap, entryPick, updateEntry, updateOver, drawEntry, drawBoard } from "./program/entry";
 import { makeWebPlatform } from "./web/platform";
 import { ac, muted, setMuted, ensureAudio, hush, tone, audioOut } from "./web/audio";
@@ -929,7 +930,7 @@ export const api: ConsoleAPI = {
   clearFire: clearFireQueued, clearBoost: clearBoostQueued, clearTap, setBoostLabel,
   tone, buzz,
   get best(){ return scores.best; }, set best(v: number){ scores.best = v; },
-  saveBest, finishGame, track, mulberry32,
+  saveBest, finishGame, loadSave, saveProgress, clearSave, now: unixNow, track, mulberry32,
   diskInfo: (y, p, t, d) => diskInfo(y, p, t, d),
 };
 

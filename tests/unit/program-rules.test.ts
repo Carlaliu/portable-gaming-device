@@ -7,11 +7,11 @@ import { fileURLToPath } from 'node:url';
 
 const PROGRAM = join(dirname(fileURLToPath(import.meta.url)), '../../src/console/program');
 const walk = (d: string): string[] => readdirSync(d).flatMap(f => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
-const files = walk(PROGRAM).filter(f => f.endsWith('.ts'));
+const files = walk(PROGRAM).filter(f => f.endsWith('.ts') || f.endsWith('.mjs'));
 /** Source with comments taken out, so a comment may still say what the web does. */
 const code = (f: string) => readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
-const BANNED = ['window', 'document', 'navigator', 'localStorage', 'sessionStorage', 'location', 'performance', 'AudioContext',
+const BANNED = ['window', 'document', 'navigator', 'localStorage', 'sessionStorage', 'location', 'performance', 'Date', 'AudioContext',
   'setTimeout', 'setInterval', 'requestAnimationFrame', 'addEventListener', 'fetch', 'HTMLElement', 'KeyboardEvent', 'PointerEvent'];
 
 describe('the console program\'s rules', () => {

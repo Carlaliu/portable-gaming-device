@@ -2,7 +2,7 @@
 
 How to make a game for the **PGD-01 Portable Gaming Device**: what the console gives a game, what a game gives the console, and what a game can and can't control. It is written for people and for AI harnesses that generate games, so every rule is spelt out rather than left to the examples.
 
-A PGD game is a **disk**: a small label (`disk.ts`) the console shows on its menu and loading screen, and the game itself (`game.ts`), which the console fetches while the drive reads. The console owns the monitor, the switches, the sounds of the drive, the high-score tables and every button on the set. The game owns the playfield. The two talk only through one object, the [`ConsoleAPI`](#the-consoleapi-at-a-glance), defined in [`src/games/types.ts`](../src/games/types.ts), which is the source of truth for every type named here.
+A PGD game is a **disk**: a small label (`disk.ts`) the console shows on its menu and loading screen, and the game itself (`game.ts`), which the console fetches while the drive reads. The console owns the monitor, the switches, the sounds of the drive, the high-score tables, each disk's saved progress and every button on the set. The game owns the playfield. The two talk only through one object, the [`ConsoleAPI`](#the-consoleapi-at-a-glance), defined in [`src/games/types.ts`](../src/games/types.ts), which is the source of truth for every type named here.
 
 Other pages:
 
@@ -190,7 +190,7 @@ The console and the game take turns, and `api.S.mode` says whose turn it is.
 | Field | Who writes it | Meaning |
 | --- | --- | --- |
 | `mode`, `modeT` | game in its modes, console otherwise | The mode above, and a countdown in seconds that the game runs down |
-| `time` | console | Seconds since the page started, for blinking and animation |
+| `time` | console | Seconds since the page started, for blinking and animation. A reload starts it again; real time between visits is `api.now()` |
 | `score`, `level`, `lives`, `nextLife` | game (console resets them) | Shown on the game-over card and used for the high-score table |
 | `charge`, `boost`, `boostT` | game, optional | The FIRE button looks cooled while `charge < 1`; the BOOST button shows a fill of `boost` (0 to 1) and lights while `boostT > 0`. Web only; set them in `start()` if you use them |
 
@@ -407,6 +407,29 @@ Nothing happens with SOUND off or where the device can't vibrate, and a short bu
 - **Tables** are per disk and per device: `gg-best-<id>` and `gg-board-<id>` in local storage, ten entries, names up to nine letters. A game never reads or writes them directly.
 - **Analytics:** the console already records `game_load`, `game_start`, `game_over`, `new_best` and `high_score` with the game's id. For anything else, `api.track(name, data)` with at most two properties, one of them the game id. It does nothing in the native apps.
 
+### Progress on this device
+
+A disk may keep **one JSON value** on this device, for a pet or any game that has to remember more than the best score. It sits beside `api.best` and the high-score table. Clearing high scores leaves it in place. The console does not write it for you: call `saveProgress` when the value changes (POWER, RESET and SELECT save the best score, and they leave progress to the disk).
+
+- **`api.loadSave()`** returns the value stored for this disk, or `null` when nothing is stored, the text is not JSON, or it is over the cap. It does not throw.
+- **`api.saveProgress(data)`** stores `data` for this disk and returns `true`. `data` is plain JSON: objects, arrays, strings, finite numbers, booleans and `null`. It returns `false` when there is no disk, the value is not plain JSON (a cycle, a `Date`, a function, `undefined`, `NaN`, `Infinity`) or the text is over the cap, and the previous value stays. It does not throw. `api.g.save()` and `api.g.restore()` are the picture's transform stack.
+- **`api.clearSave()`** removes this disk's value. The best score and the table stay.
+- The key is `gg-save-<id>`, in the same store as `gg-best-<id>` and `gg-board-<id>` (local storage on the web, the platform store in the native apps). One value per disk, on this device. It is there with no network, including for a disk inserted into an embedded console. Where the browser refuses the write, it is ignored, the same as a score.
+- The cap is **4096 UTF-8 bytes** of JSON text. A few kilobytes is the room a pet's state needs; a larger value is refused.
+
+```ts
+const saved = api.loadSave();
+const pet = saved && typeof saved === 'object' && !Array.isArray(saved) ? saved as { hunger: number; fedAt: number } : { hunger: 0, fedAt: api.now() };
+const away = Math.max(0, api.now() - pet.fedAt);
+pet.hunger = Math.min(1, pet.hunger + away / 3600);
+pet.fedAt = api.now();
+api.saveProgress(pet);
+```
+
+### The host clock
+
+`api.S.time` counts seconds since the page started, so a reload sets it back to zero. **`api.now()`** is Unix time in seconds from the device clock (a fraction is allowed), and it is always a finite number. Stamp a save with it and subtract it from a later `api.now()` to see how much real time has passed. Treat a negative gap (the player set the clock back) as zero in the game. The headless runner's clock starts at a fixed Unix time and advances one frame at a time, so a recording stays repeatable.
+
 ## 8. The disk: every field
 
 `disk.ts` exports `disk: GameDisk`. It is loaded with every other disk before anything is played, so keep it light: it may import its `strings.ts`, `art.ts` and `kit/play/sprite`, nothing heavier.
@@ -418,7 +441,7 @@ Nothing happens with SOUND off or where the device can't vibrate, and a short bu
 | `contract` | `1` | The `ConsoleAPI` version the disk was written for |
 | `version` | whole number ≥ 1 | Raise it whenever the disk's built code changes (the disk-file lock checks) |
 | `rating` | `'4+'` | The lowest App Store age band it suits; only `4+` for now |
-| `id` | string | Short and unique. Storage keys and analytics use it, so never change it once players have scores |
+| `id` | string | Short and unique. Storage keys and analytics use it, so never change it once players have scores or saved progress |
 | `order` | number | Position in the launcher, and the <kbd>1</kbd>–<kbd>9</kbd> key that loads it. Unique; new disks go after the last |
 | `slug` | kebab-case | Unique. Makes the game's own page, `/<slug>` |
 | `page` | `{ title, description }` | English title and description for that page and its link preview |
@@ -505,7 +528,7 @@ Games may import the play kit from `src/kit/play` (`import { makeRound } from '.
 A disk is a guest that has to run in the browser, in the native apps' script engines and in a headless test runner. So:
 
 - **Only the `api`.** Never import from `src/console` and never touch the page. Everything comes through `ConsoleAPI`. If a game needs something new, the change is to add it to `ConsoleAPI` (`types.ts`) and to `api` in `core.ts`, for every game.
-- **No browser globals.** No `window`, `self`, `document`, `navigator`, `localStorage`, `sessionStorage`, `location`, `setTimeout` or other timers, `requestAnimationFrame`, `fetch`, `performance`, `Date` or dynamic `import()`. Time comes from `dt`; storage from `api.best`. `tests/unit/kit/contract.test.ts` checks.
+- **No browser globals.** No `window`, `self`, `document`, `navigator`, `localStorage`, `sessionStorage`, `location`, `setTimeout` or other timers, `requestAnimationFrame`, `fetch`, `performance`, `Date` or dynamic `import()`. Frame time comes from `dt`. Real time away from the page comes from `api.now()`. Stored progress comes from `api.loadSave()`, `api.saveProgress()` and `api.clearSave()`; the best score comes from `api.best`. `tests/unit/kit/contract.test.ts` checks the ban.
 - **`Math.random` is fine.** The host supplies it and seeds it for repeatable runs. `api.mulberry32(seed)` gives a separate seeded generator.
 - **No side effects on load.** Importing a disk's modules does nothing. Allocate state and layers in `create()` or `start()`.
 - **Only `Screen2D` drawing** (above), in palette colours, with Silkscreen at 8 or 16 px.
@@ -564,6 +587,7 @@ What matters for a game:
 - **Same `id`, new disk.** Inserting a disk whose `id` is already there replaces it, so a harness can iterate on one game. If the old one is loading or playing, the console stops it and goes back to the menu (or straight into the new one with `boot`).
 - **Errors come back to the host.** `onDiskError({ game, stage, message })` reports a disk that fails to insert (`'insert'`, including a `drawCover` or `drawPreview` that throws, after which the launcher shows the floppy label), to load (`'load'`: a bad `game.js`, or a `drawLoad` or `create` that throws) or while it plays (`'run'`). A `load` or `run` failure also sends the console back to the menu, so check those errors in a harness's loop.
 - **Who may insert disks:** the same origin, localhost, and the origins in the PGD build's `PUBLIC_PGD_EMBED_ORIGINS`. An inserted disk runs code on PGD's own site, which is why [section 10](#10-rules-every-disk-follows) matters most here.
+- **Progress stays in the frame.** An inserted disk uses `loadSave`, `saveProgress`, `clearSave` and `now` on the same `ConsoleAPI` as a built-in disk. The value is kept on the console's origin under `gg-save-<id>`, and it is still there offline. The bridge's messages stay the commands and state listed in `react/index.d.ts`.
 
 ## 14. Checklist for AI harnesses
 
@@ -576,7 +600,7 @@ Before handing a disk to a player, check that it:
 5. Moves `ready` → `play` itself (or uses `makeRound`), and calls `api.finishGame()` exactly once.
 6. Clears every `queued` press it acts on, and clears FIRE during `ready`.
 7. Draws only with `api.col(role)` colours and `Screen2D` members, text only through `api.txt`, and the whole frame in every `draw()`.
-8. Uses no browser globals, timers or `Date`, and does nothing when its modules load.
+8. Uses no browser globals, timers or `Date` (the clock is `api.now()`, progress is `api.saveProgress`), and does nothing when its modules load.
 9. Plays with touch alone: a stick game needs nothing but the stick and its lit buttons; a pad game maps the pad slots it reads.
 10. Runs headless to `over` with `tools/conformance/run.mjs` and a script that plays it, with no exceptions.
 
@@ -592,7 +616,7 @@ Before handing a disk to a player, check that it:
 | Images, strokes, gradients, transparency | Filled shapes and palette-index layers | `Screen2D` |
 | More than four colours on screen | Four, chosen by the player's dial | By design |
 | Two players at once | One set of controls | Not planned |
-| Saving progress other than the best score | `api.best` and the table only | `ConsoleAPI` |
+| Progress kept off this device, or a save over 4096 bytes | One JSON value per disk on this device, `gg-save-<id>`, through `loadSave` / `saveProgress` / `clearSave` (see [§7](#7-score-lives-and-the-end-of-a-game)). There is no account and no sync | `ConsoleAPI` |
 | Packing a `.pgdisk` from outside the repo | Folders under `src/games/` only, with a generated cover | `tools/disks/` |
 | Loading a game into a running console from another app | In review ([GAM-64](https://linear.app/stealth-company/issue/GAM-64/use-the-console-from-other-react-apps)) | [Section 13](#13-hosting-pgd-in-another-app) |
 
@@ -611,6 +635,7 @@ Every member, grouped. Values are live: read them when you need them.
 | Taps | `tapQueued`, `tapHeld`, `tapX`, `clearTap()` |
 | Sound and touch | `tone(freq, dur, vol?, slide?, delay?)`, `buzz(h)` |
 | Scores | `best`, `saveBest()`, `finishGame()` |
+| Progress | `loadSave()`, `saveProgress(data)`, `clearSave()`, `now()` |
 | Odds and ends | `track(name, data?)`, `mulberry32(seed)`, `diskInfo(y, p, t, disk)` |
 
 And the game gives back, from `create(api)`: `start()`, `update(dt)`, `draw()`, and optionally `onPalette()` and `debug`.

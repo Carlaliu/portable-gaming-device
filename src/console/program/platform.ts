@@ -18,6 +18,9 @@ export interface PlatformStore {
 export interface Platform {
   /** A monotonic clock in milliseconds. Boots and loads run on it, so a slow frame rate can't stretch them. */
   now(): number;
+  /** Wall-clock Unix time in seconds, with a fraction. Disks read it as `api.now()` so a save can measure
+      real time away from the page. This is the device clock, separate from the monotonic `now()`. */
+  unix(): number;
   readonly store: PlatformStore;
 
   /** Make sure sound can play (the web needs a user gesture to start its audio). Safe to call often. */

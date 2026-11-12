@@ -8,9 +8,11 @@ describe('settings reset', () => {
   });
   it('clears only the scores and the saved name, including the standalone Tunnel Raider\'s', () => {
     const keys = ['gg-best-tunnel', 'gg-board-invader-force', 'gg-best-dino', 'gg-name', 'eb-best', 'tr-board', 'tr-name',
-      'eb-mode', 'eb-fx', 'tr-lang', 'gg-something', 'gg-board-', 'other'];
+      'gg-save-tunnel', 'gg-save-invader-force', 'eb-mode', 'eb-fx', 'tr-lang', 'gg-something', 'gg-board-', 'other'];
     expect(scoreKeys(keys)).toEqual(['gg-best-tunnel', 'gg-board-invader-force', 'gg-best-dino', 'gg-name', 'eb-best', 'tr-board', 'tr-name']);
     expect(isScoreKey('eb-mode')).toBe(false);
+    expect(isScoreKey('gg-save-tunnel')).toBe(false);
+    expect(isScoreKey('gg-save-invader-force')).toBe(false);
   });
   it('has its words in every language', () => {
     for (const l of LANGS) for (const k of ['setH', 'setReset', 'setResetQ', 'setResetYes', 'setResetDone', 'setScores', 'setScoresQ', 'setScoresYes', 'setScoresDone', 'setNo'])

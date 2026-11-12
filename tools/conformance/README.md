@@ -43,6 +43,7 @@ A command is an array whose first element is its name:
 - `txt` carries `[text, x, y, paletteIndex, alignment, size]`, positioned with the web text helper's top baseline. Text itself remains a higher-level command because `fillText` is outside Screen2D. `rr`, `poly`, `circ` and `banner` expand into their ordinary path, rectangle and text commands.
 - `layer` carries `[id, width, height, base64]`. Decoding base64 yields one palette index per byte, in row order. The host emits a definition on the first stamp and again whenever those pixels change. `stamp` carries `[id, x, y]`, referring to the latest definition. Keep layers between frames.
 - `tone` and `buzz` retain their API arguments. `buttons` carries the slot patch. `best` records saving the best score. `finishGame` marks the end of game play. `track` does nothing, matching the mobile contract.
+- `loadSave`, `saveProgress` and `clearSave` keep one JSON value for that disk in memory for the run, with the same 4096-byte cap as the console. `now` returns a fixed Unix time plus the frames so far, in seconds. None of these are written into the stream, so a recording stays free of wall-clock timestamps.
 
 The existing `rockjaw` sprite role has no palette mapping. Both web and headless hosts retain the previous ink when a legacy disk asks for an unmapped role, preserving the web picture; they do not assign an undefined colour to Screen2D.
 

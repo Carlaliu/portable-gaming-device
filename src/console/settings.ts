@@ -5,7 +5,8 @@
 export const DEFAULTS = { mode: 'greenP1', fx: true, sound: true, hold: false, full: false, lang: 'en' } as const;
 
 /** A storage key that holds a score or the last name typed: every game's best and table (`gg-best-<id>`,
-    `gg-board-<id>`), the name (`gg-name`), and the standalone Tunnel Raider's, which the console still reads. */
+    `gg-board-<id>`), the name (`gg-name`), and the standalone Tunnel Raider's, which the console still reads.
+    A disk's progress (`gg-save-<id>`) is kept when scores are cleared. */
 export const isScoreKey = (k: string) =>
   /^gg-(best|board)-[\w-]+$/.test(k) || ['gg-name', 'eb-best', 'tr-board', 'tr-name'].includes(k);
 

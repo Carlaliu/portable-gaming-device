@@ -28,6 +28,7 @@ export function makeWebPlatform(deps: WebPlatformDeps): Platform {
   const $ = (id: string) => document.getElementById(id);
   return {
     now: () => performance.now(),
+    unix: () => Date.now() / 1000,
     store: webStore,
     wakeAudio: audio.ensureAudio,
     get sounding(){ return !!audio.ac && !audio.muted; },

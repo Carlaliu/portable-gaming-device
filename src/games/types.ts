@@ -141,6 +141,21 @@ export interface ConsoleAPI {
   /** The game is over: the console saves the best, then runs name entry or the attract loop. */
   finishGame(): void;
 
+  /* ---- progress on this device, beside the high-score table ---- */
+  /** This disk's saved progress, or null when nothing is stored, the text is not JSON, or it is over the cap.
+      Never throws. The slot is `gg-save-<id>`, and it is not the best score. */
+  loadSave(): unknown;
+  /** Store one plain JSON value for this disk (objects, arrays, strings, finite numbers, booleans and null).
+      Returns false when there is no disk, the value is not plain JSON, or the text is over 4096 UTF-8 bytes,
+      and leaves the previous value in place. Never throws. `g.save()` is the picture's transform stack. */
+  saveProgress(data: unknown): boolean;
+  /** Remove this disk's progress. The best score and the high-score table stay. */
+  clearSave(): void;
+  /** Unix time in seconds from the device clock, with a fraction allowed. Always a finite number.
+      `S.time` counts seconds since the page started and goes back to zero on a reload; this is the clock
+      a save uses to measure real time away. */
+  now(): number;
+
   /* ---- odds and ends ---- */
   /** Vercel Analytics custom event (at most two properties); a no-op on mobile hosts. */
   track(name: string, data?: Record<string, string | number | boolean | null>): void;
