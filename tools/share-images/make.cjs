@@ -46,6 +46,9 @@ const IMAGES = [
   { out: 'og-bricks.png', tv: 'play-bricks.png', h1: 'Bricks', sub: '<small>on the PGD-01 Portable Gaming Device</small>',
     tag: 'Serve an ember, bounce it off one bat, and clear the wall.',
     disks: disk('c2', 'Bricks', 'BRICKS.EXE · 18K', 40, -4, 2) + disk('c4', 'Dino Run', 'DINORUN.COM', 190, 7, 1) },
+  { out: 'og-blockwell.png', tv: 'play-blockwell.png', h1: 'Blockwell', sub: '<small>on the PGD-01 Portable Gaming Device</small>',
+    tag: 'Drop blocks into a ten-wide well, turn them, and clear every full row.',
+    disks: disk('c2', 'Blockwell', 'WELL.COM · 12K', 40, -4, 2) + disk('c4', 'Bricks', 'BRICKS.EXE', 190, 7, 1) },
   { out: 'og-martian-storm.png', tv: 'play-storm.png', h1: 'Martian Storm', sub: '<small>on the PGD-01 Portable Gaming Device</small>',
     tag: 'Fly a skiff through a Martian dust storm, stack up guns, tuck past the shots and land each leg.',
     disks: disk('c3', 'Martian Storm', 'STORM.EXE · 30K', 40, -4, 2) + disk('c4', 'Bricks', 'BRICKS.EXE', 190, 7, 1) },
@@ -170,6 +173,13 @@ const IMAGES = [
   await p.waitForTimeout(500);
   await p.keyboard.up('Space');
   await p.evaluate(() => { __gg.S.mode = 'paused'; }); await p.waitForTimeout(250); await play('play-storm.png', 'martian-storm');
+  // Blockwell: its loading screen, then a block on the way down the well
+  await p.keyboard.press('KeyG'); await until(() => __gg.S.mode === 'menu');
+  await p.evaluate(() => { __gg.loadGame(__gg.DISKS.findIndex(d => d.id === 'well')); __gg.S.loadLen = 4.2; });
+  await until(() => __gg.S.loadT > 0.8); await shot('load-blockwell.png');
+  await until(() => __gg.S.mode === 'play');
+  await p.waitForTimeout(700);
+  await p.evaluate(() => { __gg.S.mode = 'paused'; }); await p.waitForTimeout(250); await play('play-blockwell.png', 'blockwell');
   if (!SHARE) { await b.close(); return; }
   /* ---- 2. lay out and render the share images ---- */
   const r = await (await b.newContext({ viewport: { width: 1200, height: 630 } })).newPage();
@@ -183,7 +193,7 @@ const IMAGES = [
   /* ---- 3. README screenshots, 720 px wide ---- */
   fs.mkdirSync(SCREENS, { recursive: true });
   const s = await (await b.newContext({ viewport: { width: 1280, height: 860 } })).newPage();
-  for (const n of ['menu', 'load-tunnel', 'play-tunnel', 'load-dino', 'play-dino', 'load-invader', 'play-invader', 'load-iinvade', 'play-iinvade', 'load-bricks', 'play-bricks', 'load-storm', 'play-storm']) {
+  for (const n of ['menu', 'load-tunnel', 'play-tunnel', 'load-dino', 'play-dino', 'load-invader', 'play-invader', 'load-iinvade', 'play-iinvade', 'load-bricks', 'play-bricks', 'load-storm', 'play-storm', 'load-blockwell', 'play-blockwell']) {
     const html = path.join(TMP, n + '.html');
     fs.writeFileSync(html, `<body style="margin:0;background:transparent"><img src="${n}.png" style="width:720px;display:block"></body>`);
     await s.goto('file://' + html); await s.waitForTimeout(150);

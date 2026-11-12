@@ -1,4 +1,8 @@
 {
+  "well": {
+    "version": 1,
+    "sha256": "c6353a63d45a344a7019781d8805ef946e12f5df16a471a1aad9976c069af7fb"
+  },
   "bricks": {
     "version": 1,
     "sha256": "a510a0a4a5f25568561e4c8142cb688b99e7f2592a865077c4aff0a3515db279"
