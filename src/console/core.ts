@@ -107,9 +107,14 @@ export function updateDial(i: number){
   document.querySelectorAll('#dialLabels .dl').forEach((b, j) => b.setAttribute('aria-current', String(j === i)));
 }
 /* ---------- analytics: Vercel Web Analytics custom events, at most two properties each (the Pro plan limit) ---------- */
-export function track(name: string, data?: Record<string, string | number | boolean | null>){
+type TrackData = Record<string, string | number | boolean | null>;
+const trackSubs = new Set<(name: string, data?: TrackData) => void>();
+export function track(name: string, data?: TrackData){
   try { vaTrack(name, data); } catch (_) {}
+  trackSubs.forEach(f => { try { f(name, data); } catch (_) {} });
 }
+/** Hear every tracked event as it happens (the embed bridge passes them to the page around the console). */
+export function onTrack(fn: (name: string, data?: TrackData) => void){ trackSubs.add(fn); return () => { trackSubs.delete(fn); }; }
 export const layoutName = () => document.documentElement.getAttribute('data-layout') || 'desk';
 export function turnTo(i: number){
   i = Math.max(0, Math.min(MODE_ORDER.length - 1, i));
@@ -178,11 +183,23 @@ export const DIRS = { up:{dx:0,dy:-1}, down:{dx:0,dy:1}, left:{dx:-1,dy:0}, righ
 export let game: GameDisk = DISKS[0];
 /* the loaded game's code: fetched while its disk loads, then kept (one runtime per game) */
 export let runtime: GameRuntime | null = null;
-const runtimes: Record<string, GameRuntime> = {};
-export const runtimeReady = (id: string) => !!runtimes[id];
-export function fetchRuntime(d: GameDisk){
-  if (runtimes[d.id]) return Promise.resolve(runtimes[d.id]);
-  return loadGameCode(d.id).then(create => (runtimes[d.id] = runtimes[d.id] || create(api)));
+// a Map, so a disk id can never collide with an Object.prototype name (`constructor`); a disk replaced while its code was
+// still on the way bumps its generation, so the old code is dropped and the new disk's fetched instead
+const runtimes = new Map<string, GameRuntime>();
+const generations = new Map<string, number>();
+export const runtimeReady = (id: string) => runtimes.has(id);
+/** Drop a game's runtime, so its next load makes a fresh one (a disk replaced at run time, or one that crashed). */
+export function forgetRuntime(id: string){ runtimes.delete(id); generations.set(id, (generations.get(id) || 0) + 1); }
+export function fetchRuntime(d: GameDisk): Promise<GameRuntime> {
+  const have = runtimes.get(d.id);
+  if (have) return Promise.resolve(have);
+  const gen = generations.get(d.id) || 0;
+  return loadGameCode(d.id).then(create => {
+    if ((generations.get(d.id) || 0) !== gen) return fetchRuntime(d);   // replaced while loading: fetch the new one
+    let rt = runtimes.get(d.id);
+    if (!rt) { rt = create(api); runtimes.set(d.id, rt); }
+    return rt;
+  });
 }
 
 /* ---------- audio: PC-speaker square waves and the floppy drive, in web/audio.ts ---------- */
@@ -504,7 +521,9 @@ export function startGame(){
   S.level = 1; S.score = 0; S.lives = 3; S.nextLife = 20000; S.streak = 0; S.bestAtStart = scores.best; S.showBoard = false; S.boardHi = -1;
   S.parts.length = 0; S.pops.length = 0;
   setGame(game);
-  runtime = runtimes[game.id];
+  const rt = runtimes.get(game.id);
+  if (!rt) { startConsole('warm'); return; }   // dropped since its load finished (its disk was replaced): back to the menu
+  runtime = rt;
   runtime.start();
   track('game_start', { game: game.id, layout: layoutName() });
   overlay.hidden = true; clearInput();
