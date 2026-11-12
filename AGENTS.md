@@ -26,7 +26,7 @@ Every change goes through a pull request, unless the owner explicitly says to pu
 
 **PGD-01 Portable Gaming Device** (PGD for short; called Game Guy 3000 Deluxe until 11 November 2026) is a browser game console: one old CRT monitor that boots, shows a game loader, and runs several games. It starts as a copy of [Tunnel Raider](https://github.com/wiiiimm/tunnel-raider), which is still its own repo and site (`tunnel-raider.wiiiimm.codes`); changes made here do not flow back to it.
 
-Requirements 1 to 12 below are built: the console boots into a disk menu with six games, Tunnel Raider, Dino Run, Invader Force, I Invade, Bricks and Martian Storm, and each game has its own page. The SELECT button is built but **hidden for now** (owner's call: with the menu one RESET away it duplicates RESET). The <kbd>G</kbd> key still does SELECT.
+Requirements 1 to 12 below are built: the console boots into a disk menu with seven games, Tunnel Raider, Dino Run, Invader Force, I Invade, Bricks, Martian Storm and Blockwell, and each game has its own page. The SELECT button is built but **hidden for now** (owner's call: with the menu one RESET away it duplicates RESET). The <kbd>G</kbd> key still does SELECT.
 
 ## Requirements (from the owner)
 
@@ -131,6 +131,13 @@ Requirements 1 to 12 below are built: the console boots into a disk menu with si
 - Load is 3.8 seconds. Rules live in `src/games/martian-storm/rules.ts` (unit-tested). The leaflet's about line is the only place the reference shooter is named.
 - Original skiff, spores, barbs, slabs, art, sound and code. Escorts, bosses (the bomb already does them damage), a longer route and an 8-way stick are later work.
 
+### 13. Blockwell
+
+- The seventh disk: an original falling-block well. The name on the menu, the page and the tube is Blockwell. The well is ten squares wide. Slide a block, turn it, and set it down. A full row clears and the pile above falls. Every ten rows the drop gets quicker. One block at a time. When the next block cannot appear, the well is full.
+- FIRE (or up, or a tap) turns the block. BOOST drops it straight down. Down is a soft drop. Left and right slide it. The square does not turn. A refused turn tries a short kick off the wall before it stays put.
+- Scoring: one row 100, two 300, three 500, four 800, each times the level. A soft drop scores 1 a row, a hard drop 2. Level 1 is the first; the level goes up every ten rows.
+- Load is 1.5 seconds. Rules live in `src/games/blockwell/rules.ts` (unit-tested). The leaflet's about line is the only place Tetris is named. Tetris is a trademark of its owner. The blocks, the well, the art, the sound and the code are original, and the terminal game vitetris is not bundled.
+
 ## Stack (decided)
 
 **Astro + React components + a plain TypeScript console engine on Canvas 2D.** No game engine: the picture comes from the console's own four-colour quantiser and phosphor pass, which an engine's renderer would fight.
@@ -168,7 +175,7 @@ Requirements 1 to 12 below are built: the console boots into a disk menu with si
 | `src/console/screen.ts`, `layers.ts` | Browser adapters for the disk's drawing surface and palette-index layers; the CRT pipeline keeps its full Canvas context |
 | `src/kit/platform/font.ts`, `palettes.ts` | Shared Silkscreen advances and the seven phosphor themes, used by web and headless hosts; `tools/fonts/metrics.py` regenerates the font table |
 | `src/games/registry.ts` | Finds `*/disk.ts` (eager) and `*/game.ts` (lazy) |
-| `src/games/tunnel-raider/`, `dino-run/`, `invader-force/`, `i-invade/`, `bricks/`, `martian-storm/` | The six games; what each folder holds is under [Game folders](#game-folders) |
+| `src/games/tunnel-raider/`, `dino-run/`, `invader-force/`, `i-invade/`, `bricks/`, `martian-storm/`, `blockwell/` | The seven games; what each folder holds is under [Game folders](#game-folders) |
 | `docs/developer-guide.md` | The game developer guide (GAM-65): the game loop, `ConsoleAPI`, input, buttons and their layout, sound, scores, every disk field, the kit, `.pgdisk`, hosting, and what a game can't do yet. Keep it in step with `types.ts` |
 | `src/games/README.md` | Making a game disk in this repo: every file, the artwork and images, and the steps for a new one |
 | `src/kit/play/` | The game kit's play layer: gameplay building blocks games import (`sprite`, `fx`, `walls`, `score`, `hud`, `round`, `pickups`, `collide`, `maths`, `jingles`, `controls`). Tested in `tests/unit/kit/` against a fake `ConsoleAPI` |
@@ -198,7 +205,7 @@ Useful places:
   - **No side effects:** loading a game's modules must have none; allocate state and layers when `create()` or `start()` runs.
   - **No browser globals:** disks and `src/kit/play` never use `window`, `self`, `document`, `navigator`, `localStorage`, `sessionStorage`, `location`, timers, animation frames, `fetch`, `performance`, `Date` or dynamic `import()`. `Math.random` is allowed and the host can seed it. The browser's `registry.ts` is host code, outside disks.
   - **Drawing contract:** `api.g` is only `Screen2D`, never a full Canvas context. Use current palette strings for `fillStyle`, Silkscreen at 8 or 16 px for `font`, and `api.txt` for text. `measureText` uses the shared font table. Use `api.layer(w, h)` (`{ w, h, px: Uint8Array }`, indices 0 to 3 in row order) and `api.stamp(layer, x, y)` for cached pictures; index 0 is opaque too. Palette colour changes follow when stamped; a changed role mapping may rebuild indices in `onPalette()` to preserve the web appearance.
-  - **Disk revisions:** every disk declares `contract: 1`, a positive whole-number `version`, and `rating` (all six currently `4+`). Disks keep running as JavaScript on both hosts. When a change alters a disk's built file (its own code, or kit and strings it bundles), raise its `version` and run `node tools/disks/build.mjs --lock`; `tests/unit/disk-files.test.ts` fails until `tools/disks/versions.json` matches.
+  - **Disk revisions:** every disk declares `contract: 1`, a positive whole-number `version`, and `rating` (all seven currently `4+`). Disks keep running as JavaScript on both hosts. When a change alters a disk's built file (its own code, or kit and strings it bundles), raise its `version` and run `node tools/disks/build.mjs --lock`; `tests/unit/disk-files.test.ts` fails until `tools/disks/versions.json` matches.
   - **Add to the API, not the import list:** if a game needs something new from the console, add it to `ConsoleAPI` and to `api` in `core.ts`.
   - **The kit is the exception:** games may import `src/kit/play/` (`import { makeFx } from '../../kit/play'`) and types from `src/kit/platform/`. The kit follows the same rules as a game: no `src/console` imports, nothing on load, no module-level state (factories hold it), and anything new from the console goes through `ConsoleAPI`. `tests/unit/kit/rules.test.ts` checks.
   - **Disks stay light:** a `disk.ts` may import `kit/play/sprite` for its loading screen, but not the rest of the kit.
@@ -289,4 +296,4 @@ Release PRs (`release: vX.Y.Z`) and bot PRs (ImgBot) need no issue; the release 
 ## Open questions
 
 - The site address for the console. Then set `site` in `astro.config.mjs`, absolute share-image URLs and a canonical link in `ConsoleLayout.astro`.
-- Which games join after Martian Storm.
+- Which games join after Blockwell.

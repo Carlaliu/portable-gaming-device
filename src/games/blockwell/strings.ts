@@ -1,0 +1,58 @@
+/* Blockwell's words. The tube stays in English; these are the leaflet and the buttons. */
+import type { Strings } from '../types';
+
+const kb = (k: string) => `<kbd>${k}</kbd>`;
+
+export const strings: Strings = {
+  en: {
+    bwName: 'Blockwell',
+    bwHow: 'Blocks drop into a well ten squares wide. Slide a block, turn it, and set it down. A full row vanishes and the pile above it falls. Every ten rows the drop gets quicker. When a new block has nowhere to appear, the well is full.',
+    bwS1: 'One row', bwS1v: '100 × level',
+    bwS2: 'Two rows', bwS2v: '300 × level',
+    bwS3: 'Three rows', bwS3v: '500 × level',
+    bwS4: 'Four rows', bwS4v: '800 × level',
+    bwS5: 'Soft drop', bwS5v: '1 a row',
+    bwS6: 'Hard drop', bwS6v: '2 a row',
+    bwK1: 'Move', bwK1v: 'Stick or arrow keys',
+    bwK2: 'Turn', bwK2v: `${kb('↑')} or FIRE, or tap the screen`,
+    bwK3: 'Soft drop', bwK3v: kb('↓'),
+    bwK4: 'Hard drop', bwK4v: `${kb('Shift')} or BOOST`,
+    bwCred: 'A falling-block well in the spirit of Tetris (1984). Tetris is a trademark of its owner. The blocks, the well, the art, the sound and the code here are original.',
+    bwOver: 'WELL FULL', bwAgain: 'DROP AGAIN',
+    bwTurn: 'TURN', bwDrop: 'DROP',
+  },
+  'zh-hant': {
+    bwName: 'Blockwell 落井',
+    bwHow: '方塊掉進一口十格寬的井。左右移動、轉動，再把它放下。一整列滿了就會消失，上面的方塊跟著落下。每消十列，下落就快一點。新方塊沒有地方出現時，這口井就滿了。',
+    bwS1: '一列', bwS1v: '100 × 等級',
+    bwS2: '兩列', bwS2v: '300 × 等級',
+    bwS3: '三列', bwS3v: '500 × 等級',
+    bwS4: '四列', bwS4v: '800 × 等級',
+    bwS5: '慢慢落下', bwS5v: '每格 1 分',
+    bwS6: '直接落下', bwS6v: '每格 2 分',
+    bwK1: '移動', bwK1v: '搖桿或方向鍵',
+    bwK2: '轉動', bwK2v: `${kb('↑')} 或 FIRE，或輕觸畫面`,
+    bwK3: '慢慢落下', bwK3v: kb('↓'),
+    bwK4: '直接落下', bwK4v: `${kb('Shift')} 或 BOOST`,
+    bwCred: '向 Tetris（1984）那種落下方塊的玩法致敬。Tetris 是其權利人的商標。這裡的方塊、井、美術、聲音和程式碼均為原創。',
+    bwOver: '井滿了', bwAgain: '再落一次',
+    bwTurn: '轉動', bwDrop: '落下',
+  },
+  'zh-hans': {
+    bwName: 'Blockwell 落井',
+    bwHow: '方块掉进一口十格宽的井。左右移动、转动，再把它放下。一整列满了就会消失，上面的方块跟着落下。每消十列，下落就快一点。新方块没有地方出现时，这口井就满了。',
+    bwS1: '一列', bwS1v: '100 × 等级',
+    bwS2: '两列', bwS2v: '300 × 等级',
+    bwS3: '三列', bwS3v: '500 × 等级',
+    bwS4: '四列', bwS4v: '800 × 等级',
+    bwS5: '慢慢落下', bwS5v: '每格 1 分',
+    bwS6: '直接落下', bwS6v: '每格 2 分',
+    bwK1: '移动', bwK1v: '摇杆或方向键',
+    bwK2: '转动', bwK2v: `${kb('↑')} 或 FIRE，或轻触画面`,
+    bwK3: '慢慢落下', bwK3v: kb('↓'),
+    bwK4: '直接落下', bwK4v: `${kb('Shift')} 或 BOOST`,
+    bwCred: '向 Tetris（1984）那种下落方块的玩法致敬。Tetris 是其权利人的商标。这里的方块、井、美术、声音和代码均为原创。',
+    bwOver: '井满了', bwAgain: '再落一次',
+    bwTurn: '转动', bwDrop: '落下',
+  },
+};
