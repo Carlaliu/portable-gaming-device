@@ -1,4 +1,8 @@
+import { decodeSave, encodeSave } from '../../src/console/program/save-json.mjs';
+
 const DT = 1 / 60, HUD = 20, CELL = 24, C = 32;
+/** A fixed Unix epoch. `api.now()` starts here and advances with the frame clock, so a run stays repeatable. */
+const EPOCH = 1700000000;
 const DIRS = { up: { dx: 0, dy: -1 }, down: { dx: 0, dy: 1 }, left: { dx: -1, dy: 0 }, right: { dx: 1, dy: 0 } };
 const SLOTS = ['fire', 'boost', 'fireL', 'fireR', 'pad1', 'pad2', 'pad3', 'pad4', 'pad5', 'pad6'];
 const METHODS = ['fillRect', 'beginPath', 'rect', 'moveTo', 'lineTo', 'arc', 'arcTo', 'closePath', 'fill', 'clip', 'translate', 'rotate', 'scale', 'setTransform'];
@@ -49,6 +53,8 @@ export function makeHost({ disk, script, palette, measurePixelText }) {
     charge: 1, streak: 0, lastGem: -9, player: null, distT: 0, boost: 1, boostT: 0, bestAtStart: 0 };
   let commands = [], fillStyle = palette.pal[0], font = '8px Silkscreen, "Courier New", monospace';
   let held = [], stickDir = null, tapDown = false, tapQueued = false, tapHeld = false, tapX = 0, nextLayer = 0;
+  let frames = 0, saved = null;
+  const id = typeof disk.id === 'string' ? disk.id : '';
   const stack = [], layers = new WeakMap(), buttons = {};
   const record = (name, ...args) => commands.push([name, ...args]);
   const colourIndex = colour => { const n = palette.pal.indexOf(colour); if (n < 0) throw new Error(`Colour outside palette: ${colour}`); return n; };
@@ -104,6 +110,18 @@ export function makeHost({ disk, script, palette, measurePixelText }) {
     setBoostLabel(label) { api.setButtons({ boost: label === null ? null : { label } }); },
     tone: (...args) => record('tone', ...args), buzz: pattern => record('buzz', pattern), track() {},
     saveBest() { record('best', api.best); }, finishGame() { S.mode = 'over'; api.saveBest(); record('finishGame'); },
+    loadSave() { try { return id ? decodeSave(saved) : null; } catch (_) { return null; } },
+    saveProgress(data) {
+      try {
+        if (!id) return false;
+        const text = encodeSave(data);
+        if (text === null) return false;
+        saved = text;
+        return true;
+      } catch (_) { return false; }
+    },
+    clearSave() { saved = null; },
+    now() { const t = EPOCH + frames * DT; return Number.isFinite(t) ? t : 0; },
     mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; },
     diskInfo() { throw new Error('Loading screens need a system-disk host; this runner records game play'); },
   };
@@ -125,6 +143,7 @@ export function makeHost({ disk, script, palette, measurePixelText }) {
     },
     step(runtime) {
       S.time += DT;
+      frames += 1;
       // The console owns Tunnel Raider's legacy particles and score pop-ups.
       for (let i = S.parts.length - 1; i >= 0; i--) { const q = S.parts[i]; q.life -= DT; q.vy += 220 * DT; q.x += q.vx * DT; q.y += q.vy * DT; if (q.life <= 0) S.parts.splice(i, 1); }
       for (let i = S.pops.length - 1; i >= 0; i--) { const q = S.pops[i]; q.life -= DT; q.y -= 24 * DT; if (q.life <= 0) S.pops.splice(i, 1); }

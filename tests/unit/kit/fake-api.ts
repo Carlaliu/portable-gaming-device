@@ -1,11 +1,13 @@
 /* A stand-in ConsoleAPI for kit tests: records drawing, text, tones and cleared presses, and holds a plain S. */
 import type { ButtonState, ConsoleAPI, Dir } from '../../../src/games/types';
+import { decodeSave, encodeSave } from '../../../src/console/program/save-json.mjs';
 
 export type Rect = { x: number; y: number; w: number; h: number; style: string };
 export type Text = { s: string; x: number; y: number; role?: string; align?: string };
 
 export function fakeApi(over: { LW?: number; LH?: number; HUD?: number } = {}){
   const rects: Rect[] = [], texts: Text[] = [], tones: number[][] = [], cleared: string[] = [], buzzes: unknown[] = [];
+  let saved: string | null = null, unix = 1_700_000_000;
   const buttons: Record<string, ButtonState> = {};
   const g = { fillStyle: '', fillRect(x: number, y: number, w: number, h: number){ rects.push({ x, y, w, h, style: String(this.fillStyle) }); } };
   const S = { mode: 'play', modeT: 0, time: 0, score: 0, level: 1, lives: 3, nextLife: 20000 };
@@ -17,6 +19,10 @@ export function fakeApi(over: { LW?: number; LH?: number; HUD?: number } = {}){
     tone: (...a: number[]) => { tones.push(a); },
     buzz: (h: unknown) => { buzzes.push(h); },
     finishGame: () => { state.finished++; },
+    loadSave: () => decodeSave(saved),
+    saveProgress: (data: unknown) => { const text = encodeSave(data); if (text === null) return false; saved = text; return true; },
+    clearSave: () => { saved = null; },
+    now: () => unix,
     get held(){ return state.held; },
     get stickDir(){ return state.stickDir; },
     get tapQueued(){ return state.tapQueued; },

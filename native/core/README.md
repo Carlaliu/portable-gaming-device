@@ -14,7 +14,7 @@ What is here so far:
 | `include/pgd/text.hpp`, `src/text.cpp` | `measureText` and `fillText` for the disk contract's text: UTF-8 in, the shared advances, left, centre or right alignment, and Chromium's placement with `textBaseline = 'top'` (the top snaps up to a whole pixel, a half-pixel pen lights both columns). A missing character advances like the web's and draws nothing |
 | `tests/` | Unit tests with a tiny built-in harness (`check.hpp`) |
 
-Still to come: the synth, the command decoder and the script host (GAM-36).
+Still to come: the synth, the command decoder and the script host (GAM-36). The script host binds the console program's `Platform`, including `store` (so a disk's `gg-save-<id>` progress persists on the device) and `unix()` (wall-clock seconds, which disks read as `api.now()`).
 
 ## Build and test
 

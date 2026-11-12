@@ -11,6 +11,7 @@ function fakePlatform(over: Partial<Platform> = {}){
   let awake = false, clock = 1000;
   const P: Platform = {
     now: () => clock,
+    unix: () => 1_700_000_000,
     store: { get: k => stored[k] ?? null, set: (k, v) => { stored[k] = v; }, remove: k => { delete stored[k]; }, keys: () => Object.keys(stored) },
     wakeAudio(){ awake = true; },
     get sounding(){ return awake; },

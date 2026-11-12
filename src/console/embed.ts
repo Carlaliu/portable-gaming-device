@@ -5,7 +5,9 @@
    The protocol's types are in react/index.d.ts, shared with the <PGDConsole> component.
    Messages go only to the page around the frame: to the origin in `?origin=`, else the referrer's; commands are
    taken only from that window and origin. Inserting a disk runs its code on this site, so only the same origin,
-   localhost and the origins in PUBLIC_PGD_EMBED_ORIGINS (set when the site is built) may do it. */
+   localhost and the origins in PUBLIC_PGD_EMBED_ORIGINS (set when the site is built) may do it.
+   A disk's progress (`loadSave` / `saveProgress` / `clearSave`) and `now()` live on this frame's ConsoleAPI.
+   The value stays in this origin's store under `gg-save-<id>`. The bridge does not carry it. */
 import type { PGDCommand, PGDMessage, PGDState, PGDLang, PGDPhosphor, PGDDisk, PGDEventData } from '../../react/index';
 import type { CreateGame, GameDisk } from '../games/types';
 import { DISKS, addDisk, isAdded } from '../games/registry';
