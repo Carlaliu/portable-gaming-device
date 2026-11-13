@@ -41,7 +41,7 @@ It exports `disk: GameDisk` (see [`types.ts`](types.ts) for every field):
 | Field | What it is |
 | --- | --- |
 | `id`, `order`, `slug` | Storage and analytics id, place on the menu, and the page path. All three are unique. |
-| `contract`, `version`, `rating` | `contract: 1`; a positive whole-number revision, increased whenever the disk's built file changes (then run `node tools/disks/build.mjs --lock`; see `tools/disks/README.md`); the lowest App Store age band it suits (all six currently `4+`). |
+| `contract`, `version`, `rating` | `contract: 1`; a positive whole-number revision, increased whenever the disk's built file changes (then run `node tools/disks/build.mjs --lock`; see `tools/disks/README.md`); the lowest App Store age band it suits (all seven currently `4+`). |
 | `page` | English title and description for the game's page and its link preview. |
 | `title`, `nameKey` | The title in the pixel font, and the I18N key for it in the leaflet. |
 | `file`, `size` | The file the drive "reads" (`DINORUN.COM`) and its size in bytes. |
@@ -154,7 +154,7 @@ The share image and screenshots are never drawn by hand. To make them for a new 
 ## A new disk, step by step
 
 1. File the Linear issue and branch from it (see `AGENTS.md`).
-2. Make `src/games/<folder>/` with `disk.ts`, `game.ts`, `strings.ts` and `art.ts`. Pick a unique `id`, `slug` and `loadSecs`, and give it the next `order` after the existing disks (7 today). `make.cjs`, `tests/flow.cjs` and `tests/pages.cjs` load some disks by menu position (`loadGame(1)` is Dino Run), so a disk slotted in between moves them; if you must, update those indices in the same pull request.
+2. Make `src/games/<folder>/` with `disk.ts`, `game.ts`, `strings.ts` and `art.ts`. Pick a unique `id`, `slug` and `loadSecs`, and give it the next `order` after the existing disks (8 today). `make.cjs`, `tests/flow.cjs` and `tests/pages.cjs` load some disks by menu position (`loadGame(1)` is Dino Run), so a disk slotted in between moves them; if you must, update those indices in the same pull request.
 3. Write the instructions in all three languages.
 4. Draw the loading screen and check it on all four phosphors and every layout (desk, console, phone and tablet, portrait and landscape).
 5. Split testable rules into their own modules and test them.
